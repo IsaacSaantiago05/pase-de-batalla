@@ -1,0 +1,9 @@
+﻿;extension_dir = "./"
+;extension_dir = "ext"
+;   Be sure to appropriately set the extension_dir directive.
+extension=curl
+extension=fileinfo
+extension=mbstring
+extension=openssl
+extension=pdo_mysql
+;sqlite3.extension_dir =

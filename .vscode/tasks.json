@@ -1,0 +1,233 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "env-check",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"where node && node -v && where npm && npm -v && where php && php -v && where composer && composer -V && where mysql && mysql --version"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "env-locate",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"if exist \"C:\\Program Files\\nodejs\\node.exe\" (echo NODE_OK & dir \"C:\\Program Files\\nodejs\") else (echo NODE_MISSING) & if exist \"C:\\Program Files\\PHP\\php.exe\" (echo PHP_OK & dir \"C:\\Program Files\\PHP\") else (echo PHP_MISSING) & if exist \"C:\\ProgramData\\ComposerSetup\\bin\\composer.bat\" (echo COMPOSER_OK & dir \"C:\\ProgramData\\ComposerSetup\\bin\") else (echo COMPOSER_MISSING) & for /d %D in (\"C:\\Program Files\\MySQL\\MySQL Server *\") do @if exist \"%D\\bin\\mysql.exe\" echo MYSQL_OK_%D"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "env-dump-log",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"(echo ===PATH=== && echo %PATH% && echo ===WHERE=== && where node && where npm && where php && where composer && where mysql && echo ===DIR_NODE=== && dir \"C:\\Program Files\\nodejs\" && echo ===DIR_PHP=== && dir \"C:\\Program Files\\PHP\" && echo ===DIR_COMPOSER=== && dir \"C:\\ProgramData\\ComposerSetup\\bin\" && echo ===MYSQL_BIN=== && for /d %D in (\"C:\\Program Files\\MySQL\\MySQL Server *\") do @if exist \"%D\\bin\\mysql.exe\" echo %D\\bin\\mysql.exe) > env-check.log 2>&1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "env-dump-ps",
+			"type": "shell",
+			"command": "$out='env-check.txt'; \"===WHERE===\" | Out-File $out; where.exe node 2>&1 | Out-File $out -Append; where.exe npm 2>&1 | Out-File $out -Append; where.exe php 2>&1 | Out-File $out -Append; where.exe composer 2>&1 | Out-File $out -Append; where.exe mysql 2>&1 | Out-File $out -Append; \"===NODE_DIR===\" | Out-File $out -Append; Get-ChildItem 'C:\\Program Files\\nodejs' -ErrorAction SilentlyContinue | Select-Object Name,FullName | Out-File $out -Append; \"===PHP_DIR===\" | Out-File $out -Append; Get-ChildItem 'C:\\Program Files\\PHP' -ErrorAction SilentlyContinue | Select-Object Name,FullName | Out-File $out -Append; \"===COMPOSER_DIR===\" | Out-File $out -Append; Get-ChildItem 'C:\\ProgramData\\ComposerSetup\\bin' -ErrorAction SilentlyContinue | Select-Object Name,FullName | Out-File $out -Append; \"===MYSQL_BIN===\" | Out-File $out -Append; Get-ChildItem 'C:\\Program Files\\MySQL' -Recurse -Filter mysql.exe -ErrorAction SilentlyContinue | Select-Object -First 5 -ExpandProperty FullName | Out-File $out -Append",
+			"isBackground": false
+		},
+		{
+			"label": "env-dump-min",
+			"type": "shell",
+			"command": "where.exe node 2>&1 | Out-File env-check.txt; where.exe npm 2>&1 | Out-File env-check.txt -Append; where.exe php 2>&1 | Out-File env-check.txt -Append; where.exe composer 2>&1 | Out-File env-check.txt -Append; where.exe mysql 2>&1 | Out-File env-check.txt -Append; Test-Path 'C:\\Program Files\\nodejs\\node.exe' | Out-File env-check.txt -Append; Test-Path 'C:\\Program Files\\nodejs\\npm.cmd' | Out-File env-check.txt -Append; Test-Path 'C:\\ProgramData\\ComposerSetup\\bin\\composer.bat' | Out-File env-check.txt -Append; Get-ChildItem 'C:\\Program Files\\MySQL' -Recurse -Filter mysql.exe -ErrorAction SilentlyContinue | Select-Object -First 3 -ExpandProperty FullName | Out-File env-check.txt -Append",
+			"isBackground": false
+		},
+		{
+			"label": "convert-log-utf8",
+			"type": "shell",
+			"command": "Get-Content env-check.txt | Set-Content env-check-utf8.txt -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "winget-search-php-composer",
+			"type": "shell",
+			"command": "winget search php | Set-Content winget-php.txt; winget search composer | Set-Content winget-composer.txt",
+			"isBackground": false
+		},
+		{
+			"label": "install-php83",
+			"type": "shell",
+			"command": "winget install --id PHP.PHP.8.3 --exact --accept-source-agreements --accept-package-agreements",
+			"isBackground": false
+		},
+		{
+			"label": "install-php84",
+			"type": "shell",
+			"command": "winget install --id PHP.PHP.8.4 --exact --accept-source-agreements --accept-package-agreements",
+			"isBackground": false
+		},
+		{
+			"label": "locate-php-install",
+			"type": "shell",
+			"command": "Get-ChildItem 'C:\\Program Files\\PHP' -Recurse -Filter php.exe -ErrorAction SilentlyContinue | Select-Object -First 5 -ExpandProperty FullName | Set-Content php-paths.txt -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "find-php-in-winget",
+			"type": "shell",
+			"command": "Get-ChildItem \"$env:LOCALAPPDATA\\Microsoft\\WinGet\\Packages\" -Recurse -Filter php.exe -ErrorAction SilentlyContinue | Select-Object -First 10 -ExpandProperty FullName | Set-Content php-paths.txt -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "verify-absolute-tools",
+			"type": "shell",
+			"command": "& 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' -v; & 'C:\\Program Files\\nodejs\\node.exe' -v; & 'C:\\Program Files\\nodejs\\npm.cmd' -v; & 'C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin\\mysql.exe' --version",
+			"isBackground": false
+		},
+		{
+			"label": "setup-composer-local",
+			"type": "shell",
+			"command": "New-Item -ItemType Directory -Force -Path tools\\composer | Out-Null; Invoke-WebRequest -Uri https://getcomposer.org/download/latest-stable/composer.phar -OutFile tools\\composer\\composer.phar; & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' tools\\composer\\composer.phar --version",
+			"isBackground": false
+		},
+		{
+			"label": "scaffold-core-projects",
+			"type": "shell",
+			"command": "if (!(Test-Path backend\\artisan)) { & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' tools\\composer\\composer.phar create-project laravel/laravel backend }; if (!(Test-Path apps\\user-app\\package.json)) { & 'C:\\Program Files\\nodejs\\npm.cmd' create vite@latest apps/user-app -- --template react-ts }; if (!(Test-Path apps\\admin-app\\package.json)) { & 'C:\\Program Files\\nodejs\\npm.cmd' create vite@latest apps/admin-app -- --template react-ts }; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/user-app install; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/admin-app install; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/user-app install -D tailwindcss @tailwindcss/vite vite-plugin-pwa; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/admin-app install -D tailwindcss @tailwindcss/vite vite-plugin-pwa",
+			"isBackground": false
+		},
+		{
+			"label": "php-openssl-diagnose",
+			"type": "shell",
+			"command": "& 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' --ini | Set-Content php-ini-info.txt -Encoding utf8; & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' -m | Set-Content php-modules.txt -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "php-dir-scan",
+			"type": "shell",
+			"command": "Get-ChildItem 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe' | Select-Object Name,FullName | Set-Content php-dir-root.txt -Encoding utf8; Get-ChildItem 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\ext' -Filter 'php_openssl*' -ErrorAction SilentlyContinue | Select-Object Name,FullName | Set-Content php-openssl-ext.txt -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "configure-php-ini",
+			"type": "shell",
+			"command": "$phpRoot='C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe'; Copy-Item \"$phpRoot\\php.ini-development\" \"$phpRoot\\php.ini\" -Force; (Get-Content \"$phpRoot\\php.ini\") -replace '^;extension_dir = \"ext\"','extension_dir = \"ext\"' -replace '^;extension=curl','extension=curl' -replace '^;extension=fileinfo','extension=fileinfo' -replace '^;extension=mbstring','extension=mbstring' -replace '^;extension=openssl','extension=openssl' -replace '^;extension=pdo_mysql','extension=pdo_mysql' | Set-Content \"$phpRoot\\php.ini\" -Encoding ascii; & \"$phpRoot\\php.exe\" -m | Set-Content php-modules-after.txt -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "inspect-php-ini-lines",
+			"type": "shell",
+			"command": "$phpRoot='C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe'; Select-String -Path \"$phpRoot\\php.ini\" -Pattern 'extension_dir|^extension=' | ForEach-Object { $_.Line } | Set-Content php-ini-lines.txt -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "set-php-extension-dir",
+			"type": "shell",
+			"command": "$phpRoot='C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe'; Add-Content \"$phpRoot\\php.ini\" \"`nextension_dir = '$phpRoot\\\\ext'\"; & \"$phpRoot\\php.exe\" -m | Set-Content php-modules-after.txt -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "verify-php-modules",
+			"type": "shell",
+			"command": "& 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' -m | Set-Content php-modules-after.txt -Encoding utf8; & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' -v",
+			"isBackground": false
+		},
+		{
+			"label": "scaffold-core-retry",
+			"type": "shell",
+			"command": "if (!(Test-Path backend\\artisan)) { & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' tools\\composer\\composer.phar create-project laravel/laravel backend --no-interaction }; if (!(Test-Path apps\\user-app\\package.json)) { & 'C:\\Program Files\\nodejs\\npm.cmd' exec --yes create-vite@latest apps/user-app -- --template react-ts }; if (!(Test-Path apps\\admin-app\\package.json)) { & 'C:\\Program Files\\nodejs\\npm.cmd' exec --yes create-vite@latest apps/admin-app -- --template react-ts }; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/user-app install; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/admin-app install; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/user-app install -D tailwindcss @tailwindcss/vite vite-plugin-pwa; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/admin-app install -D tailwindcss @tailwindcss/vite vite-plugin-pwa",
+			"isBackground": false
+		},
+		{
+			"label": "recreate-frontends-vite",
+			"type": "shell",
+			"command": "Remove-Item apps\\user-app -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item apps\\admin-app -Recurse -Force -ErrorAction SilentlyContinue; & 'C:\\Program Files\\nodejs\\npx.cmd' --yes create-vite@latest apps/user-app --template react-ts; & 'C:\\Program Files\\nodejs\\npx.cmd' --yes create-vite@latest apps/admin-app --template react-ts; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/user-app install; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/admin-app install; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/user-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa; & 'C:\\Program Files\\nodejs\\npm.cmd' --prefix apps/admin-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa",
+			"isBackground": false
+		},
+		{
+			"label": "recreate-frontends-with-path",
+			"type": "shell",
+			"command": "$env:Path='C:\\Program Files\\nodejs;'+$env:Path; Remove-Item apps\\user-app -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item apps\\admin-app -Recurse -Force -ErrorAction SilentlyContinue; npx --yes create-vite@latest apps/user-app --template react-ts; npx --yes create-vite@latest apps/admin-app --template react-ts; npm --prefix apps/user-app install; npm --prefix apps/admin-app install; npm --prefix apps/user-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa; npm --prefix apps/admin-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa",
+			"isBackground": false
+		},
+		{
+			"label": "recreate-frontends-cmd",
+			"type": "shell",
+			"command": "cmd /c \"set PATH=C:\\Program Files\\nodejs;%PATH% && rmdir /s /q apps\\user-app 2>nul && rmdir /s /q apps\\admin-app 2>nul && npx.cmd --yes create-vite@latest apps/user-app --template react-ts && npx.cmd --yes create-vite@latest apps/admin-app --template react-ts && npm.cmd --prefix apps/user-app install && npm.cmd --prefix apps/admin-app install && npm.cmd --prefix apps/user-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa && npm.cmd --prefix apps/admin-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa\"",
+			"isBackground": false
+		},
+		{
+			"label": "recreate-frontends-cmd2",
+			"type": "shell",
+			"command": "cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & rmdir /s /q apps\\user-app 2>nul & rmdir /s /q apps\\admin-app 2>nul & npx.cmd --yes create-vite@latest apps/user-app --template react-ts & npx.cmd --yes create-vite@latest apps/admin-app --template react-ts & npm.cmd --prefix apps/user-app install & npm.cmd --prefix apps/admin-app install & npm.cmd --prefix apps/user-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa & npm.cmd --prefix apps/admin-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa'",
+			"isBackground": false
+		},
+		{
+			"label": "create-vite-help",
+			"type": "shell",
+			"command": "cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & npx.cmd --yes create-vite@latest --help > create-vite-help.txt 2>&1'",
+			"isBackground": false
+		},
+		{
+			"label": "create-admin-app-noninteractive",
+			"type": "shell",
+			"command": "cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & npx.cmd --yes create-vite@latest apps/admin-app --template react-ts --no-interactive --no-immediate --no-eslint & npm.cmd --prefix apps/admin-app install & npm.cmd --prefix apps/admin-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa & npm.cmd --prefix apps/user-app install -D @tailwindcss/vite tailwindcss vite-plugin-pwa'",
+			"isBackground": false
+		},
+		{
+			"label": "create-backend-laravel",
+			"type": "shell",
+			"command": "& 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' -m | Set-Content php-modules-final.txt -Encoding utf8; if (!(Test-Path backend\\artisan)) { & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' tools\\composer\\composer.phar create-project laravel/laravel backend --no-interaction }",
+			"isBackground": false
+		},
+		{
+			"label": "install-sanctum",
+			"type": "shell",
+			"command": "& 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' tools\\composer\\composer.phar --working-dir=backend require laravel/sanctum --no-interaction",
+			"isBackground": false
+		},
+		{
+			"label": "backend-migrate-seed",
+			"type": "shell",
+			"command": "Set-Location backend; & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' artisan migrate:fresh --seed --force",
+			"isBackground": false
+		},
+		{
+			"label": "backend-tests",
+			"type": "shell",
+			"command": "Set-Location backend; & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' artisan test",
+			"isBackground": false
+		},
+		{
+			"label": "install-router-frontends",
+			"type": "shell",
+			"command": "cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & npm.cmd --prefix apps/user-app install react-router-dom & npm.cmd --prefix apps/admin-app install react-router-dom'",
+			"isBackground": false
+		},
+		{
+			"label": "set-frontend-css",
+			"type": "shell",
+			"command": "@'\n@import \"tailwindcss\";\n\nhtml,\nbody,\n#root {\n  min-height: 100%;\n}\n\nbody {\n  margin: 0;\n  font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif;\n}\n'@ | Set-Content apps/user-app/src/index.css -Encoding utf8; @'\n@import \"tailwindcss\";\n\nhtml,\nbody,\n#root {\n  min-height: 100%;\n}\n\nbody {\n  margin: 0;\n  font-family: \"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif;\n}\n'@ | Set-Content apps/admin-app/src/index.css -Encoding utf8",
+			"isBackground": false
+		},
+		{
+			"label": "validate-builds-and-routes",
+			"type": "shell",
+			"command": "Set-Location backend; & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' artisan route:list --path=api | Set-Content ..\\backend-api-routes.txt -Encoding utf8; Set-Location ..; cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & npm.cmd --prefix apps/user-app run build > user-build.txt 2>&1 & npm.cmd --prefix apps/admin-app run build > admin-build.txt 2>&1'",
+			"isBackground": false
+		},
+		{
+			"label": "rebuild-frontends",
+			"type": "shell",
+			"command": "cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & npm.cmd --prefix apps/user-app run build > user-build.txt 2>&1 & npm.cmd --prefix apps/admin-app run build > admin-build.txt 2>&1'",
+			"isBackground": false
+		},
+		{
+			"label": "rebuild-frontends-clean",
+			"type": "shell",
+			"command": "cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & npm.cmd --prefix apps/user-app run build > user-build.txt 2>&1 & npm.cmd --prefix apps/admin-app run build > admin-build.txt 2>&1'",
+			"isBackground": false
+		}
+	]
+}

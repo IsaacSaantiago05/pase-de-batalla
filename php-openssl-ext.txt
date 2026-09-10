@@ -1,0 +1,1 @@
+﻿@{Name=php_openssl.dll; FullName=C:\Users\Admin\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\ext\php_openssl.dll}

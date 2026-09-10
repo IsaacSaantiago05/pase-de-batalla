@@ -1,0 +1,18 @@
+﻿
+  POST      api/auth/forgot-password ........................................................ AuthController@forgotPassword
+  POST      api/auth/login ........................................................................... AuthController@login
+  POST      api/auth/logout ......................................................................... AuthController@logout
+  GET|HEAD  api/auth/me ................................................................................. AuthController@me
+  POST      api/auth/register ..................................................................... AuthController@register
+  GET|HEAD  api/businesses ....................................................................... BusinessController@index
+  POST      api/businesses ....................................................................... BusinessController@store
+  GET|HEAD  api/businesses/{business} ............................................................. BusinessController@show
+  PUT       api/businesses/{business} ........................................................... BusinessController@update
+  PATCH     api/businesses/{business}/status .............................................. BusinessController@updateStatus
+  GET|HEAD  api/users ................................................................................ UserController@index
+  GET|HEAD  api/users/{user} .......................................................................... UserController@show
+  PUT       api/users/{user} ........................................................................ UserController@update
+  PATCH     api/users/{user}/status ........................................................... UserController@updateStatus
+
+                                                                                                        Showing [14] routes
+

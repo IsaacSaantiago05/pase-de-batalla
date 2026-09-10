@@ -1,0 +1,23 @@
+
+> user-app@0.0.0 build
+> tsc -b && vite build
+
+[36mvite v8.3.0 [32mbuilding client environment for production...[36m[39m
+transforming...
+✓ 29 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/registerSW.js                0.13 kB
+dist/manifest.webmanifest         0.17 kB
+dist/index.html                   0.57 kB │ gzip:  0.34 kB
+dist/assets/index-BxttiBpC.css   10.66 kB │ gzip:  2.86 kB
+dist/assets/index-B8BADQMu.js   266.42 kB │ gzip: 84.08 kB
+
+[32m✓ built in 279ms[39m
+
+PWA v1.3.0
+mode      generateSW
+precache  5 entries (271.29 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-9c191d2f.js

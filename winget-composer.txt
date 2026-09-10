@@ -1,0 +1,5 @@
+Nombre                 Id                             Versi+¦n Coincidencia  Origen
+-----------------------------------------------------------------------------------
+RapidComposer          XP8LHN561DXQ54                 Unknown               msstore
+Bot Framework Composer Microsoft.BotFrameworkComposer 2.1.2   Tag: composer winget
+chsrc                  RubyMetric.chsrc               0.2.7   Tag: composer winget

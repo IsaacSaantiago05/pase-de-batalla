@@ -1,0 +1,39 @@
+﻿where.exe : INFORMACIÓN: no se pudo encontrar ningún archivo para los patrones dados.
+En línea: 1 Carácter: 1
++ where.exe node 2>&1 | Out-File env-check.txt; where.exe npm 2>&1 | Ou ...
++ ~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFORMACIÓN: no...patrones dados.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+where.exe : INFORMACIÓN: no se pudo encontrar ningún archivo para los patrones dados.
+En línea: 1 Carácter: 47
++ ... re.exe node 2>&1 | Out-File env-check.txt; where.exe npm 2>&1 | Out-F ...
++                                                ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFORMACIÓN: no...patrones dados.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+where.exe : INFORMACIÓN: no se pudo encontrar ningún archivo para los patrones dados.
+En línea: 1 Carácter: 100
++ ... npm 2>&1 | Out-File env-check.txt -Append; where.exe php 2>&1 | Out-F ...
++                                                ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFORMACIÓN: no...patrones dados.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+where.exe : INFORMACIÓN: no se pudo encontrar ningún archivo para los patrones dados.
+En línea: 1 Carácter: 153
++ ... >&1 | Out-File env-check.txt -Append; where.exe composer 2>&1 | Out-F ...
++                                           ~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFORMACIÓN: no...patrones dados.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+where.exe : INFORMACIÓN: no se pudo encontrar ningún archivo para los patrones dados.
+En línea: 1 Carácter: 211
++ ... r 2>&1 | Out-File env-check.txt -Append; where.exe mysql 2>&1 | Out-F ...
++                                              ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFORMACIÓN: no...patrones dados.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+True
+True
+False
+C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe
