@@ -13,7 +13,7 @@ dist/index.html                   0.57 kB │ gzip:  0.34 kB
 dist/assets/index-BxttiBpC.css   10.66 kB │ gzip:  2.86 kB
 dist/assets/index-B8BADQMu.js   266.42 kB │ gzip: 84.08 kB
 
-[32m✓ built in 279ms[39m
+[32m✓ built in 287ms[39m
 
 PWA v1.3.0
 mode      generateSW

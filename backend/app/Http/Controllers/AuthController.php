@@ -45,7 +45,7 @@ class AuthController extends Controller
             'correo' => ['required', 'email'],
         ]);
 
-        $status = Password::sendResetLink(['correo' => $validated['correo']]);
+        $status = Password::sendResetLink(['email' => $validated['correo']]);
 
         if ($status !== Password::RESET_LINK_SENT) {
             return $this->error('No fue posible enviar el enlace de recuperación.', null, 422);

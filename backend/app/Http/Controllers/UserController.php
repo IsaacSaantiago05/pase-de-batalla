@@ -13,6 +13,19 @@ class UserController extends Controller
 {
     use ApiResponse;
 
+    private function canBusinessAdminManageUser(Request $request, User $user): bool
+    {
+        if (! $request->user()->hasRole('ADMINISTRADOR_NEGOCIO')) {
+            return true;
+        }
+
+        if ($user->negocio_id !== $request->user()->negocio_id) {
+            return false;
+        }
+
+        return $user->hasRole('CLIENTE');
+    }
+
     public function index(Request $request): JsonResponse
     {
         if ($request->user()->hasRole('ADMINISTRADOR_GENERAL')) {
@@ -31,7 +44,7 @@ class UserController extends Controller
 
     public function show(Request $request, User $user): JsonResponse
     {
-        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && $user->negocio_id !== $request->user()->negocio_id) {
+        if (! $this->canBusinessAdminManageUser($request, $user)) {
             return $this->error('No tienes permiso para acceder a este usuario.', null, 403);
         }
 
@@ -40,11 +53,15 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && $user->negocio_id !== $request->user()->negocio_id) {
+        if (! $this->canBusinessAdminManageUser($request, $user)) {
             return $this->error('No tienes permiso para editar este usuario.', null, 403);
         }
 
         $data = $request->validated();
+
+        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && (array_key_exists('rol_id', $data) || array_key_exists('negocio_id', $data))) {
+            return $this->error('No puedes modificar rol o negocio de un usuario.', null, 403);
+        }
 
         if (empty($data['password'])) {
             unset($data['password']);
@@ -61,7 +78,7 @@ class UserController extends Controller
             'estado' => ['required', 'boolean'],
         ]);
 
-        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && $user->negocio_id !== $request->user()->negocio_id) {
+        if (! $this->canBusinessAdminManageUser($request, $user)) {
             return $this->error('No tienes permiso para modificar este usuario.', null, 403);
         }
 

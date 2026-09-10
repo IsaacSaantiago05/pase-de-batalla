@@ -35,3 +35,7 @@ export function apiPost<T>(path: string, payload: unknown): Promise<ApiEnvelope<
     body: JSON.stringify(payload),
   })
 }
+
+export function apiGet<T>(path: string): Promise<ApiEnvelope<T>> {
+  return request<T>(path, { method: 'GET' })
+}

@@ -2,7 +2,7 @@
 
 Plataforma de fidelizacion gamificada con puntos globales, niveles, QR, recompensas e isla personalizable.
 
-Estado actual: Fase 1 + base de Fase 2 completada.
+Estado actual: Fase 1, Fase 2 base y Fase 3 (negocios y administradores) completadas.
 
 ## Estructura del proyecto
 
@@ -80,6 +80,14 @@ Negocios:
 - POST /api/businesses (solo ADMINISTRADOR_GENERAL)
 - PUT /api/businesses/{business}
 - PATCH /api/businesses/{business}/status
+
+Administradores (solo ADMINISTRADOR_GENERAL):
+
+- GET /api/admin/administrators
+- POST /api/admin/administrators
+- GET /api/admin/administrators/{administrator}
+- PUT /api/admin/administrators/{administrator}
+- PATCH /api/admin/administrators/{administrator}/status
 
 ## Frontend usuario
 
@@ -206,10 +214,11 @@ Cobertura actual minima:
 - Cliente intentando acceder a endpoint admin
 - Admin de negocio intentando acceder a otro negocio
 - Admin general accediendo correctamente
+- Admin general creando administrador de negocio
+- Admin negocio sin acceso a endpoints de administradores
 
 ## Pendiente para la siguiente fase
 
-- CRUD completo de administradores de negocio y asignacion de negocio.
 - Motor de puntos (movimientos, saldo global, reglas aplicadas en operaciones reales).
 - Flujo QR transaccional con bloqueo de concurrencia y uso unico.
 - Niveles dinamicos por puntos globales y progreso de battle pass.

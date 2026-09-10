@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AdministratorController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -30,5 +31,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [BusinessController::class, 'store'])->middleware('role:ADMINISTRADOR_GENERAL');
         Route::put('/{business}', [BusinessController::class, 'update']);
         Route::patch('/{business}/status', [BusinessController::class, 'updateStatus']);
+    });
+
+    Route::prefix('admin')->middleware('role:ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::prefix('administrators')->group(function (): void {
+            Route::get('/', [AdministratorController::class, 'index']);
+            Route::post('/', [AdministratorController::class, 'store']);
+            Route::get('/{administrator}', [AdministratorController::class, 'show']);
+            Route::put('/{administrator}', [AdministratorController::class, 'update']);
+            Route::patch('/{administrator}/status', [AdministratorController::class, 'updateStatus']);
+        });
     });
 });

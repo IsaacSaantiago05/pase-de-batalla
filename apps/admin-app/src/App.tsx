@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedAdminRoute } from './components/ProtectedAdminRoute'
+import { AdministratorsPage } from './pages/AdministratorsPage'
 import { LoginPage } from './pages/LoginPage'
 import { ShellPage } from './pages/ShellPage'
 
@@ -19,7 +20,7 @@ function App() {
           <Route path="/history" element={<ShellPage title="Historial" />} />
           <Route path="/users" element={<ShellPage title="Usuarios" />} />
           <Route path="/businesses" element={<ShellPage title="Negocios" />} />
-          <Route path="/administrators" element={<ShellPage title="Administradores" />} />
+          <Route path="/administrators" element={<AdministratorsPage />} />
           <Route path="/levels" element={<ShellPage title="Niveles" />} />
           <Route path="/island-elements" element={<ShellPage title="Elementos de Isla" />} />
           <Route path="/point-rules" element={<ShellPage title="Reglas de Puntos" />} />
