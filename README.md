@@ -2,7 +2,7 @@
 
 Plataforma de fidelizacion gamificada con puntos globales, niveles, QR, recompensas e isla personalizable.
 
-Estado actual: Fase 1, Fase 2 base y Fase 3 (negocios y administradores) completadas.
+Estado actual: Fase 1, Fase 2 base, Fase 3 y Fase 4 (puntos globales) completadas.
 
 ## Estructura del proyecto
 
@@ -23,6 +23,7 @@ pase-de-batalla/
 - Registro, login, logout, perfil autenticado y recuperacion de password.
 - Roles: CLIENTE, ADMINISTRADOR_NEGOCIO, ADMINISTRADOR_GENERAL.
 - Gestion inicial de usuarios y negocios con aislamiento por negocio.
+- Motor de puntos globales con historial, reglas por negocio y recálculo de nivel.
 - Validaciones con Form Requests.
 - Respuestas API consistentes con formato success/message/data.
 
@@ -89,6 +90,20 @@ Administradores (solo ADMINISTRADOR_GENERAL):
 - PUT /api/admin/administrators/{administrator}
 - PATCH /api/admin/administrators/{administrator}/status
 
+Puntos:
+
+- GET /api/points/balance
+- GET /api/points/history
+- GET /api/points/business-history
+- POST /api/points/award
+
+Reglas de puntos:
+
+- GET /api/point-rules
+- POST /api/point-rules (solo ADMINISTRADOR_GENERAL)
+- PUT /api/point-rules/{pointRule}
+- PATCH /api/point-rules/{pointRule}/status
+
 ## Frontend usuario
 
 Rutas funcionales iniciales:
@@ -108,7 +123,7 @@ Rutas funcionales iniciales:
 - /businesses
 - /profile
 
-Incluye proteccion de rutas por sesion y consumo real de API para auth.
+Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos e historial.
 
 ## Frontend admin
 
@@ -130,7 +145,7 @@ Rutas funcionales iniciales:
 - /point-rules
 - /statistics
 
-Incluye proteccion de rutas por sesion y rol administrativo.
+Incluye proteccion de rutas por sesion y rol administrativo, mas flujo funcional para otorgar puntos y consultar historial del negocio.
 
 ## Configuracion y ejecucion
 
@@ -216,11 +231,14 @@ Cobertura actual minima:
 - Admin general accediendo correctamente
 - Admin general creando administrador de negocio
 - Admin negocio sin acceso a endpoints de administradores
+- Puntos agregados correctamente
+- Puntos globales acumulados correctamente
+- Nivel actualizado al cruzar umbral de puntos
+- Bloqueo de otorgamiento con regla de otro negocio
 
 ## Pendiente para la siguiente fase
 
-- Motor de puntos (movimientos, saldo global, reglas aplicadas en operaciones reales).
 - Flujo QR transaccional con bloqueo de concurrencia y uso unico.
-- Niveles dinamicos por puntos globales y progreso de battle pass.
+- Progreso de battle pass completo basado en puntos globales.
 - Recompensas/canjes con control de stock y concurrencia.
 - Logica de isla (desbloqueos, configuracion y evolucion visual por nivel).

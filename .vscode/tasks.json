@@ -240,6 +240,24 @@
 			"type": "shell",
 			"command": "cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & npm.cmd --prefix apps/user-app run build > user-build.txt 2>&1 & npm.cmd --prefix apps/admin-app run build > admin-build.txt 2>&1'",
 			"isBackground": false
+		},
+		{
+			"label": "run-tests-phase4",
+			"type": "shell",
+			"command": "Set-Location backend; & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' artisan test",
+			"isBackground": false
+		},
+		{
+			"label": "build-frontends-phase4",
+			"type": "shell",
+			"command": "cmd /c 'set PATH=C:\\Program Files\\nodejs;%PATH% & npm.cmd --prefix apps/user-app run build > user-build.txt 2>&1 & npm.cmd --prefix apps/admin-app run build > admin-build.txt 2>&1'",
+			"isBackground": false
+		},
+		{
+			"label": "routes-phase4",
+			"type": "shell",
+			"command": "Set-Location backend; & 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe\\php.exe' artisan route:list --path=api > ..\\backend-api-routes.txt",
+			"isBackground": false
 		}
 	]
 }

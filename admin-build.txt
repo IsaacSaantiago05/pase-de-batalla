@@ -4,20 +4,20 @@
 
 [36mvite v8.3.0 [32mbuilding client environment for production...[36m[39m
 transforming...
-✓ 30 modules transformed.
+✓ 31 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/registerSW.js                0.13 kB
 dist/manifest.webmanifest         0.18 kB
 dist/index.html                   0.58 kB │ gzip:  0.34 kB
-dist/assets/index-RCDeAK1F.css   11.31 kB │ gzip:  2.99 kB
-dist/assets/index-DRNgn8__.js   267.05 kB │ gzip: 84.48 kB
+dist/assets/index-CwL1huwe.css   11.38 kB │ gzip:  3.00 kB
+dist/assets/index-DRhll7ME.js   269.74 kB │ gzip: 84.79 kB
 
-[32m✓ built in 284ms[39m
+[32m✓ built in 365ms[39m
 
 PWA v1.3.0
 mode      generateSW
-precache  5 entries (272.54 KiB)
+precache  5 entries (275.23 KiB)
 files generated
   dist/sw.js
   dist/workbox-9c191d2f.js
