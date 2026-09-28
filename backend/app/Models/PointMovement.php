@@ -34,4 +34,9 @@ class PointMovement extends Model
     {
         return $this->belongsTo(Business::class, 'negocio_id');
     }
+
+    public function qrCode(): BelongsTo
+    {
+        return $this->belongsTo(QrCode::class, 'qr_id');
+    }
 }

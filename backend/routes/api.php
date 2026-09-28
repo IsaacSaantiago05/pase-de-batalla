@@ -5,6 +5,7 @@ use App\Http\Controllers\AdministratorController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\PointRuleController;
 use App\Http\Controllers\PointsController;
+use App\Http\Controllers\QrController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/history', [PointsController::class, 'history']);
         Route::get('/business-history', [PointsController::class, 'businessHistory'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::post('/award', [PointsController::class, 'award'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+    });
+
+    Route::prefix('qr')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::get('/', [QrController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        Route::get('/{qrCode}', [QrController::class, 'show'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        Route::post('/generate', [QrController::class, 'generate'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        Route::post('/redeem', [QrController::class, 'redeem'])->middleware('role:CLIENTE');
     });
 
     Route::prefix('point-rules')->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {

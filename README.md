@@ -2,7 +2,7 @@
 
 Plataforma de fidelizacion gamificada con puntos globales, niveles, QR, recompensas e isla personalizable.
 
-Estado actual: Fase 1, Fase 2 base, Fase 3 y Fase 4 (puntos globales) completadas.
+Estado actual: Fase 1, Fase 2 base, Fase 3, Fase 4 (puntos globales) y Fase 5 backend (QR transaccional) completadas.
 
 ## Estructura del proyecto
 
@@ -24,6 +24,7 @@ pase-de-batalla/
 - Roles: CLIENTE, ADMINISTRADOR_NEGOCIO, ADMINISTRADOR_GENERAL.
 - Gestion inicial de usuarios y negocios con aislamiento por negocio.
 - Motor de puntos globales con historial, reglas por negocio y recálculo de nivel.
+- Modulo QR transaccional con token unico, expiracion, uso unico y bloqueo de doble uso.
 - Validaciones con Form Requests.
 - Respuestas API consistentes con formato success/message/data.
 
@@ -103,6 +104,13 @@ Reglas de puntos:
 - POST /api/point-rules (solo ADMINISTRADOR_GENERAL)
 - PUT /api/point-rules/{pointRule}
 - PATCH /api/point-rules/{pointRule}/status
+
+QR:
+
+- GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- GET /api/qr/{qrCode} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- POST /api/qr/redeem (solo CLIENTE)
 
 ## Frontend usuario
 
@@ -235,10 +243,16 @@ Cobertura actual minima:
 - Puntos globales acumulados correctamente
 - Nivel actualizado al cruzar umbral de puntos
 - Bloqueo de otorgamiento con regla de otro negocio
+- Generacion de QR por admin de negocio en su propio negocio
+- Bloqueo de generacion QR para negocio ajeno
+- Canje QR valido con impacto en saldo global
+- Bloqueo de doble canje del mismo token
+- Bloqueo de canje en QR cancelado
+- Bloqueo de canje en QR expirado y marcado de estado EXPIRADO
+- Aislamiento de consulta QR por negocio
 
 ## Pendiente para la siguiente fase
 
-- Flujo QR transaccional con bloqueo de concurrencia y uso unico.
 - Progreso de battle pass completo basado en puntos globales.
 - Recompensas/canjes con control de stock y concurrencia.
 - Logica de isla (desbloqueos, configuracion y evolucion visual por nivel).
