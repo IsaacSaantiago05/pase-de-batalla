@@ -3,6 +3,7 @@ import { ProtectedAdminRoute } from './components/ProtectedAdminRoute'
 import { AdministratorsPage } from './pages/AdministratorsPage'
 import { BusinessPointsPage } from './pages/BusinessPointsPage'
 import { LoginPage } from './pages/LoginPage'
+import { QrManagementPage } from './pages/QrManagementPage'
 import { ShellPage } from './pages/ShellPage'
 
 function App() {
@@ -14,7 +15,7 @@ function App() {
         <Route element={<ProtectedAdminRoute />}>
           <Route path="/dashboard" element={<ShellPage title="Dashboard" />} />
           <Route path="/business" element={<ShellPage title="Mi Negocio" />} />
-          <Route path="/qr" element={<ShellPage title="Códigos QR" />} />
+          <Route path="/qr" element={<QrManagementPage />} />
           <Route path="/points" element={<BusinessPointsPage />} />
           <Route path="/rewards" element={<ShellPage title="Recompensas" />} />
           <Route path="/redemptions" element={<ShellPage title="Canjes" />} />

@@ -3,6 +3,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { ForgotPasswordPage, LoginPage, RegisterPage } from './pages/AuthPages'
 import { ShellPage } from './pages/AppPages'
 import { HistoryPage, PointsPage } from './pages/PointsPages'
+import { QrRedeemPage } from './pages/QrRedeemPage'
 
 function App() {
   return (
@@ -17,7 +18,7 @@ function App() {
           <Route path="/island" element={<ShellPage title="Mi Isla" />} />
           <Route path="/battle-pass" element={<ShellPage title="Pase de Batalla" />} />
           <Route path="/points" element={<PointsPage />} />
-          <Route path="/scan-qr" element={<ShellPage title="Escanear QR" />} />
+          <Route path="/scan-qr" element={<QrRedeemPage />} />
           <Route path="/rewards" element={<ShellPage title="Recompensas" />} />
           <Route path="/rewards/:id" element={<ShellPage title="Detalle de Recompensa" />} />
           <Route path="/redemptions" element={<ShellPage title="Canjes" />} />
