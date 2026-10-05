@@ -51,6 +51,11 @@ class User extends Authenticatable
         return $this->belongsTo(Business::class, 'negocio_id');
     }
 
+    public function redemptions(): HasMany
+    {
+        return $this->hasMany(Redemption::class, 'usuario_id');
+    }
+
     public function battlePassTiers(): HasMany
     {
         return $this->hasMany(UserBattlePassTier::class, 'usuario_id');
@@ -64,11 +69,6 @@ class User extends Authenticatable
     public function islandConfigurations(): HasMany
     {
         return $this->hasMany(IslandConfiguration::class, 'usuario_id');
-    }
-
-    public function redemptions(): HasMany
-    {
-        return $this->hasMany(Redemption::class, 'usuario_id');
     }
 
     public function isActive(): bool

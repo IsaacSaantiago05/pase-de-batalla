@@ -25,9 +25,9 @@ pase-de-batalla/
 - Gestion inicial de usuarios y negocios con aislamiento por negocio.
 - Motor de puntos globales con historial, reglas por negocio y recálculo de nivel.
 - Modulo QR transaccional con token unico, expiracion, uso unico y bloqueo de doble uso.
+- Modulo de recompensas y canjes con descuento inmediato de stock/puntos y reposicion por cancelacion.
 - Modulo de battle pass con tiers, progreso por puntos globales y reclamo por tier.
 - Modulo de isla con catalogo por nivel, desbloqueo de elementos y guardado de posiciones.
-- Modulo de recompensas y canjes con descuento inmediato de stock/puntos y reposicion por cancelacion.
 - Validaciones con Form Requests.
 - Respuestas API consistentes con formato success/message/data.
 
@@ -129,18 +129,6 @@ QR:
 - POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/redeem (solo CLIENTE)
 
-Battle Pass:
-
-- GET /api/battle-pass/progress (solo CLIENTE)
-- POST /api/battle-pass/tiers/{tier}/claim (solo CLIENTE)
-
-Isla:
-
-- GET /api/island/catalog (solo CLIENTE)
-- GET /api/island/layout (solo CLIENTE)
-- POST /api/island/unlock (solo CLIENTE)
-- POST /api/island/layout (solo CLIENTE)
-
 Recompensas:
 
 - GET /api/rewards (CLIENTE: solo activas con stock / ADMIN: gestion por negocio)
@@ -154,6 +142,18 @@ Canjes:
 - POST /api/redemptions (solo CLIENTE)
 - GET /api/redemptions/business (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - PATCH /api/redemptions/{redemption}/status (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+
+Battle Pass:
+
+- GET /api/battle-pass/progress (solo CLIENTE)
+- POST /api/battle-pass/tiers/{tier}/claim (solo CLIENTE)
+
+Isla:
+
+- GET /api/island/catalog (solo CLIENTE)
+- GET /api/island/layout (solo CLIENTE)
+- POST /api/island/unlock (solo CLIENTE)
+- POST /api/island/layout (solo CLIENTE)
 
 ## Frontend usuario
 
@@ -178,11 +178,11 @@ Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos, 
 
 El flujo de QR para cliente ya permite escaneo por camara (ademas de ingreso manual de token).
 
+El flujo de recompensas permite canjear con descuento inmediato de puntos y stock.
+
 La ruta /battle-pass ya muestra progreso real, siguiente hito y permite reclamar tiers desbloqueados.
 
 La ruta /island ya permite ver catalogo por nivel, desbloquear elementos y guardar posicion.
-
-El flujo de recompensas permite canjear con descuento inmediato de puntos y stock.
 
 ## Frontend admin
 
@@ -309,6 +309,13 @@ Cobertura actual minima:
 - Bloqueo de canje en QR cancelado
 - Bloqueo de canje en QR expirado y marcado de estado EXPIRADO
 - Aislamiento de consulta QR por negocio
+- Canje de recompensa con stock y puntos suficientes
+- Bloqueo de canje por puntos insuficientes
+- Bloqueo de canje por stock agotado
+- Reposicion de stock y puntos al cancelar canje
+- Competencia por ultimo stock (solo un canje exitoso)
+- Aislamiento por negocio en gestion de canjes
+
 - Progreso de battle pass con tiers desbloqueados/bloqueados
 - Reclamo de tier desbloqueado y bloqueo de doble reclamo
 - Bloqueo de reclamo de tier sin puntos suficientes
@@ -318,14 +325,7 @@ Cobertura actual minima:
 - Bloqueo de desbloqueo/posicionado sin requisitos
 - Bloqueo de endpoints de isla para roles no cliente
 
-- Canje de recompensa con stock y puntos suficientes
-- Bloqueo de canje por puntos insuficientes
-- Bloqueo de canje por stock agotado
-- Reposicion de stock y puntos al cancelar canje
-- Competencia por ultimo stock (solo un canje exitoso)
-- Aislamiento por negocio en gestion de canjes
-
 ## Pendiente para la siguiente fase
 
-- Evolucion visual avanzada de isla (persistencia de capas/escenas, presets y efectos).
 - Mejoras UX en rewards/redemptions y panel admin.
+- Evolucion visual avanzada de isla (persistencia de capas/escenas, presets y efectos).
