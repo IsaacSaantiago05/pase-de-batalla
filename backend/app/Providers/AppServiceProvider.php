@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -21,6 +24,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('auth-login', function (Request $request): Limit {
+            $correo = strtolower((string) $request->input('correo'));
+
+            return Limit::perMinute(5)->by($request->ip().'|'.$correo);
+        });
+
+        RateLimiter::for('auth-register', fn (Request $request): Limit => Limit::perMinute(3)->by($request->ip()));
+        RateLimiter::for('auth-forgot-password', fn (Request $request): Limit => Limit::perMinute(3)->by($request->ip()));
+        RateLimiter::for('auth-reset-password', fn (Request $request): Limit => Limit::perMinute(5)->by($request->ip()));
+
+        RateLimiter::for('qr-redeem', function (Request $request): Limit {
+            $userKey = $request->user()?->id ? 'user:'.$request->user()->id : 'guest';
+
+            return Limit::perMinute(10)->by($request->ip().'|'.$userKey);
+        });
+
         Gate::define('admin-general', fn (User $user) => $user->hasRole('ADMINISTRADOR_GENERAL'));
         Gate::define('admin-business', fn (User $user) => $user->hasRole('ADMINISTRADOR_NEGOCIO'));
         Gate::define('admin-any', fn (User $user) => $user->hasRole('ADMINISTRADOR_GENERAL', 'ADMINISTRADOR_NEGOCIO'));

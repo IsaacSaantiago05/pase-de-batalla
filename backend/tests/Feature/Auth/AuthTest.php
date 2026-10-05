@@ -3,7 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -69,5 +71,55 @@ class AuthTest extends TestCase
         $response = $this->getJson('/api/auth/me');
 
         $response->assertStatus(401);
+    }
+
+    public function test_reset_password_success(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'nombre' => 'Reset User',
+            'correo' => 'reset.user@example.com',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+        ]);
+
+        $user = User::query()->where('correo', 'reset.user@example.com')->firstOrFail();
+        $token = Password::broker()->createToken($user);
+
+        $resetResponse = $this->postJson('/api/auth/reset-password', [
+            'token' => $token,
+            'correo' => 'reset.user@example.com',
+            'password' => 'Password456',
+            'password_confirmation' => 'Password456',
+        ]);
+
+        $resetResponse
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $loginResponse = $this->postJson('/api/auth/login', [
+            'correo' => 'reset.user@example.com',
+            'password' => 'Password456',
+        ]);
+
+        $loginResponse->assertOk();
+    }
+
+    public function test_login_is_rate_limited(): void
+    {
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $response = $this->postJson('/api/auth/login', [
+                'correo' => 'throttle@example.com',
+                'password' => 'WrongPassword',
+            ]);
+
+            $response->assertStatus(422);
+        }
+
+        $limitedResponse = $this->postJson('/api/auth/login', [
+            'correo' => 'throttle@example.com',
+            'password' => 'WrongPassword',
+        ]);
+
+        $limitedResponse->assertStatus(429);
     }
 }

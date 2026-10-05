@@ -65,8 +65,17 @@ Auth:
 - POST /api/auth/register
 - POST /api/auth/login
 - POST /api/auth/forgot-password
+- POST /api/auth/reset-password
 - GET /api/auth/me
 - POST /api/auth/logout
+
+Rate limit aplicado:
+
+- /api/auth/register: 3 intentos por minuto por IP
+- /api/auth/login: 5 intentos por minuto por IP + correo
+- /api/auth/forgot-password: 3 intentos por minuto por IP
+- /api/auth/reset-password: 5 intentos por minuto por IP
+- /api/qr/redeem: 10 intentos por minuto por IP + usuario
 
 Usuarios:
 
@@ -166,6 +175,10 @@ Incluye proteccion de rutas por sesion y rol administrativo, mas flujo funcional
 ### Variables de entorno
 
 Backend: copiar backend/.env.example a backend/.env y configurar DB_* para MySQL.
+
+Si usas recuperación de contraseña por correo para user-app, agrega también:
+
+- FRONTEND_USER_URL=http://localhost:5173
 
 Frontends: copiar en cada app:
 

@@ -257,4 +257,32 @@ class QrFlowTest extends TestCase
 
         $showForbiddenResponse->assertStatus(403);
     }
+
+    public function test_qr_redeem_is_rate_limited(): void
+    {
+        $client = User::query()->create([
+            'nombre' => 'Cliente Throttle',
+            'correo' => 'cliente.throttle@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->clienteRole->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        Sanctum::actingAs($client);
+
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
+            $response = $this->postJson('/api/qr/redeem', [
+                'token' => 'TOKEN-INEXISTENTE-'.$attempt,
+            ]);
+
+            $response->assertStatus(422);
+        }
+
+        $limitedResponse = $this->postJson('/api/qr/redeem', [
+            'token' => 'TOKEN-INEXISTENTE-11',
+        ]);
+
+        $limitedResponse->assertStatus(429);
+    }
 }

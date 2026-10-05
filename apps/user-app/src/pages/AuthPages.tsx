@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiPost } from '../lib/api'
 import { setSession } from '../lib/auth'
 
@@ -114,6 +114,59 @@ export function ForgotPasswordPage() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         {message && <p className="text-sm text-emerald-700">{message}</p>}
         <button className="w-full rounded-md bg-slate-900 p-2 text-white" type="submit">Enviar</button>
+      </form>
+      <Link className="text-sm text-slate-700 underline" to="/login">Volver</Link>
+    </div>
+  )
+}
+
+export function ResetPasswordPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [token, setToken] = useState(searchParams.get('token') ?? '')
+  const [correo, setCorreo] = useState(searchParams.get('correo') ?? '')
+  const [password, setPassword] = useState('')
+  const [passwordConfirmation, setPasswordConfirmation] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+
+    try {
+      const response = await apiPost<null>('/auth/reset-password', {
+        token,
+        correo,
+        password,
+        password_confirmation: passwordConfirmation,
+      })
+
+      setMessage(response.message)
+      setTimeout(() => navigate('/login'), 1200)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No fue posible restablecer la contraseña')
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-md space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h1 className="text-2xl font-semibold">Restablecer contraseña</h1>
+      <form className="space-y-3" onSubmit={onSubmit}>
+        <input className="w-full rounded-md border p-2" placeholder="Token" value={token} onChange={(e) => setToken(e.target.value)} />
+        <input className="w-full rounded-md border p-2" placeholder="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} />
+        <input className="w-full rounded-md border p-2" placeholder="Nueva contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input
+          className="w-full rounded-md border p-2"
+          placeholder="Confirmar nueva contraseña"
+          type="password"
+          value={passwordConfirmation}
+          onChange={(e) => setPasswordConfirmation(e.target.value)}
+        />
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {message && <p className="text-sm text-emerald-700">{message}</p>}
+        <button className="w-full rounded-md bg-slate-900 p-2 text-white" type="submit">Guardar contraseña</button>
       </form>
       <Link className="text-sm text-slate-700 underline" to="/login">Volver</Link>
     </div>
