@@ -2,7 +2,7 @@
 
 Plataforma de fidelizacion gamificada con puntos globales, niveles, QR, recompensas e isla personalizable.
 
-Estado actual: Fase 1, Fase 2 base, Fase 3, Fase 4 (puntos globales) y Fase 5 backend (QR transaccional) completadas.
+Estado actual: Fase 1, Fase 2 base, Fase 3, Fase 4 (puntos globales), Fase 5 backend (QR transaccional) y Fase 6 (recompensas/canjes transaccionales) completadas.
 
 ## Estructura del proyecto
 
@@ -25,6 +25,7 @@ pase-de-batalla/
 - Gestion inicial de usuarios y negocios con aislamiento por negocio.
 - Motor de puntos globales con historial, reglas por negocio y recálculo de nivel.
 - Modulo QR transaccional con token unico, expiracion, uso unico y bloqueo de doble uso.
+- Modulo de recompensas y canjes con descuento inmediato de stock/puntos y reposicion por cancelacion.
 - Validaciones con Form Requests.
 - Respuestas API consistentes con formato success/message/data.
 
@@ -76,6 +77,7 @@ Rate limit aplicado:
 - /api/auth/forgot-password: 3 intentos por minuto por IP
 - /api/auth/reset-password: 5 intentos por minuto por IP
 - /api/qr/redeem: 10 intentos por minuto por IP + usuario
+- /api/redemptions: 10 intentos por minuto por IP + usuario
 
 Usuarios:
 
@@ -122,6 +124,20 @@ QR:
 - POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/redeem (solo CLIENTE)
 
+Recompensas:
+
+- GET /api/rewards (CLIENTE: solo activas con stock / ADMIN: gestion por negocio)
+- POST /api/rewards (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- PUT /api/rewards/{reward} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- PATCH /api/rewards/{reward}/status (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+
+Canjes:
+
+- GET /api/redemptions/my (solo CLIENTE)
+- POST /api/redemptions (solo CLIENTE)
+- GET /api/redemptions/business (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- PATCH /api/redemptions/{redemption}/status (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+
 ## Frontend usuario
 
 Rutas funcionales iniciales:
@@ -144,6 +160,8 @@ Rutas funcionales iniciales:
 Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos e historial.
 
 El flujo de QR para cliente ya permite escaneo por camara (ademas de ingreso manual de token).
+
+El flujo de recompensas permite canjear con descuento inmediato de puntos y stock.
 
 ## Frontend admin
 
@@ -168,6 +186,8 @@ Rutas funcionales iniciales:
 Incluye proteccion de rutas por sesion y rol administrativo, mas flujo funcional para otorgar puntos y consultar historial del negocio.
 
 El modulo QR de admin genera y visualiza imagen QR real (SVG) para cada codigo.
+
+El modulo de recompensas/canjes permite crear recompensas y actualizar estado de canjes por negocio.
 
 ## Configuracion y ejecucion
 
@@ -268,9 +288,14 @@ Cobertura actual minima:
 - Bloqueo de canje en QR cancelado
 - Bloqueo de canje en QR expirado y marcado de estado EXPIRADO
 - Aislamiento de consulta QR por negocio
+- Canje de recompensa con stock y puntos suficientes
+- Bloqueo de canje por puntos insuficientes
+- Bloqueo de canje por stock agotado
+- Reposicion de stock y puntos al cancelar canje
+- Competencia por ultimo stock (solo un canje exitoso)
+- Aislamiento por negocio en gestion de canjes
 
 ## Pendiente para la siguiente fase
 
 - Progreso de battle pass completo basado en puntos globales.
-- Recompensas/canjes con control de stock y concurrencia.
 - Logica de isla (desbloqueos, configuracion y evolucion visual por nivel).

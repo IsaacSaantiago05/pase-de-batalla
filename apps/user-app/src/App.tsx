@@ -4,6 +4,7 @@ import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from '
 import { ShellPage } from './pages/AppPages'
 import { HistoryPage, PointsPage } from './pages/PointsPages'
 import { QrRedeemPage } from './pages/QrRedeemPage'
+import { RedemptionsPage, RewardsPage } from './pages/RewardsPages'
 
 function App() {
   return (
@@ -20,9 +21,9 @@ function App() {
           <Route path="/battle-pass" element={<ShellPage title="Pase de Batalla" />} />
           <Route path="/points" element={<PointsPage />} />
           <Route path="/scan-qr" element={<QrRedeemPage />} />
-          <Route path="/rewards" element={<ShellPage title="Recompensas" />} />
+          <Route path="/rewards" element={<RewardsPage />} />
           <Route path="/rewards/:id" element={<ShellPage title="Detalle de Recompensa" />} />
-          <Route path="/redemptions" element={<ShellPage title="Canjes" />} />
+          <Route path="/redemptions" element={<RedemptionsPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/businesses" element={<ShellPage title="Negocios" />} />
           <Route path="/profile" element={<ShellPage title="Perfil" />} />

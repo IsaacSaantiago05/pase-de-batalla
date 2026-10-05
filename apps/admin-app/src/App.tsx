@@ -4,6 +4,8 @@ import { AdministratorsPage } from './pages/AdministratorsPage'
 import { BusinessPointsPage } from './pages/BusinessPointsPage'
 import { LoginPage } from './pages/LoginPage'
 import { QrManagementPage } from './pages/QrManagementPage'
+import { RedemptionsAdminPage } from './pages/RedemptionsAdminPage'
+import { RewardsAdminPage } from './pages/RewardsAdminPage'
 import { ShellPage } from './pages/ShellPage'
 
 function App() {
@@ -17,8 +19,8 @@ function App() {
           <Route path="/business" element={<ShellPage title="Mi Negocio" />} />
           <Route path="/qr" element={<QrManagementPage />} />
           <Route path="/points" element={<BusinessPointsPage />} />
-          <Route path="/rewards" element={<ShellPage title="Recompensas" />} />
-          <Route path="/redemptions" element={<ShellPage title="Canjes" />} />
+          <Route path="/rewards" element={<RewardsAdminPage />} />
+          <Route path="/redemptions" element={<RedemptionsAdminPage />} />
           <Route path="/history" element={<ShellPage title="Historial" />} />
           <Route path="/users" element={<ShellPage title="Usuarios" />} />
           <Route path="/businesses" element={<ShellPage title="Negocios" />} />

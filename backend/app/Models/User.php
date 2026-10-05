@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -48,6 +49,11 @@ class User extends Authenticatable
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class, 'negocio_id');
+    }
+
+    public function redemptions(): HasMany
+    {
+        return $this->hasMany(Redemption::class, 'usuario_id');
     }
 
     public function isActive(): bool

@@ -32,4 +32,9 @@ class Business extends Model
     {
         return $this->hasMany(User::class, 'negocio_id');
     }
+
+    public function rewards(): HasMany
+    {
+        return $this->hasMany(Reward::class, 'negocio_id');
+    }
 }
