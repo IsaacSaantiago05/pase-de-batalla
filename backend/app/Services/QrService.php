@@ -174,7 +174,8 @@ class QrService
     private function generateSvg(string $content): string
     {
         $renderer = new ImageRenderer(
-            new RendererStyle(300, 2),
+            // Un QR más grande con quiet zone mayor mejora el escaneo en pantalla.
+            new RendererStyle(512, 4),
             new SvgImageBackEnd(),
         );
 

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
 import { apiPost } from '../lib/api'
+import { clearSession } from '../lib/auth'
 
 type RedeemResult = {
   movimiento: {
@@ -77,7 +79,7 @@ export function QrRedeemPage() {
         { facingMode: 'environment' },
         { fps: 10, qrbox: 240 },
         (decodedText) => {
-          setToken(decodedText)
+          setToken(normalizeScannedToken(decodedText))
           setMessage('Token detectado por cámara. Puedes canjearlo ahora.')
           void stopScanner()
         },
@@ -98,8 +100,14 @@ export function QrRedeemPage() {
     setResult(null)
 
     try {
+      const parsedToken = normalizeScannedToken(token)
+      if (!parsedToken) {
+        setError('Ingresa o escanea un token válido.')
+        return
+      }
+
       const response = await apiPost<RedeemResult>('/qr/redeem', {
-        token: token.trim(),
+        token: parsedToken,
       })
 
       setMessage('QR canjeado correctamente.')
@@ -112,6 +120,28 @@ export function QrRedeemPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <nav className="flex flex-wrap gap-2 text-sm">
+            {['/home', '/scan-qr', '/points', '/rewards', '/redemptions'].map((route) => (
+              <Link className="rounded-md border px-2 py-1" key={route} to={route}>
+                {route}
+              </Link>
+            ))}
+          </nav>
+          <button
+            className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white"
+            onClick={() => {
+              clearSession()
+              location.href = '/login'
+            }}
+            type="button"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="mb-3 text-2xl font-semibold">Canjear codigo QR</h1>
         <p className="mb-4 text-sm text-slate-600">Escanea con cámara o ingresa el token manualmente.</p>
@@ -180,4 +210,31 @@ export function QrRedeemPage() {
       )}
     </div>
   )
+}
+
+function normalizeScannedToken(rawValue: string): string {
+  const value = rawValue.trim()
+  if (!value) {
+    return ''
+  }
+
+  // Si el QR contiene una URL, intentamos extraer token por query param o por el último segmento.
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const url = new URL(value)
+      const tokenParam = url.searchParams.get('token')
+      if (tokenParam && tokenParam.trim()) {
+        return tokenParam.trim()
+      }
+
+      const lastPathSegment = url.pathname.split('/').filter(Boolean).at(-1)
+      if (lastPathSegment) {
+        return lastPathSegment.trim()
+      }
+    } catch {
+      return value
+    }
+  }
+
+  return value
 }
