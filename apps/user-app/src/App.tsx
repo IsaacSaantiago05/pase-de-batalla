@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
+import { BattlePassPage } from './pages/BattlePassPage'
+import { IslandPage } from './pages/IslandPage'
 import { ShellPage } from './pages/AppPages'
 import { HistoryPage, PointsPage } from './pages/PointsPages'
 import { QrRedeemPage } from './pages/QrRedeemPage'
@@ -16,8 +18,8 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/home" element={<ShellPage title="Inicio" />} />
-          <Route path="/island" element={<ShellPage title="Mi Isla" />} />
-          <Route path="/battle-pass" element={<ShellPage title="Pase de Batalla" />} />
+          <Route path="/island" element={<IslandPage />} />
+          <Route path="/battle-pass" element={<BattlePassPage />} />
           <Route path="/points" element={<PointsPage />} />
           <Route path="/scan-qr" element={<QrRedeemPage />} />
           <Route path="/rewards" element={<ShellPage title="Recompensas" />} />

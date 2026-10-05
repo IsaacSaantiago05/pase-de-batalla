@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdministratorController;
+use App\Http\Controllers\BattlePassController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\IslandController;
 use App\Http\Controllers\PointRuleController;
 use App\Http\Controllers\PointsController;
 use App\Http\Controllers\QrController;
@@ -42,6 +44,18 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/history', [PointsController::class, 'history']);
         Route::get('/business-history', [PointsController::class, 'businessHistory'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::post('/award', [PointsController::class, 'award'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+    });
+
+    Route::prefix('battle-pass')->middleware('role:CLIENTE')->group(function (): void {
+        Route::get('/progress', [BattlePassController::class, 'progress']);
+        Route::post('/tiers/{tier}/claim', [BattlePassController::class, 'claim']);
+    });
+
+    Route::prefix('island')->middleware('role:CLIENTE')->group(function (): void {
+        Route::get('/catalog', [IslandController::class, 'catalog']);
+        Route::get('/layout', [IslandController::class, 'layout']);
+        Route::post('/unlock', [IslandController::class, 'unlock']);
+        Route::post('/layout', [IslandController::class, 'updateLayout']);
     });
 
     Route::prefix('qr')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
