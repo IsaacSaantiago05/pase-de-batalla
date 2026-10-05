@@ -2,7 +2,7 @@
 
 Plataforma de fidelizacion gamificada con puntos globales, niveles, QR, recompensas e isla personalizable.
 
-Estado actual: Fase 1, Fase 2 base, Fase 3, Fase 4 (puntos globales), Fase 5 backend (QR transaccional) y Fase 6 (battle pass base) completadas.
+Estado actual: Fase 1, Fase 2 base, Fase 3, Fase 4 (puntos globales), Fase 5 backend (QR transaccional), Fase 6 (battle pass base) y Fase 7 (isla MVP) completadas.
 
 ## Estructura del proyecto
 
@@ -26,6 +26,7 @@ pase-de-batalla/
 - Motor de puntos globales con historial, reglas por negocio y recálculo de nivel.
 - Modulo QR transaccional con token unico, expiracion, uso unico y bloqueo de doble uso.
 - Modulo de battle pass con tiers, progreso por puntos globales y reclamo por tier.
+- Modulo de isla con catalogo por nivel, desbloqueo de elementos y guardado de posiciones.
 - Validaciones con Form Requests.
 - Respuestas API consistentes con formato success/message/data.
 
@@ -131,6 +132,13 @@ Battle Pass:
 - GET /api/battle-pass/progress (solo CLIENTE)
 - POST /api/battle-pass/tiers/{tier}/claim (solo CLIENTE)
 
+Isla:
+
+- GET /api/island/catalog (solo CLIENTE)
+- GET /api/island/layout (solo CLIENTE)
+- POST /api/island/unlock (solo CLIENTE)
+- POST /api/island/layout (solo CLIENTE)
+
 ## Frontend usuario
 
 Rutas funcionales iniciales:
@@ -150,11 +158,13 @@ Rutas funcionales iniciales:
 - /businesses
 - /profile
 
-Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos e historial.
+Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos, historial, battle pass e isla.
 
 El flujo de QR para cliente ya permite escaneo por camara (ademas de ingreso manual de token).
 
 La ruta /battle-pass ya muestra progreso real, siguiente hito y permite reclamar tiers desbloqueados.
+
+La ruta /island ya permite ver catalogo por nivel, desbloquear elementos y guardar posicion.
 
 ## Frontend admin
 
@@ -283,8 +293,12 @@ Cobertura actual minima:
 - Reclamo de tier desbloqueado y bloqueo de doble reclamo
 - Bloqueo de reclamo de tier sin puntos suficientes
 - Bloqueo de endpoints battle pass para roles no cliente
+- Catalogo de isla con elementos disponibles y bloqueados por nivel
+- Desbloqueo de elemento de isla por cliente
+- Bloqueo de desbloqueo/posicionado sin requisitos
+- Bloqueo de endpoints de isla para roles no cliente
 
 ## Pendiente para la siguiente fase
 
 - Recompensas/canjes con control de stock y concurrencia.
-- Logica de isla (desbloqueos, configuracion y evolucion visual por nivel).
+- Evolucion visual avanzada de isla (persistencia de capas/escenas, presets y efectos).

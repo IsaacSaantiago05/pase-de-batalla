@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -53,6 +54,16 @@ class User extends Authenticatable
     public function battlePassTiers(): HasMany
     {
         return $this->hasMany(UserBattlePassTier::class, 'usuario_id');
+    }
+
+    public function islandElements(): HasMany
+    {
+        return $this->hasMany(UserIslandElement::class, 'usuario_id');
+    }
+
+    public function islandConfigurations(): HasMany
+    {
+        return $this->hasMany(IslandConfiguration::class, 'usuario_id');
     }
 
     public function isActive(): bool
