@@ -66,6 +66,11 @@ class User extends Authenticatable
         return $this->hasMany(IslandConfiguration::class, 'usuario_id');
     }
 
+    public function redemptions(): HasMany
+    {
+        return $this->hasMany(Redemption::class, 'usuario_id');
+    }
+
     public function isActive(): bool
     {
         return (bool) $this->estado;

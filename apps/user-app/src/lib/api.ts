@@ -39,3 +39,10 @@ export function apiPost<T>(path: string, payload: unknown): Promise<ApiEnvelope<
 export function apiGet<T>(path: string): Promise<ApiEnvelope<T>> {
   return request<T>(path, { method: 'GET' })
 }
+
+export function apiPatch<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>> {
+  return request<T>(path, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
