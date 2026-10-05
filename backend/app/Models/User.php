@@ -56,6 +56,21 @@ class User extends Authenticatable
         return $this->hasMany(Redemption::class, 'usuario_id');
     }
 
+    public function battlePassTiers(): HasMany
+    {
+        return $this->hasMany(UserBattlePassTier::class, 'usuario_id');
+    }
+
+    public function islandElements(): HasMany
+    {
+        return $this->hasMany(UserIslandElement::class, 'usuario_id');
+    }
+
+    public function islandConfigurations(): HasMany
+    {
+        return $this->hasMany(IslandConfiguration::class, 'usuario_id');
+    }
+
     public function isActive(): bool
     {
         return (bool) $this->estado;

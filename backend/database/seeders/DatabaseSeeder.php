@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             BusinessSeeder::class,
             IslandElementSeeder::class,
             PointRuleSeeder::class,
+            BattlePassTierSeeder::class,
             AdminGeneralSeeder::class,
         ]);
     }
