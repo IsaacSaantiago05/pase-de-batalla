@@ -285,4 +285,65 @@ class QrFlowTest extends TestCase
 
         $limitedResponse->assertStatus(429);
     }
+
+    public function test_admin_can_get_qr_image_svg(): void
+    {
+        $adminNegocio = User::query()->create([
+            'nombre' => 'Admin Imagen',
+            'correo' => 'admin.imagen@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->adminNegocioRole->id,
+            'negocio_id' => $this->businessA->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        $qrCode = QrCode::query()->create([
+            'negocio_id' => $this->businessA->id,
+            'token' => 'TOKEN-QR-IMAGE-A',
+            'puntos' => 90,
+            'estado' => 'ACTIVO',
+            'fecha_creacion' => now(),
+        ]);
+
+        Sanctum::actingAs($adminNegocio);
+
+        $response = $this->getJson('/api/qr/'.$qrCode->id.'/image');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.qr_id', $qrCode->id)
+            ->assertJsonPath('data.token', 'TOKEN-QR-IMAGE-A');
+
+        $this->assertStringContainsString('<svg', (string) $response->json('data.svg'));
+        $this->assertStringStartsWith('data:image/svg+xml;base64,', (string) $response->json('data.data_url'));
+    }
+
+    public function test_admin_cannot_get_qr_image_from_other_business(): void
+    {
+        $adminNegocio = User::query()->create([
+            'nombre' => 'Admin Imagen Restr',
+            'correo' => 'admin.imagen.restr@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->adminNegocioRole->id,
+            'negocio_id' => $this->businessA->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        $qrCode = QrCode::query()->create([
+            'negocio_id' => $this->businessB->id,
+            'token' => 'TOKEN-QR-IMAGE-B',
+            'puntos' => 55,
+            'estado' => 'ACTIVO',
+            'fecha_creacion' => now(),
+        ]);
+
+        Sanctum::actingAs($adminNegocio);
+
+        $response = $this->getJson('/api/qr/'.$qrCode->id.'/image');
+
+        $response->assertStatus(403);
+    }
 }

@@ -20,6 +20,16 @@ type QrListPayload = {
 
 type GeneratedQrPayload = QrCode
 
+type QrImagePayload = {
+  qr_id: number
+  token: string
+  negocio_id: number
+  estado: 'ACTIVO' | 'UTILIZADO' | 'EXPIRADO' | 'CANCELADO'
+  puntos: number
+  svg: string
+  data_url: string
+}
+
 export function QrManagementPage() {
   const [rows, setRows] = useState<QrCode[]>([])
   const [puntos, setPuntos] = useState('')
@@ -27,6 +37,8 @@ export function QrManagementPage() {
   const [fechaExpiracion, setFechaExpiracion] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [qrPreview, setQrPreview] = useState<QrImagePayload | null>(null)
+  const [loadingPreviewId, setLoadingPreviewId] = useState<number | null>(null)
 
   const loadQrCodes = async () => {
     try {
@@ -67,6 +79,20 @@ export function QrManagementPage() {
       await loadQrCodes()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible generar QR')
+    }
+  }
+
+  async function onPreviewQr(qrId: number) {
+    setError('')
+    setLoadingPreviewId(qrId)
+
+    try {
+      const response = await apiGet<QrImagePayload>(`/qr/${qrId}/image`)
+      setQrPreview(response.data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No fue posible generar la imagen QR')
+    } finally {
+      setLoadingPreviewId(null)
     }
   }
 
@@ -117,6 +143,7 @@ export function QrManagementPage() {
                 <th className="p-2">Estado</th>
                 <th className="p-2">Usuario</th>
                 <th className="p-2">Expira</th>
+                <th className="p-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -129,12 +156,47 @@ export function QrManagementPage() {
                   <td className="p-2">{row.estado}</td>
                   <td className="p-2">{row.usuario_id ?? '-'}</td>
                   <td className="p-2">{row.fecha_expiracion ?? '-'}</td>
+                  <td className="p-2">
+                    <button
+                      className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                      type="button"
+                      onClick={() => {
+                        void onPreviewQr(row.id)
+                      }}
+                    >
+                      {loadingPreviewId === row.id ? 'Cargando...' : 'Ver QR'}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {qrPreview && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">QR #{qrPreview.qr_id}</h2>
+            <button
+              className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+              onClick={() => setQrPreview(null)}
+              type="button"
+            >
+              Cerrar
+            </button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-[300px_1fr]">
+            <img alt={`QR ${qrPreview.qr_id}`} className="h-[300px] w-[300px] rounded-lg border border-slate-200 bg-white p-2" src={qrPreview.data_url} />
+            <div className="space-y-2 text-sm text-slate-700">
+              <p>Token: <span className="font-mono text-xs text-slate-900">{qrPreview.token}</span></p>
+              <p>Puntos: <span className="font-semibold text-slate-900">{qrPreview.puntos}</span></p>
+              <p>Estado: <span className="font-semibold text-slate-900">{qrPreview.estado}</span></p>
+              <p>Negocio: <span className="font-semibold text-slate-900">{qrPreview.negocio_id}</span></p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

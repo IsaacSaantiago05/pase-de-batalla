@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use App\Models\PointMovement;
 use App\Models\QrCode;
 use App\Models\User;
@@ -44,6 +48,22 @@ class QrService
         }
 
         return $qrCode;
+    }
+
+    public function getImagePayloadForActor(User $actor, int $qrCodeId): array
+    {
+        $qrCode = $this->getForActor($actor, $qrCodeId);
+        $svg = $this->generateSvg($qrCode->token);
+
+        return [
+            'qr_id' => $qrCode->id,
+            'token' => $qrCode->token,
+            'negocio_id' => $qrCode->negocio_id,
+            'estado' => $qrCode->estado,
+            'puntos' => $qrCode->puntos,
+            'svg' => $svg,
+            'data_url' => 'data:image/svg+xml;base64,'.base64_encode($svg),
+        ];
     }
 
     public function generate(User $actor, int $points, ?int $businessId = null, ?Carbon $expiresAt = null): QrCode
@@ -149,5 +169,17 @@ class QrService
         } while (QrCode::query()->where('token', $token)->exists());
 
         return $token;
+    }
+
+    private function generateSvg(string $content): string
+    {
+        $renderer = new ImageRenderer(
+            new RendererStyle(300, 2),
+            new SvgImageBackEnd(),
+        );
+
+        $writer = new Writer($renderer);
+
+        return $writer->writeString($content);
     }
 }

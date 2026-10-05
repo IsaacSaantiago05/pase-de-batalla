@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
 import { apiPost } from '../lib/api'
 
 type RedeemResult = {
@@ -15,10 +16,80 @@ type RedeemResult = {
 }
 
 export function QrRedeemPage() {
+  const scannerElementId = 'qr-reader'
+  const scannerRef = useRef<Html5Qrcode | null>(null)
   const [token, setToken] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState<RedeemResult | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current !== null) {
+        const current = scannerRef.current
+        scannerRef.current = null
+
+        if (current.getState() === Html5QrcodeScannerState.SCANNING || current.getState() === Html5QrcodeScannerState.PAUSED) {
+          void current.stop().catch(() => undefined).finally(() => {
+            current.clear()
+          })
+        } else {
+          current.clear()
+        }
+      }
+    }
+  }, [])
+
+  async function stopScanner() {
+    const scanner = scannerRef.current
+    if (scanner === null) {
+      setIsScanning(false)
+      return
+    }
+
+    try {
+      if (scanner.getState() === Html5QrcodeScannerState.SCANNING || scanner.getState() === Html5QrcodeScannerState.PAUSED) {
+        await scanner.stop()
+      }
+    } catch {
+      // Ignoramos fallos de cierre para no bloquear la UI.
+    } finally {
+      scanner.clear()
+      scannerRef.current = null
+      setIsScanning(false)
+    }
+  }
+
+  async function startScanner() {
+    setError('')
+    setMessage('')
+
+    if (isScanning) {
+      return
+    }
+
+    try {
+      const scanner = new Html5Qrcode(scannerElementId)
+      scannerRef.current = scanner
+
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: 240 },
+        (decodedText) => {
+          setToken(decodedText)
+          setMessage('Token detectado por cámara. Puedes canjearlo ahora.')
+          void stopScanner()
+        },
+        () => undefined,
+      )
+
+      setIsScanning(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No fue posible iniciar la cámara')
+      await stopScanner()
+    }
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -43,7 +114,34 @@ export function QrRedeemPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="mb-3 text-2xl font-semibold">Canjear codigo QR</h1>
-        <p className="mb-4 text-sm text-slate-600">Ingresa el token del QR generado por el negocio.</p>
+        <p className="mb-4 text-sm text-slate-600">Escanea con cámara o ingresa el token manualmente.</p>
+
+        <div className="mb-4 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              onClick={() => {
+                void startScanner()
+              }}
+              type="button"
+            >
+              {isScanning ? 'Escaneo activo' : 'Iniciar cámara'}
+            </button>
+            <button
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              onClick={() => {
+                void stopScanner()
+              }}
+              type="button"
+            >
+              Detener cámara
+            </button>
+          </div>
+          <div className="min-h-[260px] rounded-lg border border-slate-200 bg-slate-50 p-2">
+            <div id={scannerElementId} />
+            {!isScanning && <p className="mt-2 text-xs text-slate-500">La cámara se mostrará aquí cuando inicies el escaneo.</p>}
+          </div>
+        </div>
 
         <form className="flex flex-col gap-3 md:flex-row" onSubmit={onSubmit}>
           <input

@@ -118,6 +118,7 @@ QR:
 
 - GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - GET /api/qr/{qrCode} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- GET /api/qr/{qrCode}/image (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/redeem (solo CLIENTE)
 
@@ -142,6 +143,8 @@ Rutas funcionales iniciales:
 
 Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos e historial.
 
+El flujo de QR para cliente ya permite escaneo por camara (ademas de ingreso manual de token).
+
 ## Frontend admin
 
 Rutas funcionales iniciales:
@@ -163,6 +166,8 @@ Rutas funcionales iniciales:
 - /statistics
 
 Incluye proteccion de rutas por sesion y rol administrativo, mas flujo funcional para otorgar puntos y consultar historial del negocio.
+
+El modulo QR de admin genera y visualiza imagen QR real (SVG) para cada codigo.
 
 ## Configuracion y ejecucion
 

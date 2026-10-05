@@ -49,6 +49,19 @@ class QrController extends Controller
         return $this->success('Código QR obtenido correctamente.', new QrCodeResource($code));
     }
 
+    public function image(Request $request, int $qrCode): JsonResponse
+    {
+        try {
+            $payload = $this->qrService->getImagePayloadForActor($request->user(), $qrCode);
+        } catch (AuthorizationException $exception) {
+            return $this->error($exception->getMessage(), null, 403);
+        } catch (ModelNotFoundException $exception) {
+            return $this->error($exception->getMessage(), null, 404);
+        }
+
+        return $this->success('Imagen QR generada correctamente.', $payload);
+    }
+
     public function generate(GenerateQrRequest $request): JsonResponse
     {
         $validated = $request->validated();
