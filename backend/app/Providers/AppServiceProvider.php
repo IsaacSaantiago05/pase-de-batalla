@@ -40,6 +40,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->ip().'|'.$userKey);
         });
 
+        RateLimiter::for('redemption-create', function (Request $request): Limit {
+            $userKey = $request->user()?->id ? 'user:'.$request->user()->id : 'guest';
+
+            return Limit::perMinute(10)->by($request->ip().'|'.$userKey);
+        });
+
         Gate::define('admin-general', fn (User $user) => $user->hasRole('ADMINISTRADOR_GENERAL'));
         Gate::define('admin-business', fn (User $user) => $user->hasRole('ADMINISTRADOR_NEGOCIO'));
         Gate::define('admin-any', fn (User $user) => $user->hasRole('ADMINISTRADOR_GENERAL', 'ADMINISTRADOR_NEGOCIO'));

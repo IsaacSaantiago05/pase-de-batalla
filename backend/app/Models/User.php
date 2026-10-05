@@ -51,6 +51,11 @@ class User extends Authenticatable
         return $this->belongsTo(Business::class, 'negocio_id');
     }
 
+    public function redemptions(): HasMany
+    {
+        return $this->hasMany(Redemption::class, 'usuario_id');
+    }
+
     public function battlePassTiers(): HasMany
     {
         return $this->hasMany(UserBattlePassTier::class, 'usuario_id');
