@@ -2,7 +2,7 @@
 
 Plataforma de fidelizacion gamificada con puntos globales, niveles, QR, recompensas e isla personalizable.
 
-Estado actual: Fase 1, Fase 2 base, Fase 3, Fase 4 (puntos globales) y Fase 5 backend (QR transaccional) completadas.
+Estado actual: Fase 1, Fase 2 base, Fase 3, Fase 4 (puntos globales), Fase 5 backend (QR transaccional) y Fase 6 (battle pass base) completadas.
 
 ## Estructura del proyecto
 
@@ -25,6 +25,7 @@ pase-de-batalla/
 - Gestion inicial de usuarios y negocios con aislamiento por negocio.
 - Motor de puntos globales con historial, reglas por negocio y recálculo de nivel.
 - Modulo QR transaccional con token unico, expiracion, uso unico y bloqueo de doble uso.
+- Modulo de battle pass con tiers, progreso por puntos globales y reclamo por tier.
 - Validaciones con Form Requests.
 - Respuestas API consistentes con formato success/message/data.
 
@@ -42,6 +43,8 @@ pase-de-batalla/
 - usuario_elementos
 - configuracion_isla
 - reglas_puntos
+- pase_batalla_tiers
+- usuario_pase_batalla
 - personal_access_tokens (Sanctum)
 
 ### Seeders incluidos
@@ -50,6 +53,7 @@ pase-de-batalla/
 - LevelSeeder
 - BusinessSeeder
 - PointRuleSeeder
+- BattlePassTierSeeder
 - IslandElementSeeder
 - AdminGeneralSeeder
 
@@ -122,6 +126,11 @@ QR:
 - POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/redeem (solo CLIENTE)
 
+Battle Pass:
+
+- GET /api/battle-pass/progress (solo CLIENTE)
+- POST /api/battle-pass/tiers/{tier}/claim (solo CLIENTE)
+
 ## Frontend usuario
 
 Rutas funcionales iniciales:
@@ -144,6 +153,8 @@ Rutas funcionales iniciales:
 Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos e historial.
 
 El flujo de QR para cliente ya permite escaneo por camara (ademas de ingreso manual de token).
+
+La ruta /battle-pass ya muestra progreso real, siguiente hito y permite reclamar tiers desbloqueados.
 
 ## Frontend admin
 
@@ -268,9 +279,12 @@ Cobertura actual minima:
 - Bloqueo de canje en QR cancelado
 - Bloqueo de canje en QR expirado y marcado de estado EXPIRADO
 - Aislamiento de consulta QR por negocio
+- Progreso de battle pass con tiers desbloqueados/bloqueados
+- Reclamo de tier desbloqueado y bloqueo de doble reclamo
+- Bloqueo de reclamo de tier sin puntos suficientes
+- Bloqueo de endpoints battle pass para roles no cliente
 
 ## Pendiente para la siguiente fase
 
-- Progreso de battle pass completo basado en puntos globales.
 - Recompensas/canjes con control de stock y concurrencia.
 - Logica de isla (desbloqueos, configuracion y evolucion visual por nivel).

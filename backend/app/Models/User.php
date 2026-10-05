@@ -50,6 +50,11 @@ class User extends Authenticatable
         return $this->belongsTo(Business::class, 'negocio_id');
     }
 
+    public function battlePassTiers(): HasMany
+    {
+        return $this->hasMany(UserBattlePassTier::class, 'usuario_id');
+    }
+
     public function isActive(): bool
     {
         return (bool) $this->estado;
