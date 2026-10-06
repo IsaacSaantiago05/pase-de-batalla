@@ -192,6 +192,42 @@ class PointsFlowTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
+    public function test_level_falls_back_to_highest_active_when_balance_exceeds_ranges(): void
+    {
+        $adminGeneral = User::query()->create([
+            'nombre' => 'Admin General Alto',
+            'correo' => 'adminglobalmax@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->adminGeneralRole->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        $client = User::query()->create([
+            'nombre' => 'Cliente Alto',
+            'correo' => 'clientealto@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->clienteRole->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        Sanctum::actingAs($adminGeneral);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/points/award', [
+                'usuario_id' => $client->id,
+                'regla_puntos_id' => $this->ruleA->id,
+            ])->assertCreated();
+        }
+
+        $client->refresh();
+
+        $nivel2 = Level::query()->where('nombre', 'Nivel 2')->firstOrFail();
+        $this->assertEquals(250, (int) DB::table('movimientos_puntos')->where('usuario_id', $client->id)->sum('cantidad'));
+        $this->assertEquals($nivel2->id, $client->nivel_id);
+    }
+
     public function test_client_cannot_award_points(): void
     {
         $client = User::query()->create([

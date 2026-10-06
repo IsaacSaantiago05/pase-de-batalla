@@ -76,6 +76,15 @@ class PointsService
             ->orderByDesc('puntos_minimos')
             ->first();
 
+        if (! $level) {
+            // Fallback para saldos por encima del ultimo rango configurado.
+            $level = Level::query()
+                ->where('estado', true)
+                ->where('puntos_minimos', '<=', $balance)
+                ->orderByDesc('puntos_minimos')
+                ->first();
+        }
+
         $user->update([
             'nivel_id' => $level?->id,
         ]);
