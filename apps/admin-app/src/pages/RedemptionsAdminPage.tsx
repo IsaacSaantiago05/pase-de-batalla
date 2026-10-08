@@ -62,7 +62,6 @@ export function RedemptionsAdminPage() {
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b">
-                <th className="p-2">ID</th>
                 <th className="p-2">Usuario</th>
                 <th className="p-2">Recompensa</th>
                 <th className="p-2">Puntos</th>
@@ -74,7 +73,6 @@ export function RedemptionsAdminPage() {
             <tbody>
               {rows.map((row) => (
                 <tr className="border-b" key={row.id}>
-                  <td className="p-2">{row.id}</td>
                   <td className="p-2">{row.usuario_nombre ?? row.usuario_id}</td>
                   <td className="p-2">{row.recompensa_nombre ?? '-'}</td>
                   <td className="p-2">{row.puntos_utilizados}</td>

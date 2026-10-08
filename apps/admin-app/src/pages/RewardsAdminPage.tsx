@@ -111,7 +111,6 @@ export function RewardsAdminPage() {
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b">
-                <th className="p-2">ID</th>
                 <th className="p-2">Negocio</th>
                 <th className="p-2">Nombre</th>
                 <th className="p-2">Puntos</th>
@@ -123,7 +122,6 @@ export function RewardsAdminPage() {
             <tbody>
               {rows.map((row) => (
                 <tr className="border-b" key={row.id}>
-                  <td className="p-2">{row.id}</td>
                   <td className="p-2">{row.negocio_id}</td>
                   <td className="p-2">{row.nombre}</td>
                   <td className="p-2">{row.puntos_requeridos}</td>

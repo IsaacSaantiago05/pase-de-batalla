@@ -36,7 +36,6 @@ export function QrManagementPage() {
   const [rows, setRows] = useState<QrCode[]>([])
   const [puntos, setPuntos] = useState('')
   const [negocioId, setNegocioId] = useState('')
-  const [fechaExpiracion, setFechaExpiracion] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [qrPreview, setQrPreview] = useState<QrImagePayload | null>(null)
@@ -69,16 +68,11 @@ export function QrManagementPage() {
         payload.negocio_id = Number(negocioId)
       }
 
-      if (fechaExpiracion.trim()) {
-        payload.fecha_expiracion = new Date(fechaExpiracion).toISOString()
-      }
-
       const response = await apiPost<GeneratedQrPayload>('/qr/generate', payload)
       setMessage(`QR generado: ${response.data.token}`)
       await onPreviewQr(response.data.id)
       setPuntos('')
       setNegocioId('')
-      setFechaExpiracion('')
       await loadQrCodes()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible generar QR')
@@ -126,9 +120,9 @@ export function QrManagementPage() {
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-3 text-xl font-semibold">Generar codigo QR</h2>
         <p className="mb-4 text-sm text-slate-600">
-          Para ADMINISTRADOR_GENERAL el campo negocio es obligatorio. Para ADMINISTRADOR_NEGOCIO se usa su negocio.
+          Para ADMINISTRADOR_GENERAL el campo negocio es obligatorio. Para ADMINISTRADOR_NEGOCIO se usa su negocio. El QR expira automaticamente en 30 segundos.
         </p>
-        <form className="grid gap-3 md:grid-cols-4" onSubmit={onSubmit}>
+        <form className="grid gap-3 md:grid-cols-3" onSubmit={onSubmit}>
           <input
             className="rounded-md border p-2"
             placeholder="Puntos"
@@ -140,12 +134,6 @@ export function QrManagementPage() {
             placeholder="ID negocio (opcional para admin negocio)"
             value={negocioId}
             onChange={(e) => setNegocioId(e.target.value)}
-          />
-          <input
-            className="rounded-md border p-2"
-            type="datetime-local"
-            value={fechaExpiracion}
-            onChange={(e) => setFechaExpiracion(e.target.value)}
           />
           <button className="rounded-md bg-slate-900 p-2 text-white" type="submit">
             Generar
@@ -161,7 +149,6 @@ export function QrManagementPage() {
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b">
-                <th className="p-2">ID</th>
                 <th className="p-2">Negocio</th>
                 <th className="p-2">Token</th>
                 <th className="p-2">Puntos</th>
@@ -174,7 +161,6 @@ export function QrManagementPage() {
             <tbody>
               {rows.map((row) => (
                 <tr className="border-b" key={row.id}>
-                  <td className="p-2">{row.id}</td>
                   <td className="p-2">{row.negocio_id}</td>
                   <td className="p-2 font-mono text-xs">{row.token}</td>
                   <td className="p-2">{row.puntos}</td>

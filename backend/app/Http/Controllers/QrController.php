@@ -13,7 +13,6 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use RuntimeException;
 
 class QrController extends Controller
@@ -71,7 +70,6 @@ class QrController extends Controller
                 $request->user(),
                 (int) $validated['puntos'],
                 isset($validated['negocio_id']) ? (int) $validated['negocio_id'] : null,
-                isset($validated['fecha_expiracion']) ? Carbon::parse($validated['fecha_expiracion']) : null,
             );
         } catch (RuntimeException $exception) {
             return $this->error($exception->getMessage(), null, 422);

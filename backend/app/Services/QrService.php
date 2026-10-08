@@ -19,6 +19,8 @@ use RuntimeException;
 
 class QrService
 {
+    private const QR_LIFETIME_SECONDS = 30;
+
     public function __construct(private readonly PointsService $pointsService)
     {
     }
@@ -66,7 +68,7 @@ class QrService
         ];
     }
 
-    public function generate(User $actor, int $points, ?int $businessId = null, ?Carbon $expiresAt = null): QrCode
+    public function generate(User $actor, int $points, ?int $businessId = null): QrCode
     {
         $resolvedBusinessId = $this->resolveBusinessId($actor, $businessId);
 
@@ -76,7 +78,7 @@ class QrService
             'puntos' => $points,
             'estado' => 'ACTIVO',
             'fecha_creacion' => now(),
-            'fecha_expiracion' => $expiresAt,
+            'fecha_expiracion' => now()->addSeconds(self::QR_LIFETIME_SECONDS),
             'fecha_uso' => null,
             'usuario_id' => null,
         ]);
