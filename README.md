@@ -128,6 +128,13 @@ Productos (catalogo por negocio, con precio y puntos fijos):
 - PUT /api/products/{product} (solo ADMINISTRADOR_NEGOCIO, solo de su negocio)
 - PATCH /api/products/{product}/status (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL)
 
+Ventas (cada venta genera un QR de un solo uso con la suma de puntos de sus productos):
+
+- POST /api/sales (solo ADMINISTRADOR_NEGOCIO). Cuerpo: `{"items": [{"producto_id": 1, "cantidad": 2}]}`. Solo productos activos de su negocio; guarda una copia fija de nombre, precio y puntos.
+- GET /api/sales (admin de negocio: las suyas; admin general: todas, filtro `negocio_id`)
+
+Al canjear el QR de una venta, el movimiento de puntos guarda `venta_id` y `otorgado_por` (quien registro la venta).
+
 QR:
 
 - GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)

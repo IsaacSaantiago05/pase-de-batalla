@@ -16,6 +16,8 @@ class PointMovement extends Model
         'usuario_id',
         'negocio_id',
         'qr_id',
+        'venta_id',
+        'otorgado_por',
         'cantidad',
         'tipo',
         'fecha',

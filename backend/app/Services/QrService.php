@@ -68,12 +68,13 @@ class QrService
         ];
     }
 
-    public function generate(User $actor, int $points, ?int $businessId = null): QrCode
+    public function generate(User $actor, int $points, ?int $businessId = null, ?int $saleId = null): QrCode
     {
         $resolvedBusinessId = $this->resolveBusinessId($actor, $businessId);
 
         return QrCode::query()->create([
             'negocio_id' => $resolvedBusinessId,
+            'venta_id' => $saleId,
             'token' => $this->generateUniqueToken(),
             'puntos' => $points,
             'estado' => 'ACTIVO',
@@ -131,6 +132,8 @@ class QrService
                 'usuario_id' => $actor->id,
                 'negocio_id' => $qrCode->negocio_id,
                 'qr_id' => $qrCode->id,
+                'venta_id' => $qrCode->venta_id,
+                'otorgado_por' => $qrCode->sale?->creado_por,
                 'cantidad' => $qrCode->puntos,
                 'tipo' => 'GANANCIA',
                 'fecha' => now(),

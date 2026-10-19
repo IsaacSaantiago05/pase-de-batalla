@@ -12,6 +12,7 @@ class QrCodeResource extends JsonResource
         return [
             'id' => $this->id,
             'negocio_id' => $this->negocio_id,
+            'venta_id' => $this->venta_id,
             'token' => $this->token,
             'puntos' => $this->puntos,
             'estado' => $this->estado,
