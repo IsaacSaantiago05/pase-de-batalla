@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiGet, apiPatch, apiPost } from '../lib/api'
+import { apiGet, apiPatch, apiPost, listData } from '../lib/api'
 
 type Reward = {
   id: number
@@ -29,7 +29,7 @@ export function RewardsAdminPage() {
   const loadRewards = async () => {
     try {
       const response = await apiGet<RewardListPayload>('/rewards')
-      setRows(response.data.data ?? [])
+      setRows(listData(response.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible cargar recompensas')
     }

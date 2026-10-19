@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiGet } from '../lib/api'
+import { apiGet, listData } from '../lib/api'
 
 type BalancePayload = {
   usuario_id: number
@@ -56,7 +56,7 @@ export function HistoryPage() {
     const run = async () => {
       try {
         const response = await apiGet<HistoryPayload>('/points/history')
-        setRows(response.data.data ?? [])
+        setRows(listData(response.data))
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No fue posible obtener historial')
       }

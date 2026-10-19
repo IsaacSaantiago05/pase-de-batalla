@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiGet, apiPost } from '../lib/api'
+import { apiGet, apiPost, listData } from '../lib/api'
 
 type Rule = {
   id: number
@@ -42,8 +42,8 @@ export function BusinessPointsPage() {
         apiGet<RuleList>('/point-rules'),
         apiGet<MovementList>('/points/business-history'),
       ])
-      setRules(rulesResponse.data.data ?? [])
-      setHistory(historyResponse.data.data ?? [])
+      setRules(listData(rulesResponse.data))
+      setHistory(listData(historyResponse.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible cargar datos')
     }

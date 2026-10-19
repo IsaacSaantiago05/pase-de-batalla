@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiGet, apiPost } from '../lib/api'
+import { apiGet, apiPatch, apiPost } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
 
 type Product = {
@@ -112,6 +112,19 @@ export function SalesAdminPage() {
     }
   }
 
+  async function cancelQr() {
+    if (!qr) return
+    setError('')
+
+    try {
+      await apiPatch(`/qr/${qr.image.qr_id}/cancel`, {})
+      setQr(null)
+      await loadSales()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No fue posible cancelar el QR')
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -195,9 +208,22 @@ export function SalesAdminPage() {
           <p className={`mt-3 font-semibold ${secondsLeft === 0 ? 'text-red-600' : 'text-slate-900'}`}>
             {secondsLeft > 0 ? `Expira en ${secondsLeft} s` : 'QR expirado'}
           </p>
-          <button className="mt-3 rounded-md border px-3 py-1 text-sm" onClick={() => setQr(null)} type="button">
-            Cerrar
-          </button>
+          <div className="mt-3 flex justify-center gap-2">
+            {secondsLeft > 0 && (
+              <button
+                className="rounded-md border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
+                onClick={() => {
+                  void cancelQr()
+                }}
+                type="button"
+              >
+                Cancelar QR
+              </button>
+            )}
+            <button className="rounded-md border px-3 py-1 text-sm" onClick={() => setQr(null)} type="button">
+              Cerrar
+            </button>
+          </div>
         </div>
       )}
 

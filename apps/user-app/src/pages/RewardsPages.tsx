@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiGet, apiPost } from '../lib/api'
+import { apiGet, apiPost, listData } from '../lib/api'
 
 type Reward = {
   id: number
@@ -41,7 +41,7 @@ export function RewardsPage() {
   const loadRewards = async () => {
     try {
       const response = await apiGet<RewardListPayload>('/rewards')
-      setRewards(response.data.data ?? [])
+      setRewards(listData(response.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible cargar recompensas')
     }
@@ -107,7 +107,7 @@ export function RedemptionsPage() {
     const load = async () => {
       try {
         const response = await apiGet<RedemptionListPayload>('/redemptions/my')
-        setRows(response.data.data ?? [])
+        setRows(listData(response.data))
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No fue posible cargar tus canjes')
       }

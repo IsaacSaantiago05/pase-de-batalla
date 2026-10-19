@@ -78,6 +78,21 @@ class QrController extends Controller
         return $this->success('Código QR generado correctamente.', new QrCodeResource($qrCode), 201);
     }
 
+    public function cancel(Request $request, int $qrCode): JsonResponse
+    {
+        try {
+            $code = $this->qrService->cancel($request->user(), $qrCode);
+        } catch (AuthorizationException $exception) {
+            return $this->error($exception->getMessage(), null, 403);
+        } catch (ModelNotFoundException $exception) {
+            return $this->error($exception->getMessage(), null, 404);
+        } catch (RuntimeException $exception) {
+            return $this->error($exception->getMessage(), null, 422);
+        }
+
+        return $this->success('Código QR cancelado correctamente.', new QrCodeResource($code));
+    }
+
     public function redeem(RedeemQrRequest $request): JsonResponse
     {
         $validated = $request->validated();

@@ -141,6 +141,7 @@ QR:
 - GET /api/qr/{qrCode} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - GET /api/qr/{qrCode}/image (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- PATCH /api/qr/{qrCode}/cancel (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL; solo QR en estado ACTIVO)
 - POST /api/qr/redeem (solo CLIENTE)
 
 Recompensas:
@@ -239,6 +240,8 @@ Backend: copiar backend/.env.example a backend/.env y configurar DB_* para MySQL
 Si usas recuperación de contraseña por correo para user-app, agrega también:
 
 - FRONTEND_USER_URL=http://localhost:5173
+
+Los tokens de sesion vencen a los 30 dias (`SANCTUM_EXPIRATION`, en minutos). Los vencidos se borran con la tarea programada `sanctum:prune-expired`, que corre si esta activo `php artisan schedule:work` (o un cron con `schedule:run`).
 
 Frontends: copiar en cada app:
 
