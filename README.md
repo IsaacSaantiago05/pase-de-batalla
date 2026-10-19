@@ -280,6 +280,14 @@ npm run dev
 
 ## Pruebas
 
+Las pruebas del backend usan MySQL/MariaDB (base `pase_de_batalla_test`, definida en `backend/phpunit.xml`). Crearla una vez:
+
+```
+CREATE DATABASE pase_de_batalla_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Las pruebas reinician esa base en cada ejecucion; no apuntarla a `pase_de_batalla`.
+
 Backend:
 
 ```
