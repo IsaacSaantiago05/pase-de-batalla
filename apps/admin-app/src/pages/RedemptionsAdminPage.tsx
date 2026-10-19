@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiGet, apiPatch } from '../lib/api'
+import { apiGet, apiPatch, listData } from '../lib/api'
 
 type Redemption = {
   id: number
@@ -25,7 +25,7 @@ export function RedemptionsAdminPage() {
   const loadRows = async () => {
     try {
       const response = await apiGet<RedemptionListPayload>('/redemptions/business')
-      setRows(response.data.data ?? [])
+      setRows(listData(response.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible cargar canjes')
     }

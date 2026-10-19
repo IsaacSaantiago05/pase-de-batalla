@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { apiGet, apiPost } from '../lib/api'
+import { apiGet, apiPost, listData } from '../lib/api'
 import { clearAdminSession } from '../lib/auth'
 
 type QrCode = {
@@ -44,7 +44,7 @@ export function QrManagementPage() {
   const loadQrCodes = async () => {
     try {
       const response = await apiGet<QrListPayload>('/qr')
-      setRows(response.data.data ?? [])
+      setRows(listData(response.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible cargar codigos QR')
     }
