@@ -7,6 +7,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\IslandController;
 use App\Http\Controllers\PointRuleController;
 use App\Http\Controllers\PointsController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\RedemptionController;
 use App\Http\Controllers\RewardController;
@@ -73,6 +74,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [RewardController::class, 'store'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::put('/{reward}', [RewardController::class, 'update'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::patch('/{reward}/status', [RewardController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+    });
+
+    Route::prefix('products')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::get('/', [ProductController::class, 'index']);
+        Route::post('/', [ProductController::class, 'store'])->middleware('role:ADMINISTRADOR_NEGOCIO');
+        Route::put('/{product}', [ProductController::class, 'update'])->middleware('role:ADMINISTRADOR_NEGOCIO');
+        Route::patch('/{product}/status', [ProductController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
     });
 
     Route::prefix('redemptions')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
