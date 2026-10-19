@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\IslandConfiguration;
 use App\Models\IslandElement;
+use App\Models\Level;
 use App\Models\User;
 use App\Models\UserIslandElement;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -12,9 +13,30 @@ use RuntimeException;
 
 class IslandService
 {
+    /**
+     * Posicion del nivel (1 = el mas bajo), no su id: los ids autoincrementales
+     * no son un orden de progresion confiable.
+     */
+    private function levelRank(?int $levelId): int
+    {
+        if ($levelId === null) {
+            return 0;
+        }
+
+        $level = Level::query()->find($levelId);
+        if ($level === null) {
+            return 0;
+        }
+
+        return Level::query()
+            ->where('estado', true)
+            ->where('puntos_minimos', '<=', $level->puntos_minimos)
+            ->count();
+    }
+
     public function getCatalog(User $user): array
     {
-        $userLevel = (int) ($user->nivel_id ?? 0);
+        $userLevel = $this->levelRank($user->nivel_id);
 
         $elements = IslandElement::query()
             ->where('estado', true)
@@ -85,7 +107,7 @@ class IslandService
                 throw new ModelNotFoundException('El elemento de isla no existe o está inactivo.');
             }
 
-            $userLevel = (int) ($lockedUser->nivel_id ?? 0);
+            $userLevel = $this->levelRank($lockedUser->nivel_id);
             if ($userLevel < (int) $element->nivel_requerido) {
                 throw new RuntimeException('Tu nivel actual no permite desbloquear este elemento.');
             }
