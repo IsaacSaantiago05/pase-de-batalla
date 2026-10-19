@@ -121,6 +121,13 @@ Reglas de puntos:
 - PUT /api/point-rules/{pointRule}
 - PATCH /api/point-rules/{pointRule}/status
 
+Productos (catalogo por negocio, con precio y puntos fijos):
+
+- GET /api/products (cliente: solo activos; admin de negocio: los suyos; admin general: todos, filtro `negocio_id`)
+- POST /api/products (solo ADMINISTRADOR_NEGOCIO, se crea en su negocio)
+- PUT /api/products/{product} (solo ADMINISTRADOR_NEGOCIO, solo de su negocio)
+- PATCH /api/products/{product}/status (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL)
+
 QR:
 
 - GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
