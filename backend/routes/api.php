@@ -3,11 +3,14 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdministratorController;
 use App\Http\Controllers\BattlePassController;
+use App\Http\Controllers\BusinessClientController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\IslandController;
 use App\Http\Controllers\PointRuleController;
 use App\Http\Controllers\PointsController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\RedemptionController;
 use App\Http\Controllers\RewardController;
@@ -26,6 +29,18 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('auth')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
+    });
+
+    Route::middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::put('/profile', [ProfileController::class, 'update']);
+        Route::get('/directory/businesses', [DirectoryController::class, 'businesses']);
+    });
+
+    Route::get('/business-clients', [BusinessClientController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+
+    Route::prefix('points/adjustments')->middleware('role:ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::get('/', [PointsController::class, 'adjustments']);
+        Route::post('/', [PointsController::class, 'adjust']);
     });
 
     Route::prefix('users')->middleware('role:ADMINISTRADOR_GENERAL,ADMINISTRADOR_NEGOCIO')->group(function (): void {

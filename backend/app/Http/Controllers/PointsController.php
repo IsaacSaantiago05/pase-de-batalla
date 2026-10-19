@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Points\AdjustPointsRequest;
 use App\Http\Requests\Points\AwardPointsRequest;
+use App\Models\PointMovement;
 use App\Http\Resources\Points\PointMovementResource;
 use App\Models\User;
 use App\Services\PointsService;
@@ -52,6 +54,41 @@ class PointsController extends Controller
         $history = $this->pointsService->getBusinessHistory($businessId);
 
         return $this->success('Historial de puntos del negocio obtenido correctamente.', PointMovementResource::collection($history));
+    }
+
+    public function adjust(AdjustPointsRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        try {
+            $movement = $this->pointsService->adjustPoints(
+                $request->user(),
+                $validated['correo'],
+                (int) $validated['cantidad'],
+                $validated['motivo'],
+                isset($validated['negocio_id']) ? (int) $validated['negocio_id'] : null,
+            );
+        } catch (RuntimeException $exception) {
+            return $this->error($exception->getMessage(), null, 422);
+        }
+
+        $targetUser = User::query()->findOrFail($movement->usuario_id);
+
+        return $this->success('Ajuste de puntos registrado correctamente.', [
+            'movimiento' => new PointMovementResource($movement),
+            'saldo_global' => $this->pointsService->getUserBalance($targetUser),
+        ], 201);
+    }
+
+    public function adjustments(Request $request): JsonResponse
+    {
+        $adjustments = PointMovement::query()
+            ->where('tipo', 'AJUSTE')
+            ->whereNotNull('otorgado_por')
+            ->orderByDesc('id')
+            ->paginate(20);
+
+        return $this->success('Ajustes de puntos obtenidos correctamente.', PointMovementResource::collection($adjustments));
     }
 
     public function award(AwardPointsRequest $request): JsonResponse

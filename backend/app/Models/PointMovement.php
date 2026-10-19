@@ -20,6 +20,7 @@ class PointMovement extends Model
         'otorgado_por',
         'cantidad',
         'tipo',
+        'motivo',
         'fecha',
     ];
 
