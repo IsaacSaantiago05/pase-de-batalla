@@ -241,6 +241,8 @@ Si usas recuperación de contraseña por correo para user-app, agrega también:
 
 - FRONTEND_USER_URL=http://localhost:5173
 
+Los tokens de sesion vencen a los 30 dias (`SANCTUM_EXPIRATION`, en minutos). Los vencidos se borran con la tarea programada `sanctum:prune-expired`, que corre si esta activo `php artisan schedule:work` (o un cron con `schedule:run`).
+
 Frontends: copiar en cada app:
 
 - apps/user-app/.env.example -> apps/user-app/.env
