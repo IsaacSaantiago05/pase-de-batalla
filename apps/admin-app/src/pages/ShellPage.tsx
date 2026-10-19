@@ -3,7 +3,7 @@ import { clearAdminSession, getAdminSession } from '../lib/auth'
 
 export function ShellPage({ title }: { title: string }) {
   const role = getAdminSession()?.role
-  const common = ['/dashboard', '/business', '/qr', '/points', '/rewards', '/redemptions', '/history']
+  const common = ['/dashboard', '/business', '/products', '/qr', '/points', '/rewards', '/redemptions', '/history']
   const general = ['/users', '/businesses', '/administrators', '/levels', '/island-elements', '/point-rules', '/statistics']
 
   return (
