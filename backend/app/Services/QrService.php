@@ -85,6 +85,28 @@ class QrService
         ]);
     }
 
+    public function cancel(User $actor, int $qrCodeId): QrCode
+    {
+        return DB::transaction(function () use ($actor, $qrCodeId) {
+            $qrCode = QrCode::query()->lockForUpdate()->find($qrCodeId);
+            if ($qrCode === null) {
+                throw new ModelNotFoundException('El código QR no existe.');
+            }
+
+            if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $qrCode->negocio_id) {
+                throw new AuthorizationException('No puedes cancelar QR de otro negocio.');
+            }
+
+            if ($qrCode->estado !== 'ACTIVO') {
+                throw new RuntimeException("Solo se puede cancelar un QR activo (estado actual: {$qrCode->estado}).");
+            }
+
+            $qrCode->update(['estado' => 'CANCELADO']);
+
+            return $qrCode;
+        });
+    }
+
     public function redeem(User $actor, string $token): PointMovement
     {
         $preloadedQrCode = QrCode::query()->where('token', $token)->first();
