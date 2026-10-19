@@ -135,6 +135,20 @@ Ventas (cada venta genera un QR de un solo uso con la suma de puntos de sus prod
 
 Al canjear el QR de una venta, el movimiento de puntos guarda `venta_id` y `otorgado_por` (quien registro la venta).
 
+Directorio y perfil (cualquier usuario autenticado):
+
+- GET /api/directory/businesses (negocios activos con datos publicos y `productos_activos`)
+- PUT /api/profile (nombre, correo; para cambiar `password` se exige `password_actual` y se cierran las demas sesiones)
+
+Clientes del negocio:
+
+- GET /api/business-clients (ADMINISTRADOR_NEGOCIO: su negocio; ADMINISTRADOR_GENERAL: requiere `negocio_id`). Clientes con movimientos en el negocio, con puntos ganados, visitas y ultima visita.
+
+Ajustes manuales (solo ADMINISTRADOR_GENERAL):
+
+- GET /api/points/adjustments
+- POST /api/points/adjustments. Cuerpo: `{"correo": "...", "cantidad": -10, "motivo": "...", "negocio_id": null}`. Motivo obligatorio (min. 5), solo clientes, nunca deja el saldo en negativo; guarda `otorgado_por` y `motivo`.
+
 QR:
 
 - GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)

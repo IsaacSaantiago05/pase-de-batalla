@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedAdminRoute } from './components/ProtectedAdminRoute'
 import { AdministratorsPage } from './pages/AdministratorsPage'
+import { BusinessClientsPage } from './pages/BusinessClientsPage'
 import { BusinessPointsPage } from './pages/BusinessPointsPage'
+import { PointAdjustmentsPage } from './pages/PointAdjustmentsPage'
 import { LoginPage } from './pages/LoginPage'
 import { ProductsAdminPage } from './pages/ProductsAdminPage'
 import { QrManagementPage } from './pages/QrManagementPage'
@@ -21,6 +23,8 @@ function App() {
           <Route path="/business" element={<ShellPage title="Mi Negocio" />} />
           <Route path="/products" element={<ProductsAdminPage />} />
           <Route path="/sales" element={<SalesAdminPage />} />
+          <Route path="/clients" element={<BusinessClientsPage />} />
+          <Route path="/adjustments" element={<PointAdjustmentsPage />} />
           <Route path="/qr"element={<QrManagementPage />} />
           <Route path="/points" element={<BusinessPointsPage />} />
           <Route path="/rewards" element={<RewardsAdminPage />} />

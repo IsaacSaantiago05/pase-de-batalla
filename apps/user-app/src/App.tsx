@@ -11,6 +11,8 @@ const HistoryPage = lazy(() => import('./pages/PointsPages').then((module) => ({
 const QrRedeemPage = lazy(() => import('./pages/QrRedeemPage').then((module) => ({ default: module.QrRedeemPage })))
 const RewardsPage = lazy(() => import('./pages/RewardsPages').then((module) => ({ default: module.RewardsPage })))
 const RedemptionsPage = lazy(() => import('./pages/RewardsPages').then((module) => ({ default: module.RedemptionsPage })))
+const BusinessesPage = lazy(() => import('./pages/BusinessesPage').then((module) => ({ default: module.BusinessesPage })))
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
 
 function RouteLoadingFallback() {
   return (
@@ -106,7 +108,7 @@ function App() {
             path="/businesses"
             element={
               <Suspense fallback={<RouteLoadingFallback />}>
-                <ShellPage title="Negocios" />
+                <BusinessesPage />
               </Suspense>
             }
           />
@@ -114,7 +116,7 @@ function App() {
             path="/profile"
             element={
               <Suspense fallback={<RouteLoadingFallback />}>
-                <ShellPage title="Perfil" />
+                <ProfilePage />
               </Suspense>
             }
           />

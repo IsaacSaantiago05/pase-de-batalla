@@ -65,6 +65,39 @@ class PointsService
         });
     }
 
+    /**
+     * Ajuste manual auditado: queda registrado quien lo hizo y por que. Nunca deja el saldo en negativo.
+     */
+    public function adjustPoints(User $actor, string $email, int $amount, string $reason, ?int $businessId = null): PointMovement
+    {
+        return DB::transaction(function () use ($actor, $email, $amount, $reason, $businessId) {
+            $targetUser = User::query()->where('correo', $email)->lockForUpdate()->firstOrFail();
+
+            if (! $targetUser->hasRole('CLIENTE')) {
+                throw new RuntimeException('Solo se pueden ajustar puntos de clientes.');
+            }
+
+            $balance = $this->getUserBalance($targetUser);
+            if ($balance + $amount < 0) {
+                throw new RuntimeException("El ajuste dejaria el saldo en negativo (saldo actual: {$balance}).");
+            }
+
+            $movement = PointMovement::query()->create([
+                'usuario_id' => $targetUser->id,
+                'negocio_id' => $businessId,
+                'otorgado_por' => $actor->id,
+                'cantidad' => $amount,
+                'tipo' => 'AJUSTE',
+                'motivo' => $reason,
+                'fecha' => now(),
+            ]);
+
+            $this->syncUserLevel($targetUser, $balance + $amount);
+
+            return $movement;
+        });
+    }
+
     public function syncUserLevel(User $user, ?int $currentBalance = null): void
     {
         $balance = $currentBalance ?? $this->getUserBalance($user);
