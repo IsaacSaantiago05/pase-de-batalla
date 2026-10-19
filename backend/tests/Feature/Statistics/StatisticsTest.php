@@ -131,6 +131,18 @@ class StatisticsTest extends TestCase
             ->assertJsonMissingPath('data.por_negocio');
     }
 
+    public function test_active_qr_past_expiration_counts_as_expired(): void
+    {
+        $this->seedActivity();
+        $this->travel(5)->minutes();
+        Sanctum::actingAs($this->adminA);
+
+        $this->getJson('/api/statistics')
+            ->assertOk()
+            ->assertJsonPath('data.resumen.qr.activos', 0)
+            ->assertJsonPath('data.resumen.qr.expirados', 1);
+    }
+
     public function test_statistics_validation_and_access(): void
     {
         Sanctum::actingAs($this->adminA);

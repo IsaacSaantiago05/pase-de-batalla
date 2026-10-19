@@ -32,6 +32,8 @@ class StatisticsService
             ->when($businessId !== null, fn ($query) => $query->whereHas('reward', fn ($reward) => $reward->where('negocio_id', $businessId)));
 
         $qrByStatus = (clone $qr)->selectRaw('estado, COUNT(*) AS total')->groupBy('estado')->pluck('total', 'estado');
+        // Un QR solo pasa a EXPIRADO cuando alguien intenta usarlo; los ACTIVO vencidos tambien cuentan como expirados.
+        $staleActive = (clone $qr)->where('estado', 'ACTIVO')->where('fecha_expiracion', '<=', now())->count();
 
         $data = [
             'periodo_dias' => $days,
@@ -47,9 +49,9 @@ class StatisticsService
                 'qr' => [
                     'generados' => (int) $qrByStatus->sum(),
                     'utilizados' => (int) ($qrByStatus['UTILIZADO'] ?? 0),
-                    'expirados' => (int) ($qrByStatus['EXPIRADO'] ?? 0),
+                    'expirados' => (int) ($qrByStatus['EXPIRADO'] ?? 0) + $staleActive,
                     'cancelados' => (int) ($qrByStatus['CANCELADO'] ?? 0),
-                    'activos' => (int) ($qrByStatus['ACTIVO'] ?? 0),
+                    'activos' => (int) ($qrByStatus['ACTIVO'] ?? 0) - $staleActive,
                 ],
             ],
             'por_dia' => $this->dailySeries($businessId, $from, $days),
