@@ -149,6 +149,10 @@ Ajustes manuales (solo ADMINISTRADOR_GENERAL):
 - GET /api/points/adjustments
 - POST /api/points/adjustments. Cuerpo: `{"correo": "...", "cantidad": -10, "motivo": "...", "negocio_id": null}`. Motivo obligatorio (min. 5), solo clientes, nunca deja el saldo en negativo; guarda `otorgado_por` y `motivo`.
 
+Estadisticas (ADMINISTRADOR_NEGOCIO: su negocio; ADMINISTRADOR_GENERAL: toda la plataforma o `negocio_id`):
+
+- GET /api/statistics?dias=30 (7 a 90). Devuelve `resumen` (ventas, ingresos, puntos otorgados y canjeados, canjes, clientes activos, estado de los QR), `por_dia` (un registro por dia, con ceros en dias sin actividad), `top_productos` (5 mas vendidos) y, para el admin general sin filtro, `por_negocio`. Los QR ACTIVO ya vencidos se cuentan como expirados.
+
 QR:
 
 - GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)

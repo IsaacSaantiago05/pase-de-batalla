@@ -11,6 +11,7 @@ import { RedemptionsAdminPage } from './pages/RedemptionsAdminPage'
 import { RewardsAdminPage } from './pages/RewardsAdminPage'
 import { SalesAdminPage } from './pages/SalesAdminPage'
 import { ShellPage } from './pages/ShellPage'
+import { StatisticsPage } from './pages/StatisticsPage'
 
 function App() {
   return (
@@ -36,7 +37,7 @@ function App() {
           <Route path="/levels" element={<ShellPage title="Niveles" />} />
           <Route path="/island-elements" element={<ShellPage title="Elementos de Isla" />} />
           <Route path="/point-rules" element={<ShellPage title="Reglas de Puntos" />} />
-          <Route path="/statistics" element={<ShellPage title="Estadísticas" />} />
+          <Route path="/statistics" element={<StatisticsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
