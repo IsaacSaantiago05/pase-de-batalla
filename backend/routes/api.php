@@ -15,6 +15,7 @@ use App\Http\Controllers\QrController;
 use App\Http\Controllers\RedemptionController;
 use App\Http\Controllers\RewardController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
 
     Route::get('/business-clients', [BusinessClientController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+    Route::get('/statistics', [StatisticsController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
 
     Route::prefix('points/adjustments')->middleware('role:ADMINISTRADOR_GENERAL')->group(function (): void {
         Route::get('/', [PointsController::class, 'adjustments']);
