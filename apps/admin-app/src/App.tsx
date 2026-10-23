@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedAdminRoute } from './components/ProtectedAdminRoute'
 import { AdministratorsPage } from './pages/AdministratorsPage'
+import { DashboardPage } from './pages/DashboardPage'
 import { BusinessClientsPage } from './pages/BusinessClientsPage'
 import { BusinessPointsPage } from './pages/BusinessPointsPage'
 import { PointAdjustmentsPage } from './pages/PointAdjustmentsPage'
@@ -20,13 +21,13 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 
         <Route element={<ProtectedAdminRoute />}>
-          <Route path="/dashboard" element={<ShellPage title="Dashboard" />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/business" element={<ShellPage title="Mi Negocio" />} />
           <Route path="/products" element={<ProductsAdminPage />} />
           <Route path="/sales" element={<SalesAdminPage />} />
           <Route path="/clients" element={<BusinessClientsPage />} />
           <Route path="/adjustments" element={<PointAdjustmentsPage />} />
-          <Route path="/qr"element={<QrManagementPage />} />
+          <Route path="/qr" element={<QrManagementPage />} />
           <Route path="/points" element={<BusinessPointsPage />} />
           <Route path="/rewards" element={<RewardsAdminPage />} />
           <Route path="/redemptions" element={<RedemptionsAdminPage />} />

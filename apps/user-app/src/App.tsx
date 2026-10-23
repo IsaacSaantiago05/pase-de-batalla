@@ -2,7 +2,6 @@ import { Suspense, lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
-import { ShellPage } from './pages/AppPages'
 
 const IslandPage = lazy(() => import('./pages/IslandPage').then((module) => ({ default: module.IslandPage })))
 const BattlePassPage = lazy(() => import('./pages/BattlePassPage').then((module) => ({ default: module.BattlePassPage })))
@@ -13,6 +12,7 @@ const RewardsPage = lazy(() => import('./pages/RewardsPages').then((module) => (
 const RedemptionsPage = lazy(() => import('./pages/RewardsPages').then((module) => ({ default: module.RedemptionsPage })))
 const BusinessesPage = lazy(() => import('./pages/BusinessesPage').then((module) => ({ default: module.BusinessesPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
+const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })))
 const RewardDetailPage = lazy(() => import('./pages/RewardDetailPage').then((module) => ({ default: module.RewardDetailPage })))
 
 function RouteLoadingFallback() {
@@ -37,7 +37,7 @@ function App() {
             path="/home"
             element={
               <Suspense fallback={<RouteLoadingFallback />}>
-                <ShellPage title="Inicio" />
+                <HomePage />
               </Suspense>
             }
           />
