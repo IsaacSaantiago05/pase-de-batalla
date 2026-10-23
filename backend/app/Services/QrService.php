@@ -19,7 +19,8 @@ use RuntimeException;
 
 class QrService
 {
-    private const QR_LIFETIME_SECONDS = 30;
+    // Tiempo para que el cliente escanee en el mostrador; despues el QR ya no sirve.
+    private const QR_LIFETIME_SECONDS = 60;
 
     public function __construct(private readonly PointsService $pointsService)
     {

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Points\GenerateQrRequest;
 use App\Http\Requests\Points\RedeemQrRequest;
 use App\Http\Resources\Points\PointMovementResource;
 use App\Http\Resources\Points\QrCodeResource;
@@ -59,23 +58,6 @@ class QrController extends Controller
         }
 
         return $this->success('Imagen QR generada correctamente.', $payload);
-    }
-
-    public function generate(GenerateQrRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        try {
-            $qrCode = $this->qrService->generate(
-                $request->user(),
-                (int) $validated['puntos'],
-                isset($validated['negocio_id']) ? (int) $validated['negocio_id'] : null,
-            );
-        } catch (RuntimeException $exception) {
-            return $this->error($exception->getMessage(), null, 422);
-        }
-
-        return $this->success('Código QR generado correctamente.', new QrCodeResource($qrCode), 201);
     }
 
     public function cancel(Request $request, int $qrCode): JsonResponse
