@@ -12,6 +12,7 @@ pase-de-batalla/
 		user-app/        # React + TS + Vite + Tailwind + PWA
 		admin-app/       # React + TS + Vite + Tailwind + PWA
 	backend/           # Laravel API REST
+	packages/shared/   # codigo comun de las dos apps (cliente HTTP y sesion), alias @shared
 	tools/composer/    # composer.phar local
 ```
 

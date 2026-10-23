@@ -1,10 +1,20 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { fileURLToPath } from 'node:url'
+import { defineConfig, searchForWorkspaceRoot } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Codigo compartido entre las dos apps (packages/shared), importado como @shared/...
+const sharedDir = fileURLToPath(new URL('../../packages/shared/src', import.meta.url))
+
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: { '@shared': sharedDir },
+  },
+  server: {
+    fs: { allow: [searchForWorkspaceRoot(process.cwd()), sharedDir] },
+  },
   plugins: [
     react(),
     tailwindcss(),

@@ -1,25 +1,10 @@
-export type Session = {
-  token: string
-  role: string
-}
+import { createSessionStore } from '@shared/session'
+import type { StoredSession } from '@shared/session'
 
-const KEY = 'pb_user_session'
+export type Session = StoredSession
 
-export function getSession(): Session | null {
-  const raw = localStorage.getItem(KEY)
-  if (!raw) return null
+const store = createSessionStore<Session>('pb_user_session')
 
-  try {
-    return JSON.parse(raw) as Session
-  } catch {
-    return null
-  }
-}
-
-export function setSession(session: Session): void {
-  localStorage.setItem(KEY, JSON.stringify(session))
-}
-
-export function clearSession(): void {
-  localStorage.removeItem(KEY)
-}
+export const getSession = store.get
+export const setSession = store.set
+export const clearSession = store.clear
