@@ -58,8 +58,7 @@ class PointsService
                 'fecha' => now(),
             ]);
 
-            $newBalance = $this->getUserBalance($targetUser);
-            $this->syncUserLevel($targetUser, $newBalance);
+            $this->syncUserLevel($targetUser);
 
             return $movement;
         });
@@ -92,15 +91,27 @@ class PointsService
                 'fecha' => now(),
             ]);
 
-            $this->syncUserLevel($targetUser, $balance + $amount);
+            $this->syncUserLevel($targetUser);
 
             return $movement;
         });
     }
 
-    public function syncUserLevel(User $user, ?int $currentBalance = null): void
+    /**
+     * Puntos ganados en total (solo GANANCIA). Define nivel y pase de batalla:
+     * canjear no baja de nivel y un ajuste manual no sube.
+     */
+    public function getEarnedPoints(User $user): int
     {
-        $balance = $currentBalance ?? $this->getUserBalance($user);
+        return (int) PointMovement::query()
+            ->where('usuario_id', $user->id)
+            ->where('tipo', 'GANANCIA')
+            ->sum('cantidad');
+    }
+
+    public function syncUserLevel(User $user): void
+    {
+        $balance = $this->getEarnedPoints($user);
 
         $level = Level::query()
             ->where('estado', true)

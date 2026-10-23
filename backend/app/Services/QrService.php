@@ -161,8 +161,7 @@ class QrService
                 'fecha' => now(),
             ]);
 
-            $newBalance = $this->pointsService->getUserBalance($actor);
-            $this->pointsService->syncUserLevel($actor, $newBalance);
+            $this->pointsService->syncUserLevel($actor);
 
             return $movement;
         });

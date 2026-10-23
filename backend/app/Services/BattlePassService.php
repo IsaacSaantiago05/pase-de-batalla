@@ -17,7 +17,8 @@ class BattlePassService
 
     public function getProgress(User $user): array
     {
-        $balance = $this->pointsService->getUserBalance($user);
+        // El pase avanza con los puntos ganados; canjear recompensas no lo retrocede.
+        $balance = $this->pointsService->getEarnedPoints($user);
         $tiers = BattlePassTier::query()
             ->where('estado', true)
             ->orderBy('puntos_requeridos')
@@ -77,7 +78,7 @@ class BattlePassService
             }
 
             $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
-            $balance = $this->pointsService->getUserBalance($lockedUser);
+            $balance = $this->pointsService->getEarnedPoints($lockedUser);
 
             if ($balance < $tier->puntos_requeridos) {
                 throw new RuntimeException('No tienes puntos suficientes para reclamar este tier.');

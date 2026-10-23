@@ -127,7 +127,7 @@ export function BattlePassPage() {
         <>
           <section className="grid gap-3 md:grid-cols-3">
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Puntos actuales</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Puntos ganados</p>
               <p className="mt-1 text-2xl font-semibold text-slate-900">{progress.puntos_actuales}</p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
