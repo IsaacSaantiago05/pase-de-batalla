@@ -13,6 +13,7 @@ const RewardsPage = lazy(() => import('./pages/RewardsPages').then((module) => (
 const RedemptionsPage = lazy(() => import('./pages/RewardsPages').then((module) => ({ default: module.RedemptionsPage })))
 const BusinessesPage = lazy(() => import('./pages/BusinessesPage').then((module) => ({ default: module.BusinessesPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
+const RewardDetailPage = lazy(() => import('./pages/RewardDetailPage').then((module) => ({ default: module.RewardDetailPage })))
 
 function RouteLoadingFallback() {
   return (
@@ -84,7 +85,7 @@ function App() {
             path="/rewards/:id"
             element={
               <Suspense fallback={<RouteLoadingFallback />}>
-                <ShellPage title="Detalle de Recompensa" />
+                <RewardDetailPage />
               </Suspense>
             }
           />

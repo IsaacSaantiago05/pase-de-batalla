@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiGet, apiPost, listData } from '../lib/api'
 
 type Reward = {
@@ -78,7 +79,11 @@ export function RewardsPage() {
           {rewards.map((reward) => (
             <div className="rounded-lg border border-slate-200 p-4" key={reward.id}>
               <p className="text-sm text-slate-500">Negocio #{reward.negocio_id}</p>
-              <h2 className="text-lg font-semibold text-slate-900">{reward.nombre}</h2>
+              <h2 className="text-lg font-semibold text-slate-900">
+                <Link className="hover:underline" to={`/rewards/${reward.id}`}>
+                  {reward.nombre}
+                </Link>
+              </h2>
               <p className="mt-1 text-sm text-slate-600">{reward.descripcion ?? 'Sin descripcion'}</p>
               <p className="mt-3 text-sm text-slate-700">Puntos requeridos: <span className="font-semibold">{reward.puntos_requeridos}</span></p>
               <p className="text-sm text-slate-700">Stock: <span className="font-semibold">{reward.cantidad_disponible}</span></p>

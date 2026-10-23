@@ -35,6 +35,23 @@ class RewardController extends Controller
         return $this->success('Recompensas obtenidas correctamente.', RewardResource::collection($query->paginate(20)));
     }
 
+    public function show(Request $request, Reward $reward): JsonResponse
+    {
+        $actor = $request->user();
+        $reward->load('business');
+
+        // Mismas reglas que el listado: el cliente solo ve recompensas activas de negocios activos.
+        $hidden = $actor->hasRole('CLIENTE')
+            ? (! $reward->estado || ! $reward->business?->estado)
+            : ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $reward->negocio_id);
+
+        if ($hidden) {
+            return $this->error('La recompensa no existe o no está disponible.', null, 404);
+        }
+
+        return $this->success('Recompensa obtenida correctamente.', new RewardResource($reward));
+    }
+
     public function store(StoreRewardRequest $request): JsonResponse
     {
         $validated = $request->validated();
