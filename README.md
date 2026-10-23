@@ -165,6 +165,9 @@ QR:
 Recompensas:
 
 - GET /api/rewards (CLIENTE: solo activas con stock / ADMIN: gestion por negocio)
+- GET /api/rewards/{reward} (detalle con `negocio_nombre`; CLIENTE: solo activas de negocios activos; ADMINISTRADOR_NEGOCIO: solo las suyas)
+
+Nivel y pase de batalla se calculan con los puntos ganados (movimientos GANANCIA): canjear no baja de nivel y los ajustes manuales no lo suben.
 - POST /api/rewards (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - PUT /api/rewards/{reward} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - PATCH /api/rewards/{reward}/status (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
