@@ -8,23 +8,11 @@ use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class UserController extends Controller
 {
     use ApiResponse;
-
-    private function canBusinessAdminManageUser(Request $request, User $user): bool
-    {
-        if (! $request->user()->hasRole('ADMINISTRADOR_NEGOCIO')) {
-            return true;
-        }
-
-        if ($user->negocio_id !== $request->user()->negocio_id) {
-            return false;
-        }
-
-        return $user->hasRole('CLIENTE');
-    }
 
     public function index(Request $request): JsonResponse
     {
@@ -44,18 +32,14 @@ class UserController extends Controller
 
     public function show(Request $request, User $user): JsonResponse
     {
-        if (! $this->canBusinessAdminManageUser($request, $user)) {
-            return $this->error('No tienes permiso para acceder a este usuario.', null, 403);
-        }
+        Gate::authorize('view', $user);
 
         return $this->success('Usuario obtenido correctamente.', new UserResource($user->load(['role', 'business'])));
     }
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        if (! $this->canBusinessAdminManageUser($request, $user)) {
-            return $this->error('No tienes permiso para editar este usuario.', null, 403);
-        }
+        Gate::authorize('update', $user);
 
         $data = $request->validated();
 
@@ -78,9 +62,7 @@ class UserController extends Controller
             'estado' => ['required', 'boolean'],
         ]);
 
-        if (! $this->canBusinessAdminManageUser($request, $user)) {
-            return $this->error('No tienes permiso para modificar este usuario.', null, 403);
-        }
+        Gate::authorize('updateStatus', $user);
 
         $user->update(['estado' => $validated['estado']]);
 

@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ProductController extends Controller
 {
@@ -59,9 +60,7 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
-        if ($request->user()->negocio_id !== $product->negocio_id) {
-            return $this->error('No puedes editar productos de otro negocio.', null, 403);
-        }
+        Gate::authorize('update', $product);
 
         $product->update($request->validated());
 
@@ -70,10 +69,7 @@ class ProductController extends Controller
 
     public function updateStatus(Request $request, Product $product): JsonResponse
     {
-        $actor = $request->user();
-        if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $product->negocio_id) {
-            return $this->error('No puedes modificar productos de otro negocio.', null, 403);
-        }
+        Gate::authorize('updateStatus', $product);
 
         $validated = $request->validate([
             'estado' => ['required', 'boolean'],

@@ -9,6 +9,7 @@ use App\Models\Business;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class BusinessController extends Controller
 {
@@ -23,9 +24,7 @@ class BusinessController extends Controller
 
     public function show(Request $request, Business $business): JsonResponse
     {
-        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && $request->user()->negocio_id !== $business->id) {
-            return $this->error('No tienes permiso para acceder a este negocio.', null, 403);
-        }
+        Gate::authorize('view', $business);
 
         return $this->success('Negocio obtenido correctamente.', new BusinessResource($business));
     }
@@ -43,9 +42,7 @@ class BusinessController extends Controller
 
     public function update(UpdateBusinessRequest $request, Business $business): JsonResponse
     {
-        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && $request->user()->negocio_id !== $business->id) {
-            return $this->error('No tienes permiso para editar este negocio.', null, 403);
-        }
+        Gate::authorize('update', $business);
 
         $business->update($request->validated());
 
@@ -58,9 +55,7 @@ class BusinessController extends Controller
             'estado' => ['required', 'boolean'],
         ]);
 
-        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && $request->user()->negocio_id !== $business->id) {
-            return $this->error('No tienes permiso para modificar este negocio.', null, 403);
-        }
+        Gate::authorize('updateStatus', $business);
 
         $business->update(['estado' => $validated['estado']]);
 

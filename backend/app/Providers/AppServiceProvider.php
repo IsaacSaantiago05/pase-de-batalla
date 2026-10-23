@@ -2,12 +2,10 @@
 
 namespace App\Providers;
 
-use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -45,9 +43,5 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(10)->by($request->ip().'|'.$userKey);
         });
-
-        Gate::define('admin-general', fn (User $user) => $user->hasRole('ADMINISTRADOR_GENERAL'));
-        Gate::define('admin-business', fn (User $user) => $user->hasRole('ADMINISTRADOR_NEGOCIO'));
-        Gate::define('admin-any', fn (User $user) => $user->hasRole('ADMINISTRADOR_GENERAL', 'ADMINISTRADOR_NEGOCIO'));
     }
 }

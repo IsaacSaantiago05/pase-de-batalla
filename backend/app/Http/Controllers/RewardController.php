@@ -9,6 +9,7 @@ use App\Models\Reward;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 
 class RewardController extends Controller
@@ -37,17 +38,8 @@ class RewardController extends Controller
 
     public function show(Request $request, Reward $reward): JsonResponse
     {
-        $actor = $request->user();
         $reward->load('business');
-
-        // Mismas reglas que el listado: el cliente solo ve recompensas activas de negocios activos.
-        $hidden = $actor->hasRole('CLIENTE')
-            ? (! $reward->estado || ! $reward->business?->estado)
-            : ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $reward->negocio_id);
-
-        if ($hidden) {
-            return $this->error('La recompensa no existe o no está disponible.', null, 404);
-        }
+        Gate::authorize('view', $reward);
 
         return $this->success('Recompensa obtenida correctamente.', new RewardResource($reward));
     }
@@ -76,10 +68,8 @@ class RewardController extends Controller
 
     public function update(UpdateRewardRequest $request, Reward $reward): JsonResponse
     {
+        Gate::authorize('update', $reward);
         $actor = $request->user();
-        if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $reward->negocio_id) {
-            return $this->error('No puedes editar recompensas de otro negocio.', null, 403);
-        }
 
         $validated = $request->validated();
         if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && array_key_exists('negocio_id', $validated)) {
@@ -93,10 +83,7 @@ class RewardController extends Controller
 
     public function updateStatus(Request $request, Reward $reward): JsonResponse
     {
-        $actor = $request->user();
-        if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $reward->negocio_id) {
-            return $this->error('No puedes modificar recompensas de otro negocio.', null, 403);
-        }
+        Gate::authorize('updateStatus', $reward);
 
         $validated = $request->validate([
             'estado' => ['required', 'boolean'],

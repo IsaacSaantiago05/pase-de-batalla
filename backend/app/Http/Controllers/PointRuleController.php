@@ -9,6 +9,7 @@ use App\Models\PointRule;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class PointRuleController extends Controller
 {
@@ -47,10 +48,7 @@ class PointRuleController extends Controller
 
     public function update(UpdatePointRuleRequest $request, PointRule $pointRule): JsonResponse
     {
-        $actor = $request->user();
-        if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $pointRule->negocio_id) {
-            return $this->error('No puedes modificar reglas de otro negocio.', null, 403);
-        }
+        Gate::authorize('update', $pointRule);
 
         $pointRule->update($request->validated());
 
@@ -59,10 +57,7 @@ class PointRuleController extends Controller
 
     public function updateStatus(Request $request, PointRule $pointRule): JsonResponse
     {
-        $actor = $request->user();
-        if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $pointRule->negocio_id) {
-            return $this->error('No puedes modificar reglas de otro negocio.', null, 403);
-        }
+        Gate::authorize('updateStatus', $pointRule);
 
         $validated = $request->validate([
             'estado' => ['required', 'boolean'],
