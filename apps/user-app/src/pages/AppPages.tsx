@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import { clearSession } from '../lib/auth'
+import { AppNav } from '../components/AppNav'
 
 export function ShellPage({ title }: { title: string }) {
   return (
@@ -17,24 +17,7 @@ export function ShellPage({ title }: { title: string }) {
           Cerrar sesión
         </button>
       </header>
-      <nav className="flex flex-wrap gap-2 text-sm">
-        {[
-          '/home',
-          '/island',
-          '/battle-pass',
-          '/points',
-          '/scan-qr',
-          '/rewards',
-          '/redemptions',
-          '/history',
-          '/businesses',
-          '/profile',
-        ].map((route) => (
-          <Link className="rounded-md border px-2 py-1" key={route} to={route}>
-            {route}
-          </Link>
-        ))}
-      </nav>
+      <AppNav />
       <p className="text-slate-600">Vista funcional inicial para la fase 1-2.</p>
     </div>
   )

@@ -28,3 +28,7 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+
+# Salidas de comandos locales (build, route:list)
+*-build.txt
+backend-api-routes.txt

@@ -21,4 +21,16 @@ class Level extends Model
     protected $casts = [
         'estado' => 'boolean',
     ];
+
+    /**
+     * Número de nivel (1, 2, 3...) según su posición por puntos mínimos entre los niveles activos.
+     * Evita depender del ID autoincremental de la tabla.
+     */
+    public function numero(): int
+    {
+        return self::query()
+            ->where('estado', true)
+            ->where('puntos_minimos', '<=', $this->puntos_minimos)
+            ->count();
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\IslandConfiguration;
 use App\Models\IslandElement;
+use App\Models\Level;
 use App\Models\User;
 use App\Models\UserIslandElement;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -14,7 +15,7 @@ class IslandService
 {
     public function getCatalog(User $user): array
     {
-        $userLevel = (int) ($user->nivel_id ?? 0);
+        $userLevel = $this->resolveLevelNumber($user);
 
         $elements = IslandElement::query()
             ->where('estado', true)
@@ -85,7 +86,7 @@ class IslandService
                 throw new ModelNotFoundException('El elemento de isla no existe o está inactivo.');
             }
 
-            $userLevel = (int) ($lockedUser->nivel_id ?? 0);
+            $userLevel = $this->resolveLevelNumber($lockedUser);
             if ($userLevel < (int) $element->nivel_requerido) {
                 throw new RuntimeException('Tu nivel actual no permite desbloquear este elemento.');
             }
@@ -138,5 +139,16 @@ class IslandService
 
             return $configuration->fresh()->load('element');
         });
+    }
+
+    private function resolveLevelNumber(User $user): int
+    {
+        if ($user->nivel_id === null) {
+            return 0;
+        }
+
+        $level = Level::query()->find($user->nivel_id);
+
+        return $level?->estado ? $level->numero() : 0;
     }
 }

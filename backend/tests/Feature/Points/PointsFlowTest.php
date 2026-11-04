@@ -192,6 +192,66 @@ class PointsFlowTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
+    public function test_level_stays_at_highest_level_beyond_its_maximum(): void
+    {
+        $client = User::query()->create([
+            'nombre' => 'Cliente Tope',
+            'correo' => 'cliente.tope@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->clienteRole->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        DB::table('movimientos_puntos')->insert([
+            'usuario_id' => $client->id,
+            'negocio_id' => $this->businessA->id,
+            'qr_id' => null,
+            'cantidad' => 5000,
+            'tipo' => 'GANANCIA',
+            'fecha' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(\App\Services\PointsService::class)->syncUserLevel($client);
+
+        $nivel2 = Level::query()->where('nombre', 'Nivel 2')->firstOrFail();
+        $this->assertEquals($nivel2->id, $client->fresh()->nivel_id);
+    }
+
+    public function test_points_can_only_be_awarded_to_clients(): void
+    {
+        $adminNegocio = User::query()->create([
+            'nombre' => 'Admin A',
+            'correo' => 'admin.award.only.clients@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->adminNegocioRole->id,
+            'negocio_id' => $this->businessA->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        $otherAdmin = User::query()->create([
+            'nombre' => 'Admin B',
+            'correo' => 'admin.target@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->adminNegocioRole->id,
+            'negocio_id' => $this->businessA->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        Sanctum::actingAs($adminNegocio);
+
+        $this->postJson('/api/points/award', [
+            'usuario_id' => $otherAdmin->id,
+            'regla_puntos_id' => $this->ruleA->id,
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('movimientos_puntos', ['usuario_id' => $otherAdmin->id]);
+    }
+
     public function test_client_cannot_award_points(): void
     {
         $client = User::query()->create([

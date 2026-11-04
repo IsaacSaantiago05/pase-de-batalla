@@ -244,6 +244,25 @@ class RedemptionFlowTest extends TestCase
         $limited->assertStatus(429);
     }
 
+    public function test_redemption_does_not_lower_client_level(): void
+    {
+        $client = $this->createClient('cliente.level.keep@example.com');
+        $this->grantPoints($client, 250, $this->businessA->id);
+        app(\App\Services\PointsService::class)->syncUserLevel($client);
+        $levelTwo = Level::query()->where('nombre', 'Nivel 2')->firstOrFail();
+        $this->assertEquals($levelTwo->id, $client->fresh()->nivel_id);
+
+        $reward = $this->createReward($this->businessA->id, 200, 5);
+
+        Sanctum::actingAs($client);
+
+        $this->postJson('/api/redemptions', ['recompensa_id' => $reward->id])
+            ->assertCreated()
+            ->assertJsonPath('data.saldo_global', 50);
+
+        $this->assertEquals($levelTwo->id, $client->fresh()->nivel_id);
+    }
+
     private function createClient(string $correo): User
     {
         return User::query()->create([

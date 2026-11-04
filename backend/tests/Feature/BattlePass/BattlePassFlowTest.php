@@ -127,6 +127,39 @@ class BattlePassFlowTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_spending_points_does_not_reduce_battle_pass_progress(): void
+    {
+        $client = $this->createClient('battle.spend@example.com');
+        $this->grantPoints($client, 120);
+        $tier100 = BattlePassTier::query()->where('puntos_requeridos', 100)->firstOrFail();
+        $tier50 = BattlePassTier::query()->where('puntos_requeridos', 50)->firstOrFail();
+
+        Sanctum::actingAs($client);
+
+        $this->postJson('/api/battle-pass/tiers/'.$tier100->id.'/claim')->assertCreated();
+
+        // El cliente gasta todo su saldo en un canje.
+        PointMovement::query()->create([
+            'usuario_id' => $client->id,
+            'negocio_id' => null,
+            'qr_id' => null,
+            'cantidad' => -120,
+            'tipo' => 'CANJE',
+            'fecha' => now(),
+        ]);
+
+        $this->getJson('/api/battle-pass/progress')
+            ->assertOk()
+            ->assertJsonPath('data.puntos_actuales', 0)
+            ->assertJsonPath('data.puntos_acumulados', 120)
+            ->assertJsonPath('data.tiers_desbloqueados', 2)
+            ->assertJsonPath('data.siguiente_hito_faltante', 80)
+            ->assertJsonPath('data.tiers.0.estado_usuario', 'DESBLOQUEADO')
+            ->assertJsonPath('data.tiers.1.estado_usuario', 'RECLAMADO');
+
+        $this->postJson('/api/battle-pass/tiers/'.$tier50->id.'/claim')->assertCreated();
+    }
+
     private function createClient(string $email): User
     {
         return User::query()->create([

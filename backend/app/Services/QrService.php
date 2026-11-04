@@ -84,19 +84,9 @@ class QrService
 
     public function redeem(User $actor, string $token): PointMovement
     {
-        $preloadedQrCode = QrCode::query()->where('token', $token)->first();
-        if ($preloadedQrCode !== null
-            && $preloadedQrCode->estado === 'ACTIVO'
-            && $preloadedQrCode->fecha_expiracion !== null
-            && $preloadedQrCode->fecha_expiracion->lessThanOrEqualTo(now())) {
-            $preloadedQrCode->update([
-                'estado' => 'EXPIRADO',
-            ]);
-
-            throw new RuntimeException('El código QR está expirado.');
-        }
-
-        return DB::transaction(function () use ($actor, $token) {
+        // La transacción devuelve null cuando el QR resultó expirado: así el cambio a EXPIRADO
+        // se confirma (commit) y la excepción se lanza después, sin revertirlo.
+        $movement = DB::transaction(function () use ($actor, $token) {
             $qrCode = QrCode::query()->where('token', $token)->lockForUpdate()->first();
 
             if ($qrCode === null) {
@@ -115,8 +105,12 @@ class QrService
                 throw new RuntimeException('El código QR está expirado.');
             }
 
-            if ($qrCode->fecha_expiracion !== null && $qrCode->fecha_expiracion->isPast()) {
-                throw new RuntimeException('El código QR está expirado.');
+            if ($qrCode->fecha_expiracion !== null && $qrCode->fecha_expiracion->lessThanOrEqualTo(now())) {
+                $qrCode->update([
+                    'estado' => 'EXPIRADO',
+                ]);
+
+                return null;
             }
 
             $qrCode->update([
@@ -134,11 +128,16 @@ class QrService
                 'fecha' => now(),
             ]);
 
-            $newBalance = $this->pointsService->getUserBalance($actor);
-            $this->pointsService->syncUserLevel($actor, $newBalance);
+            $this->pointsService->syncUserLevel($actor);
 
             return $movement;
         });
+
+        if ($movement === null) {
+            throw new RuntimeException('El código QR está expirado.');
+        }
+
+        return $movement;
     }
 
     private function resolveBusinessId(User $actor, ?int $businessId): int

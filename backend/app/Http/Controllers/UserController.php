@@ -6,6 +6,7 @@ use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Support\ApiResponse;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,11 +20,32 @@ class UserController extends Controller
             return true;
         }
 
-        if ($user->negocio_id !== $request->user()->negocio_id) {
+        if (! $user->hasRole('CLIENTE')) {
             return false;
         }
 
-        return $user->hasRole('CLIENTE');
+        return $this->businessClientsQuery((int) $request->user()->negocio_id)
+            ->whereKey($user->id)
+            ->exists();
+    }
+
+    /**
+     * Los clientes no pertenecen a un negocio; se consideran clientes de un negocio
+     * quienes tienen movimientos de puntos en él (o el negocio asignado, por compatibilidad).
+     */
+    private function businessClientsQuery(int $businessId): Builder
+    {
+        return User::query()
+            ->whereHas('role', fn (Builder $query) => $query->where('nombre', 'CLIENTE'))
+            ->where(function (Builder $query) use ($businessId): void {
+                $query->where('negocio_id', $businessId)
+                    ->orWhereExists(function ($movements) use ($businessId): void {
+                        $movements->selectRaw('1')
+                            ->from('movimientos_puntos')
+                            ->whereColumn('movimientos_puntos.usuario_id', 'usuarios.id')
+                            ->where('movimientos_puntos.negocio_id', $businessId);
+                    });
+            });
     }
 
     public function index(Request $request): JsonResponse
@@ -34,9 +56,8 @@ class UserController extends Controller
             return $this->success('Usuarios listados correctamente.', UserResource::collection($users));
         }
 
-        $users = User::query()
+        $users = $this->businessClientsQuery((int) $request->user()->negocio_id)
             ->with(['role', 'business'])
-            ->where('negocio_id', $request->user()->negocio_id)
             ->paginate(20);
 
         return $this->success('Usuarios listados correctamente.', UserResource::collection($users));
@@ -59,12 +80,13 @@ class UserController extends Controller
 
         $data = $request->validated();
 
-        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && (array_key_exists('rol_id', $data) || array_key_exists('negocio_id', $data))) {
-            return $this->error('No puedes modificar rol o negocio de un usuario.', null, 403);
-        }
-
         if (empty($data['password'])) {
             unset($data['password']);
+        }
+
+        $restrictedFields = ['rol_id', 'negocio_id', 'nivel_id', 'password'];
+        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && array_intersect($restrictedFields, array_keys($data)) !== []) {
+            return $this->error('No puedes modificar rol, negocio, nivel ni contraseña de un usuario.', null, 403);
         }
 
         $user->update($data);

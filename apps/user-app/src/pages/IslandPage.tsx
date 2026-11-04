@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { clearSession } from '../lib/auth'
 import { apiGet, apiPost } from '../lib/api'
+import { AppNav } from '../components/AppNav'
 
 type IslandElementStatus = 'BLOQUEADO' | 'DISPONIBLE' | 'DESBLOQUEADO'
 
@@ -177,24 +177,7 @@ export function IslandPage() {
         </button>
       </header>
 
-      <nav className="flex flex-wrap gap-2 text-sm">
-        {[
-          '/home',
-          '/island',
-          '/battle-pass',
-          '/points',
-          '/scan-qr',
-          '/rewards',
-          '/redemptions',
-          '/history',
-          '/businesses',
-          '/profile',
-        ].map((route) => (
-          <Link className="rounded-md border px-2 py-1" key={route} to={route}>
-            {route}
-          </Link>
-        ))}
-      </nav>
+      <AppNav />
 
       {loading && <p className="text-sm text-slate-600">Cargando isla...</p>}
       {!loading && error && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
