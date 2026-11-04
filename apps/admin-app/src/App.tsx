@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { AdminLayout } from './components/AdminLayout'
 import { ProtectedAdminRoute } from './components/ProtectedAdminRoute'
 import { AdministratorsPage } from './pages/AdministratorsPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -16,8 +17,8 @@ import { StatisticsPage } from './pages/StatisticsPage'
 
 function App() {
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-8">
-      <Routes>
+    <Routes>
+      <Route element={<AdminLayout />}>
         <Route path="/login" element={<LoginPage />} />
 
         <Route element={<ProtectedAdminRoute />}>
@@ -42,8 +43,8 @@ function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </div>
+      </Route>
+    </Routes>
   )
 }
 

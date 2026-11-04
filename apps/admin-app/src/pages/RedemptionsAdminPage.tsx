@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { ChipButton, EmptyState, Notice, StatusChip, formatDate, formatPoints } from '@shared/ui'
+import { AdminPage } from '../components/AdminLayout'
 import { apiGet, apiPatch, listData } from '../lib/api'
 
 type Redemption = {
@@ -15,7 +17,11 @@ type RedemptionListPayload = {
   data: Redemption[]
 }
 
-const NEXT_STATES: Redemption['estado'][] = ['CONFIRMADO', 'COMPLETADO', 'CANCELADO']
+const ACTIONS: { estado: Redemption['estado']; label: string; tone: 'blue' | 'green' | 'red' }[] = [
+  { estado: 'CONFIRMADO', label: 'Confirmar', tone: 'blue' },
+  { estado: 'COMPLETADO', label: 'Entregado', tone: 'green' },
+  { estado: 'CANCELADO', label: 'Cancelar', tone: 'red' },
+]
 
 export function RedemptionsAdminPage() {
   const [rows, setRows] = useState<Redemption[]>([])
@@ -49,58 +55,42 @@ export function RedemptionsAdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-2 text-2xl font-semibold">Canjes del negocio</h1>
-        <p className="text-sm text-slate-600">Cancelar un canje repone stock y devuelve puntos al usuario.</p>
-        {message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-      </div>
+    <AdminPage title="CANJES">
+      <p className="text-sm leading-relaxed text-white/50">Cancelar un canje repone el stock y devuelve los puntos al cliente.</p>
+      {message && <Notice tone="success">{message}</Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="p-2">Usuario</th>
-                <th className="p-2">Recompensa</th>
-                <th className="p-2">Puntos</th>
-                <th className="p-2">Estado</th>
-                <th className="p-2">Fecha</th>
-                <th className="p-2">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr className="border-b" key={row.id}>
-                  <td className="p-2">{row.usuario_nombre ?? row.usuario_id}</td>
-                  <td className="p-2">{row.recompensa_nombre ?? '-'}</td>
-                  <td className="p-2">{row.puntos_utilizados}</td>
-                  <td className="p-2">{row.estado}</td>
-                  <td className="p-2">{row.fecha}</td>
-                  <td className="p-2">
-                    <div className="flex flex-wrap gap-2">
-                      {NEXT_STATES.map((nextState) => (
-                        <button
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                          disabled={row.estado === 'COMPLETADO' || row.estado === 'CANCELADO' || row.estado === nextState}
-                          key={`${row.id}-${nextState}`}
-                          onClick={() => {
-                            void updateStatus(row, nextState)
-                          }}
-                          type="button"
-                        >
-                          {nextState}
-                        </button>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {rows.map((row) => {
+          const closed = row.estado === 'COMPLETADO' || row.estado === 'CANCELADO'
+
+          return (
+            <div className="pb-card rounded-2xl p-4" key={row.id}>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="truncate font-display text-base font-bold text-white">{row.usuario_nombre ?? `Cliente #${row.usuario_id}`}</p>
+                <StatusChip status={row.estado} />
+              </div>
+              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/40">
+                <span>{row.recompensa_nombre ?? '-'}</span>
+                <span>·</span>
+                <span className="font-mono-game text-yellow-400">-{formatPoints(row.puntos_utilizados)} pts</span>
+                <span>·</span>
+                <span>{formatDate(row.fecha, true)}</span>
+              </div>
+              {!closed && (
+                <div className="flex gap-2">
+                  {ACTIONS.filter((action) => action.estado !== row.estado).map((action) => (
+                    <ChipButton className="flex-1" key={action.estado} onClick={() => void updateStatus(row, action.estado)} tone={action.tone}>
+                      {action.label}
+                    </ChipButton>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
-    </div>
+      {rows.length === 0 && !error && <EmptyState icon="📋" title="Sin canjes todavía" />}
+    </AdminPage>
   )
 }

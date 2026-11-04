@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Button, ChipButton, EmptyState, FieldLabel, InputField, Notice, SectionTitle, StatusChip, formatPoints } from '@shared/ui'
+import { AdminPage } from '../components/AdminLayout'
 import { apiGet, apiPatch, apiPost, listData } from '../lib/api'
+import { getAdminSession } from '../lib/auth'
 
 type Reward = {
   id: number
@@ -17,7 +20,9 @@ type RewardListPayload = {
 }
 
 export function RewardsAdminPage() {
+  const isGeneral = getAdminSession()?.role === 'ADMINISTRADOR_GENERAL'
   const [rows, setRows] = useState<Reward[]>([])
+  const [showForm, setShowForm] = useState(false)
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [puntos, setPuntos] = useState('')
@@ -63,6 +68,7 @@ export function RewardsAdminPage() {
       setPuntos('')
       setStock('')
       setNegocioId('')
+      setShowForm(false)
       await loadRewards()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible crear la recompensa')
@@ -84,66 +90,75 @@ export function RewardsAdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-3 text-2xl font-semibold">Recompensas</h1>
-        <form className="grid gap-3 md:grid-cols-5" onSubmit={onSubmit}>
-          <input className="rounded-md border p-2" placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-          <input className="rounded-md border p-2" placeholder="Puntos" value={puntos} onChange={(e) => setPuntos(e.target.value)} />
-          <input className="rounded-md border p-2" placeholder="Stock" value={stock} onChange={(e) => setStock(e.target.value)} />
-          <input className="rounded-md border p-2" placeholder="ID negocio (solo admin general)" value={negocioId} onChange={(e) => setNegocioId(e.target.value)} />
-          <button className="rounded-md bg-slate-900 p-2 text-white" type="submit">Crear</button>
-        </form>
-        <textarea
-          className="mt-3 w-full rounded-md border p-2"
-          placeholder="Descripcion (opcional)"
-          rows={2}
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-        />
-        {message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-      </div>
+    <AdminPage title="RECOMPENSAS">
+      <button
+        className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 font-display text-sm font-bold tracking-widest transition-all active:scale-95"
+        onClick={() => setShowForm((current) => !current)}
+        style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981' }}
+        type="button"
+      >
+        <span>{showForm ? '−' : '+'}</span> NUEVA RECOMPENSA
+      </button>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-xl font-semibold">Listado</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="p-2">Negocio</th>
-                <th className="p-2">Nombre</th>
-                <th className="p-2">Puntos</th>
-                <th className="p-2">Stock</th>
-                <th className="p-2">Estado</th>
-                <th className="p-2">Accion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr className="border-b" key={row.id}>
-                  <td className="p-2">{row.negocio_id}</td>
-                  <td className="p-2">{row.nombre}</td>
-                  <td className="p-2">{row.puntos_requeridos}</td>
-                  <td className="p-2">{row.cantidad_disponible}</td>
-                  <td className="p-2">{row.estado ? 'ACTIVA' : 'INACTIVA'}</td>
-                  <td className="p-2">
-                    <button
-                      className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
-                      onClick={() => {
-                        void toggleStatus(row)
-                      }}
-                      type="button"
-                    >
-                      {row.estado ? 'Desactivar' : 'Activar'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {showForm && (
+        <form className="flex flex-col gap-3 rounded-2xl p-5" onSubmit={onSubmit} style={{ background: 'linear-gradient(135deg, #1a2235, #111827)', border: '1px solid rgba(16,185,129,0.2)' }}>
+          <p className="font-display text-sm font-bold uppercase tracking-widest text-green-400">Nueva Recompensa</p>
+          <InputField label="Nombre" onChange={(e) => setNombre(e.target.value)} placeholder="ej. Bebida gratis" value={nombre} />
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel htmlFor="reward-description">Descripción</FieldLabel>
+            <textarea className="pb-input" id="reward-description" onChange={(e) => setDescripcion(e.target.value)} placeholder="Descripción breve..." rows={2} value={descripcion} />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <InputField inputMode="numeric" label="Puntos requeridos" onChange={(e) => setPuntos(e.target.value)} placeholder="ej. 300" value={puntos} />
+            <InputField inputMode="numeric" label="Cantidad disponible" onChange={(e) => setStock(e.target.value)} placeholder="ej. 20" value={stock} />
+          </div>
+          {isGeneral && <InputField inputMode="numeric" label="ID del negocio" onChange={(e) => setNegocioId(e.target.value)} placeholder="Solo administrador general" value={negocioId} />}
+          <Button className="w-full tracking-widest" type="submit" variant="green">
+            GUARDAR
+          </Button>
+        </form>
+      )}
+
+      {message && <Notice tone="success">{message}</Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
+
+      <SectionTitle className="text-white/40">Recompensas ({rows.length})</SectionTitle>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {rows.map((row) => {
+          const status = !row.estado ? 'INACTIVA' : row.cantidad_disponible > 0 ? 'ACTIVA' : 'AGOTADA'
+
+          return (
+            <div className="pb-card rounded-2xl p-4" key={row.id} style={{ opacity: row.estado ? 1 : 0.6 }}>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="text-2xl">🎁</span>
+                  <p className="truncate font-display text-base font-bold text-white">{row.nombre}</p>
+                </div>
+                <StatusChip status={status} />
+              </div>
+              {row.descripcion && <p className="mb-2 text-xs text-white/50">{row.descripcion}</p>}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-white/40">
+                <span className="font-mono-game text-yellow-400">⭐ {formatPoints(row.puntos_requeridos)} pts</span>
+                <span>·</span>
+                <span>{row.cantidad_disponible} disponibles</span>
+                {isGeneral && (
+                  <>
+                    <span>·</span>
+                    <span>Negocio #{row.negocio_id}</span>
+                  </>
+                )}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <ChipButton className="flex-1" onClick={() => void toggleStatus(row)} tone={row.estado ? 'red' : 'green'}>
+                  {row.estado ? 'Desactivar' : 'Activar'}
+                </ChipButton>
+              </div>
+            </div>
+          )
+        })}
       </div>
-    </div>
+      {rows.length === 0 && !error && <EmptyState icon="🎁" text="Crea la primera con el botón de arriba." title="Sin recompensas" />}
+    </AdminPage>
   )
 }

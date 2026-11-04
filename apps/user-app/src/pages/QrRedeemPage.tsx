@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
+import { Button, Notice, ScreenHeader, formatPoints } from '@shared/ui'
+import { Page, useGoBack } from '../components/AppLayout'
 import { apiPost } from '../lib/api'
-import { clearSession } from '../lib/auth'
 
 type RedeemResult = {
   movimiento: {
@@ -17,14 +18,26 @@ type RedeemResult = {
   nivel_id: number | null
 }
 
+const CORNERS = [
+  { top: 0, left: 0, borderTop: '3px solid #f59e0b', borderLeft: '3px solid #f59e0b', borderRadius: '12px 0 0 0' },
+  { top: 0, right: 0, borderTop: '3px solid #f59e0b', borderRight: '3px solid #f59e0b', borderRadius: '0 12px 0 0' },
+  { bottom: 0, left: 0, borderBottom: '3px solid #f59e0b', borderLeft: '3px solid #f59e0b', borderRadius: '0 0 0 12px' },
+  { bottom: 0, right: 0, borderBottom: '3px solid #f59e0b', borderRight: '3px solid #f59e0b', borderRadius: '0 0 12px 0' },
+]
+
+const divider = <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+
 export function QrRedeemPage() {
   const scannerElementId = 'qr-reader'
+  const navigate = useNavigate()
+  const goBack = useGoBack()
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const [token, setToken] = useState('')
-  const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [cameraError, setCameraError] = useState('')
   const [result, setResult] = useState<RedeemResult | null>(null)
   const [isScanning, setIsScanning] = useState(false)
+  const [redeeming, setRedeeming] = useState(false)
 
   useEffect(() => {
     return () => {
@@ -64,8 +77,7 @@ export function QrRedeemPage() {
   }
 
   async function startScanner() {
-    setError('')
-    setMessage('')
+    setCameraError('')
 
     if (isScanning) {
       return
@@ -77,138 +89,175 @@ export function QrRedeemPage() {
 
       await scanner.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: 240 },
+        { fps: 10, qrbox: 200 },
         (decodedText) => {
-          setToken(normalizeScannedToken(decodedText))
-          setMessage('Token detectado por cámara. Puedes canjearlo ahora.')
           void stopScanner()
+          void redeem(decodedText)
         },
         () => undefined,
       )
 
       setIsScanning(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible iniciar la cámara')
+      setCameraError(err instanceof Error ? err.message : 'No fue posible iniciar la cámara')
       await stopScanner()
     }
   }
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault()
-    setMessage('')
+  async function redeem(rawToken: string) {
+    const parsedToken = normalizeScannedToken(rawToken)
+    if (!parsedToken) {
+      setCameraError('Ingresa o escanea un código válido.')
+      return
+    }
+
+    setRedeeming(true)
     setError('')
-    setResult(null)
 
     try {
-      const parsedToken = normalizeScannedToken(token)
-      if (!parsedToken) {
-        setError('Ingresa o escanea un token válido.')
-        return
-      }
-
-      const response = await apiPost<RedeemResult>('/qr/redeem', {
-        token: parsedToken,
-      })
-
-      setMessage('QR canjeado correctamente.')
+      const response = await apiPost<RedeemResult>('/qr/redeem', { token: parsedToken })
       setResult(response.data)
       setToken('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible canjear el QR')
+    } finally {
+      setRedeeming(false)
     }
   }
 
-  return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <nav className="flex flex-wrap gap-2 text-sm">
-            {['/home', '/scan-qr', '/points', '/rewards', '/redemptions'].map((route) => (
-              <Link className="rounded-md border px-2 py-1" key={route} to={route}>
-                {route}
-              </Link>
-            ))}
-          </nav>
-          <button
-            className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white"
-            onClick={() => {
-              clearSession()
-              location.href = '/login'
-            }}
-            type="button"
+  function onSubmit(event: FormEvent) {
+    event.preventDefault()
+    void redeem(token)
+  }
+
+  function retry() {
+    setError('')
+    setResult(null)
+  }
+
+  if (result) {
+    return (
+      <Page background="linear-gradient(180deg, #021a0e 0%, #080c18 100%)" className="items-center justify-center gap-8 px-6 py-10">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6 anim-scale-in">
+          <div
+            className="flex h-28 w-28 items-center justify-center rounded-full text-6xl"
+            style={{ background: 'linear-gradient(135deg, #10b98120, #059669 20%)', border: '3px solid #10b981', boxShadow: '0 0 48px rgba(16,185,129,0.4)' }}
           >
-            Cerrar sesión
+            ⭐
+          </div>
+
+          <div className="text-center">
+            <p className="pb-text-gold font-display text-5xl font-bold tracking-wider">+{formatPoints(result.movimiento.cantidad)} PUNTOS</p>
+            <p className="mt-1 font-display text-xl font-bold tracking-wide text-green-400">¡Puntos agregados!</p>
+          </div>
+
+          <div className="flex w-full flex-col gap-3 rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #10b98112, #1a2235)', border: '1px solid rgba(16,185,129,0.25)' }}>
+            <div className="flex items-center justify-between">
+              <span className="font-display text-sm font-semibold tracking-wide text-white/60">Puntos ganados</span>
+              <span className="font-mono-game font-bold text-yellow-400">+{formatPoints(result.movimiento.cantidad)}</span>
+            </div>
+            {divider}
+            <div className="flex items-center justify-between">
+              <span className="font-display text-sm font-semibold tracking-wide text-white/60">Nuevo total</span>
+              <span className="font-mono-game font-bold text-yellow-400">{formatPoints(result.saldo_global)} PTS</span>
+            </div>
+          </div>
+        </div>
+
+        <Button className="w-full max-w-sm tracking-widest" onClick={() => navigate('/home')} size="lg">
+          CONTINUAR
+        </Button>
+      </Page>
+    )
+  }
+
+  if (error) {
+    return (
+      <Page background="linear-gradient(180deg, #1a0404 0%, #080c18 100%)" className="items-center justify-center gap-8 px-6 py-10">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6 anim-scale-in">
+          <div
+            className="flex h-28 w-28 items-center justify-center rounded-full text-5xl"
+            style={{ background: 'linear-gradient(135deg, #ef444420, #dc2626 20%)', border: '3px solid #ef4444', boxShadow: '0 0 48px rgba(239,68,68,0.35)' }}
+          >
+            ✕
+          </div>
+          <div className="text-center">
+            <p className="font-display text-3xl font-bold tracking-wide text-red-400">Código no válido</p>
+            <p className="mt-2 text-sm text-white/60">{error}</p>
+          </div>
+        </div>
+
+        <div className="flex w-full max-w-sm flex-col gap-3">
+          <Button className="w-full tracking-widest" onClick={retry} variant="danger">
+            INTENTAR NUEVAMENTE
+          </Button>
+          <button className="text-center text-sm font-semibold text-white/40" onClick={goBack} type="button">
+            Volver atrás
           </button>
         </div>
-      </div>
+      </Page>
+    )
+  }
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-3 text-2xl font-semibold">Canjear codigo QR</h1>
-        <p className="mb-4 text-sm text-slate-600">Escanea con cámara o ingresa el token manualmente.</p>
+  return (
+    <Page background="linear-gradient(180deg, #040d1e 0%, #080c18 100%)">
+      <ScreenHeader onBack={goBack} title="ESCANEAR QR" />
 
-        <div className="mb-4 space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-              onClick={() => {
-                void startScanner()
-              }}
-              type="button"
-            >
-              {isScanning ? 'Escaneo activo' : 'Iniciar cámara'}
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 pb-8">
+        <div
+          className="relative h-64 w-64 overflow-hidden rounded-3xl"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '2px solid rgba(245,158,11,0.4)', boxShadow: '0 0 48px rgba(245,158,11,0.1), inset 0 0 32px rgba(245,158,11,0.05)' }}
+        >
+          {/* La camara de html5-qrcode se dibuja aqui dentro. */}
+          <div className="absolute inset-0 [&_video]:h-full! [&_video]:w-full! [&_video]:object-cover" id={scannerElementId} />
+
+          {!isScanning && (
+            <button className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/50" onClick={() => void startScanner()} type="button">
+              <span className="text-5xl">📷</span>
+              <span className="font-display text-sm font-bold tracking-widest">{redeeming ? 'VALIDANDO...' : 'TOCA PARA ACTIVAR LA CÁMARA'}</span>
             </button>
-            <button
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-              onClick={() => {
-                void stopScanner()
-              }}
-              type="button"
-            >
-              Detener cámara
-            </button>
-          </div>
-          <div className="min-h-[260px] rounded-lg border border-slate-200 bg-slate-50 p-2">
-            <div id={scannerElementId} />
-            {!isScanning && <p className="mt-2 text-xs text-slate-500">La cámara se mostrará aquí cuando inicies el escaneo.</p>}
-          </div>
+          )}
+
+          {CORNERS.map((style, i) => (
+            <div className="pointer-events-none absolute h-8 w-8" key={i} style={style} />
+          ))}
+
+          {isScanning && (
+            <div
+              className="pointer-events-none absolute h-0.5 w-full anim-scan-line"
+              style={{ background: 'linear-gradient(90deg, transparent 0%, #f59e0b 30%, #fcd34d 50%, #f59e0b 70%, transparent 100%)', boxShadow: '0 0 12px rgba(245,158,11,0.8)' }}
+            />
+          )}
         </div>
 
-        <form className="flex flex-col gap-3 md:flex-row" onSubmit={onSubmit}>
-          <input
-            className="w-full rounded-md border p-2"
-            placeholder="TOKEN-QR-..."
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-          />
-          <button className="rounded-md bg-slate-900 px-4 py-2 text-white" type="submit">
-            Canjear
-          </button>
-        </form>
-
-        {message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-      </div>
-
-      {result && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-xl font-semibold">Resultado del canje</h2>
-          <div className="grid gap-2 text-sm text-slate-700">
-            <p>
-              Movimiento: <span className="font-semibold text-slate-900">#{result.movimiento.id}</span>
-            </p>
-            <p>
-              Puntos recibidos: <span className="font-semibold text-slate-900">{result.movimiento.cantidad}</span>
-            </p>
-            <p>
-              Saldo global: <span className="font-semibold text-slate-900">{result.saldo_global}</span>
-            </p>
-            <p>
-              Nivel actual: <span className="font-semibold text-slate-900">{result.nivel_id ?? 'Sin nivel'}</span>
-            </p>
-          </div>
+        <div className="text-center">
+          <p className="font-display text-lg font-bold tracking-wide text-white">{isScanning ? 'Escaneando...' : 'Listo para escanear'}</p>
+          <p className="mt-1 max-w-xs text-sm leading-relaxed text-white/50">Escanea el código QR proporcionado por el negocio.</p>
+          <p className="mt-2 text-xs text-white/30">Los códigos QR solo pueden utilizarse una vez y tienen fecha de expiración.</p>
         </div>
-      )}
-    </div>
+
+        <div className="flex w-full max-w-sm flex-col gap-3">
+          {cameraError && <Notice tone="error">{cameraError}</Notice>}
+          {isScanning ? (
+            <Button className="w-full" onClick={() => void stopScanner()} variant="ghost">
+              DETENER CÁMARA
+            </Button>
+          ) : (
+            <Button className="w-full tracking-widest" disabled={redeeming} onClick={() => void startScanner()}>
+              ACTIVAR CÁMARA
+            </Button>
+          )}
+
+          {/* Respaldo cuando la camara no esta disponible: el negocio puede dictar el codigo. */}
+          <form className="flex gap-2" onSubmit={onSubmit}>
+            <input className="pb-input" onChange={(e) => setToken(e.target.value)} placeholder="¿Sin cámara? Escribe el código" value={token} />
+            <Button disabled={redeeming || !token.trim()} size="sm" type="submit" variant="green">
+              CANJEAR
+            </Button>
+          </form>
+        </div>
+      </div>
+    </Page>
   )
 }
 

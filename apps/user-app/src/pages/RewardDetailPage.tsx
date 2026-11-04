@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Button, LoadingState, Notice, ScreenHeader, formatPoints } from '@shared/ui'
+import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, apiPost } from '../lib/api'
 
 type Reward = {
@@ -21,13 +23,18 @@ type CreateRedemptionPayload = {
   saldo_global: number
 }
 
+type Step = 'detail' | 'confirm' | 'done'
+
+const divider = <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+
 export function RewardDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const goBack = useGoBack('/rewards')
   const [reward, setReward] = useState<Reward | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
-  const [confirming, setConfirming] = useState(false)
+  const [step, setStep] = useState<Step>('detail')
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -48,82 +55,138 @@ export function RewardDetailPage() {
       const response = await apiPost<CreateRedemptionPayload>('/redemptions', { recompensa_id: reward.id })
       setBalance(response.data.saldo_global)
       setReward({ ...reward, cantidad_disponible: reward.cantidad_disponible - 1 })
-      setMessage('Canje creado. Muestra la seccion "Canjes" en el negocio para recibir tu recompensa.')
-      setConfirming(false)
+      setStep('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible realizar el canje')
+      setStep('detail')
     } finally {
       setSaving(false)
     }
+  }
+
+  if (reward && step === 'done') {
+    return (
+      <Page background="linear-gradient(180deg, #021a0e 0%, #080c18 100%)" className="items-center justify-center gap-8 px-6 py-10">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center anim-scale-in">
+          <div className="flex h-28 w-28 items-center justify-center rounded-full text-5xl" style={{ background: '#10b98120', border: '3px solid #10b981', boxShadow: '0 0 48px rgba(16,185,129,0.4)' }}>
+            🎁
+          </div>
+          <div>
+            <p className="font-display text-3xl font-bold tracking-wide text-green-400">¡Canjeado!</p>
+            <p className="mt-1 text-lg font-semibold text-white">{reward.nombre}</p>
+            <p className="mt-1 text-sm text-white/40">{reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
+          </div>
+          <div className="flex w-full flex-col gap-2 rounded-2xl p-4" style={{ background: '#10b98110', border: '1px solid #10b98130' }}>
+            <div className="flex justify-between">
+              <span className="text-sm text-white/60">Puntos descontados</span>
+              <span className="font-mono-game font-bold text-red-400">-{formatPoints(reward.puntos_requeridos)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-white/60">Nuevo total</span>
+              <span className="font-mono-game font-bold text-yellow-400">{balance === null ? '-' : formatPoints(balance)}</span>
+            </div>
+          </div>
+          <p className="text-xs text-white/40">Muestra tu canje en el negocio para recibir la recompensa.</p>
+        </div>
+        <div className="flex w-full max-w-sm flex-col gap-3">
+          <Button className="w-full tracking-widest" onClick={() => navigate('/redemptions')}>
+            VER MIS CANJES
+          </Button>
+          <button className="text-center text-sm font-semibold text-white/40" onClick={() => navigate('/rewards')} type="button">
+            Seguir explorando
+          </button>
+        </div>
+      </Page>
+    )
+  }
+
+  if (reward && step === 'confirm') {
+    return (
+      <Page background="linear-gradient(180deg, #080c18 0%, #040d1e 100%)" className="items-center justify-center gap-6 px-6 py-10">
+        <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center anim-scale-in">
+          <div className="text-7xl">🎁</div>
+          <div>
+            <p className="font-display text-2xl font-bold tracking-wide text-white">{reward.nombre}</p>
+            <p className="mt-1 text-sm text-white/50">{reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
+          </div>
+          <div className="pb-card w-full rounded-2xl p-5">
+            <p className="mb-1 font-display text-lg font-bold text-white">¿Deseas canjear esta recompensa?</p>
+            <p className="text-sm text-white/50">
+              Se descontarán <span className="font-mono-game font-bold text-yellow-400">{formatPoints(reward.puntos_requeridos)}</span> puntos.
+            </p>
+          </div>
+        </div>
+        <div className="flex w-full max-w-sm flex-col gap-3">
+          <Button className="w-full tracking-widest" disabled={saving} onClick={() => void redeem()}>
+            {saving ? 'CANJEANDO...' : 'CONFIRMAR CANJE'}
+          </Button>
+          <Button className="w-full" disabled={saving} onClick={() => setStep('detail')} variant="ghost">
+            CANCELAR
+          </Button>
+        </div>
+      </Page>
+    )
   }
 
   const missing = reward && balance !== null ? Math.max(0, reward.puntos_requeridos - balance) : 0
   const outOfStock = reward ? reward.cantidad_disponible <= 0 : false
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <Link className="inline-block rounded-md border bg-white px-3 py-1 text-sm" to="/rewards">
-        Volver a recompensas
-      </Link>
+    <Page>
+      <ScreenHeader onBack={goBack} title={reward?.nombre ?? 'RECOMPENSA'} />
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-        {!reward && !error && <p className="text-sm text-slate-500">Cargando...</p>}
+      <div className="flex flex-1 flex-col gap-5 px-5 pb-8">
+        {error && <Notice tone="error">{error}</Notice>}
+        {!reward && !error && <LoadingState />}
 
         {reward && (
           <>
-            <p className="text-sm text-slate-500">{reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
-            <h1 className="text-2xl font-semibold text-slate-900">{reward.nombre}</h1>
-            <p className="mt-2 text-slate-600">{reward.descripcion ?? 'Sin descripcion'}</p>
+            <div className="flex items-center justify-center rounded-3xl" style={{ height: 180, background: 'linear-gradient(135deg, #1a2235, #0d1424)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <span className="text-8xl">🎁</span>
+            </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Cuesta</p>
-                <p className="text-xl font-semibold">{reward.puntos_requeridos} pts</p>
+            <div>
+              <h2 className="font-display text-2xl font-bold text-white">{reward.nombre}</h2>
+              <p className="mt-0.5 text-sm font-semibold text-yellow-400">🏪 {reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
+            </div>
+
+            <div className="pb-card flex flex-col gap-3 rounded-2xl p-4">
+              <div className="flex justify-between">
+                <span className="text-sm text-white/60">Puntos necesarios</span>
+                <span className="font-mono-game font-bold text-yellow-400">⭐ {formatPoints(reward.puntos_requeridos)}</span>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Tu saldo</p>
-                <p className="text-xl font-semibold">{balance ?? '-'} pts</p>
+              {divider}
+              <div className="flex justify-between">
+                <span className="text-sm text-white/60">Disponibles</span>
+                <span className="font-mono-game font-bold text-white">{reward.cantidad_disponible}</span>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Disponibles</p>
-                <p className="text-xl font-semibold">{reward.cantidad_disponible}</p>
+              {divider}
+              <div className="flex justify-between">
+                <span className="text-sm text-white/60">Tus puntos</span>
+                <span className="font-mono-game font-bold text-emerald-400">{balance === null ? '-' : formatPoints(balance)}</span>
               </div>
             </div>
 
-            {message && <p className="mt-4 text-sm text-emerald-700">{message}</p>}
+            <p className="text-sm leading-relaxed text-white/60">{reward.descripcion ?? 'Sin descripción.'}</p>
 
-            <div className="mt-5">
+            <div className="mt-auto">
               {outOfStock ? (
-                <p className="text-sm font-medium text-slate-600">Agotada por ahora.</p>
+                <div className="w-full rounded-xl py-4 text-center font-display font-bold tracking-widest text-red-400" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  AGOTADO
+                </div>
               ) : missing > 0 ? (
-                <p className="text-sm font-medium text-slate-600">Te faltan {missing} puntos para canjearla.</p>
-              ) : confirming ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm">Se descontaran {reward.puntos_requeridos} puntos. ¿Confirmas?</span>
-                  <button
-                    className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-50"
-                    disabled={saving}
-                    onClick={() => {
-                      void redeem()
-                    }}
-                    type="button"
-                  >
-                    {saving ? 'Canjeando...' : 'Si, canjear'}
-                  </button>
-                  <button className="rounded-md border px-4 py-2 text-sm" onClick={() => setConfirming(false)} type="button">
-                    Cancelar
-                  </button>
+                <div className="pb-soft w-full rounded-xl py-4 text-center font-display font-bold tracking-widest text-white/30">
+                  PUNTOS INSUFICIENTES · FALTAN {formatPoints(missing)}
                 </div>
               ) : (
-                <button className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white" onClick={() => setConfirming(true)} type="button">
-                  Canjear
-                </button>
+                <Button className="w-full tracking-widest" onClick={() => setStep('confirm')} size="lg">
+                  CANJEAR POR {formatPoints(reward.puntos_requeridos)} PUNTOS ⭐
+                </Button>
               )}
             </div>
           </>
         )}
       </div>
-    </div>
+    </Page>
   )
 }

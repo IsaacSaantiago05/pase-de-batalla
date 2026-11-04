@@ -11,6 +11,8 @@ const sharedDir = fileURLToPath(new URL('../../packages/shared/src', import.meta
 export default defineConfig({
   resolve: {
     alias: { '@shared': sharedDir },
+    // packages/shared no tiene node_modules: React se resuelve desde la app.
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), sharedDir] },
@@ -25,8 +27,8 @@ export default defineConfig({
         short_name: 'PaseApp',
         start_url: '/',
         display: 'standalone',
-        background_color: '#0f172a',
-        theme_color: '#0f172a',
+        background_color: '#080c18',
+        theme_color: '#080c18',
         icons: [],
       },
     }),

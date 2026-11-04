@@ -1,91 +1,185 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiGet } from '../lib/api'
-import { clearSession } from '../lib/auth'
+import { Card, IslandView, LevelBadge, ProgressBar, SectionTitle, formatDate, formatPoints } from '@shared/ui'
+import { Page } from '../components/AppLayout'
+import { apiGet, listData } from '../lib/api'
+import { levelInfo, movementLabel } from '../lib/progress'
+import type { BattlePassProgress, Movement } from '../lib/progress'
 
 type Me = { nombre: string }
 type Balance = { saldo_global: number }
-type Progress = {
-  puntos_actuales: number
-  progreso_porcentaje: number
-  siguiente_hito_faltante: number
-  siguiente_hito_puntos: number | null
-}
 
-const SHORTCUTS = [
-  { to: '/rewards', title: 'Recompensas', text: 'Canjea tus puntos' },
-  { to: '/battle-pass', title: 'Pase de batalla', text: 'Tus rangos y premios' },
-  { to: '/island', title: 'Mi isla', text: 'Decora y desbloquea' },
-  { to: '/businesses', title: 'Negocios', text: 'Donde ganar puntos' },
-  { to: '/redemptions', title: 'Mis canjes', text: 'Estado de tus canjes' },
-  { to: '/history', title: 'Historial', text: 'Movimientos de puntos' },
-  { to: '/points', title: 'Mis puntos', text: 'Saldo y nivel' },
-  { to: '/profile', title: 'Perfil', text: 'Datos y contraseña' },
+const ACTIONS = [
+  { to: '/battle-pass', icon: '⭐', label: 'PASE', color: 'text-yellow-400', style: { background: 'linear-gradient(135deg, #1e2a14, #111827)', border: '1px solid rgba(245,158,11,0.25)' } },
+  { to: '/island', icon: '🎨', label: 'ISLA', color: 'text-purple-400', style: { background: 'linear-gradient(135deg, #1a1040, #111827)', border: '1px solid rgba(124,58,237,0.25)' } },
+  { to: '/scan-qr', icon: '📷', label: 'ESCANEAR', color: 'text-emerald-400', style: { background: 'linear-gradient(135deg, #0a2018, #111827)', border: '1px solid rgba(16,185,129,0.25)' } },
+]
+
+const QUICK_LINKS = [
+  { to: '/businesses', icon: '🏪', label: 'Negocios' },
+  { to: '/history', icon: '🗓️', label: 'Historial' },
+  { to: '/redemptions', icon: '🎟️', label: 'Canjes' },
+  { to: '/points', icon: '💰', label: 'Puntos' },
 ]
 
 export function HomePage() {
   const [me, setMe] = useState<Me | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
-  const [progress, setProgress] = useState<Progress | null>(null)
+  const [progress, setProgress] = useState<BattlePassProgress | null>(null)
+  const [recent, setRecent] = useState<Movement[]>([])
 
   useEffect(() => {
     apiGet<Me>('/auth/me').then((response) => setMe(response.data)).catch(() => setMe(null))
     apiGet<Balance>('/points/balance').then((response) => setBalance(response.data.saldo_global)).catch(() => setBalance(null))
-    apiGet<Progress>('/battle-pass/progress').then((response) => setProgress(response.data)).catch(() => setProgress(null))
+    apiGet<BattlePassProgress>('/battle-pass/progress').then((response) => setProgress(response.data)).catch(() => setProgress(null))
+    apiGet<{ data: Movement[] }>('/points/history')
+      .then((response) => setRecent(listData(response.data).slice(0, 3)))
+      .catch(() => setRecent([]))
   }, [])
 
-  return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-sm text-slate-500">Bienvenido</p>
-          <h1 className="text-2xl font-semibold text-slate-900">{me?.nombre ?? 'Pase de Batalla'}</h1>
-        </div>
-        <button
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-          onClick={() => {
-            clearSession()
-            location.href = '/login'
-          }}
-          type="button"
-        >
-          Cerrar sesión
-        </button>
-      </header>
+  const info = levelInfo(progress)
 
-      <section className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Saldo para canjear</p>
-          <p className="mt-1 text-3xl font-semibold text-slate-900">{balance ?? '-'} pts</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Pase de batalla</p>
-          <p className="mt-1 text-3xl font-semibold text-slate-900">{progress ? `${progress.progreso_porcentaje}%` : '-'}</p>
-          <div className="mt-2 h-2 rounded-full bg-slate-200">
-            <div className="h-2 rounded-full bg-emerald-600" style={{ width: `${progress?.progreso_porcentaje ?? 0}%` }} />
+  return (
+    <Page background="#080c18">
+      <div
+        className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 pb-3 pt-5"
+        style={{ background: 'linear-gradient(180deg, #080c18 80%, transparent 100%)', backdropFilter: 'blur(8px)' }}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl"
+            style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d1424)', border: '2px solid rgba(245,158,11,0.4)' }}
+          >
+            🧑‍🚀
           </div>
-          {progress && progress.siguiente_hito_puntos !== null && (
-            <p className="mt-2 text-xs text-slate-500">Te faltan {progress.siguiente_hito_faltante} puntos ganados para el siguiente rango</p>
+          <div className="min-w-0">
+            <p className="truncate font-display text-base font-bold uppercase tracking-widest text-white">{me?.nombre ?? 'Jugador'}</p>
+            <LevelBadge level={info.level} size="sm" />
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5" style={{ background: 'linear-gradient(135deg, #1a2235, #111827)', border: '1px solid rgba(245,158,11,0.3)' }}>
+          <span className="text-base">⭐</span>
+          <span className="font-mono-game text-sm font-bold text-yellow-400">{balance === null ? '-' : formatPoints(balance)}</span>
+        </div>
+      </div>
+
+      <div className="px-5 pb-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="font-display text-xs font-semibold tracking-wider text-white/50">NIVEL {info.level}</span>
+          <span className="font-mono-game text-xs text-white/60">
+            {formatPoints(info.earned)} / {formatPoints(info.goal)} PTS
+          </span>
+        </div>
+        <ProgressBar current={info.earned} height={10} max={info.goal} />
+        <p className="mt-1.5 text-right text-xs text-white/40">
+          {info.noTiers
+            ? 'Aún no hay niveles configurados'
+            : info.maxed
+              ? 'Alcanzaste el nivel máximo'
+              : `${formatPoints(info.remaining)} puntos para nivel ${info.level + 1}`}
+        </p>
+      </div>
+
+      <div className="mb-4 px-5">
+        <div className="relative overflow-hidden rounded-3xl" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+          <IslandView level={info.level} size="lg" />
+          <Link
+            className="absolute left-3 top-3 rounded-full px-3 py-1 font-display text-xs font-bold tracking-wider"
+            style={{ background: 'rgba(0,0,0,0.6)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}
+            to="/island"
+          >
+            🏝️ MI ISLA
+          </Link>
+          {info.nextTier && (
+            <div
+              className="absolute bottom-3 right-3 max-w-[70%] truncate rounded-xl px-3 py-1.5 text-xs font-semibold"
+              style={{ background: 'rgba(124,58,237,0.8)', color: '#fff', backdropFilter: 'blur(8px)' }}
+            >
+              🔒 NV.{info.nextLevel}: {info.nextTier.recompensa_nombre}
+            </div>
           )}
         </div>
-      </section>
+      </div>
 
-      <Link
-        className="block rounded-xl bg-slate-900 p-5 text-center text-white shadow-sm hover:bg-slate-800"
-        to="/scan-qr"
-      >
-        <span className="block text-lg font-semibold">Escanear QR de compra</span>
-        <span className="text-sm text-slate-300">Gana puntos con el QR que te muestra el negocio</span>
-      </Link>
-
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {SHORTCUTS.map((item) => (
-          <Link className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-400" key={item.to} to={item.to}>
-            <span className="block font-semibold text-slate-900">{item.title}</span>
-            <span className="text-xs text-slate-500">{item.text}</span>
+      <div className="mb-4 grid grid-cols-3 gap-3 px-5">
+        {ACTIONS.map((action) => (
+          <Link className="flex flex-col items-center gap-2 rounded-2xl py-4 transition-all active:scale-95" key={action.to} style={action.style} to={action.to}>
+            <span className="text-2xl">{action.icon}</span>
+            <span className={`font-display text-xs font-bold tracking-wide ${action.color}`}>{action.label}</span>
           </Link>
         ))}
-      </section>
-    </div>
+      </div>
+
+      <div className="mb-4 grid grid-cols-2 gap-3 px-5">
+        <Card className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🎯</span>
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-white/70">Próximo Nivel</span>
+          </div>
+          <div className="font-mono-game text-2xl font-bold text-yellow-400">{formatPoints(info.remaining)}</div>
+          <div className="text-xs text-white/40">puntos restantes</div>
+          <ProgressBar current={info.earned} height={5} max={info.goal} />
+        </Card>
+
+        <Card className="flex flex-col gap-2" glow="#7c3aed">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🎁</span>
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-purple-400">Próximo Unlock</span>
+          </div>
+          <div className="text-xl">{info.maxed ? '🏆' : '🔒'}</div>
+          <div className="text-xs font-semibold text-white">{info.nextTier?.recompensa_nombre ?? (info.maxed ? 'Todo desbloqueado' : 'Próximamente')}</div>
+          {info.nextTier && <div className="text-xs text-white/40">Nivel {info.nextLevel}</div>}
+        </Card>
+      </div>
+
+      <div className="mb-6 px-5">
+        <Card>
+          <SectionTitle className="mb-3 text-white/60">Accesos Rápidos</SectionTitle>
+          <div className="grid grid-cols-4 gap-2">
+            {QUICK_LINKS.map((item) => (
+              <Link className="pb-soft flex flex-col items-center gap-1.5 rounded-xl py-2.5 transition-all active:scale-90" key={item.to} to={item.to}>
+                <span className="text-xl">{item.icon}</span>
+                <span className="font-display text-xs font-semibold text-white/50">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="mb-8 px-5">
+        <div className="mb-3 flex items-center justify-between">
+          <SectionTitle className="text-white/60">Actividad Reciente</SectionTitle>
+          <Link className="text-xs font-semibold" style={{ color: '#f59e0b' }} to="/history">
+            Ver todo
+          </Link>
+        </div>
+        <div className="flex flex-col gap-2">
+          {recent.map((item) => {
+            const positive = item.cantidad >= 0
+            const color = positive ? '#10b981' : '#ef4444'
+
+            return (
+              <div className="pb-soft flex items-center justify-between gap-3 rounded-xl px-4 py-3" key={item.id}>
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base" style={{ background: `${color}20` }}>
+                    {positive ? '⭐' : '🎁'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{movementLabel(item)}</p>
+                    <p className="text-xs text-white/40">{formatDate(item.fecha)}</p>
+                  </div>
+                </div>
+                <span className="shrink-0 font-mono-game text-sm font-bold" style={{ color }}>
+                  {positive ? '+' : ''}
+                  {item.cantidad} pts
+                </span>
+              </div>
+            )
+          })}
+          {recent.length === 0 && <p className="pb-soft rounded-xl px-4 py-3 text-sm text-white/40">Aún no tienes movimientos. Escanea un QR para ganar tus primeros puntos.</p>}
+        </div>
+      </div>
+    </Page>
   )
 }

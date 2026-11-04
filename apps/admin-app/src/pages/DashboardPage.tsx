@@ -1,120 +1,154 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { apiGet } from '../lib/api'
+import { Link, useNavigate } from 'react-router-dom'
+import { Button, ChevronRight, SectionTitle } from '@shared/ui'
+import { apiGet, listData } from '../lib/api'
 import { clearAdminSession, getAdminSession } from '../lib/auth'
 
 type Me = { nombre: string }
+type Business = { id: number; nombre: string }
 type Summary = {
   resumen: { ventas: number; ingresos: number; puntos_otorgados: number; clientes_activos: number }
 }
-type Shortcut = { to: string; title: string; text: string; ready: boolean }
+type MenuItem = { to: string; icon: string; label: string }
 
-const BUSINESS: Shortcut[] = [
-  { to: '/sales', title: 'Nueva venta', text: 'Registra la venta y genera el QR', ready: true },
-  { to: '/products', title: 'Productos', text: 'Catalogo con precio y puntos', ready: true },
-  { to: '/rewards', title: 'Recompensas', text: 'Premios y stock', ready: true },
-  { to: '/redemptions', title: 'Canjes', text: 'Confirmar y entregar', ready: true },
-  { to: '/clients', title: 'Clientes', text: 'Visitas y puntos', ready: true },
-  { to: '/qr', title: 'Codigos QR', text: 'Historial de QR', ready: true },
-  { to: '/statistics', title: 'Estadisticas', text: 'Ventas e ingresos', ready: true },
-  { to: '/points', title: 'Movimientos', text: 'Historial de puntos', ready: true },
-  { to: '/business', title: 'Mi negocio', text: 'Datos del negocio', ready: false },
-  { to: '/history', title: 'Historial', text: 'Operaciones', ready: false },
+// Pantallas del negocio que ya estan construidas (las que faltan no se muestran).
+const BUSINESS_MENU: MenuItem[] = [
+  { to: '/clients', icon: '👥', label: 'Clientes del negocio' },
+  { to: '/points', icon: '⭐', label: 'Movimientos de puntos' },
+  { to: '/qr', icon: '🔳', label: 'Códigos QR' },
+  { to: '/products', icon: '📦', label: 'Productos' },
+  { to: '/statistics', icon: '📊', label: 'Estadísticas' },
 ]
 
-const PLATFORM: Shortcut[] = [
-  { to: '/administrators', title: 'Administradores', text: 'Altas y estado', ready: true },
-  { to: '/adjustments', title: 'Ajustes de puntos', text: 'Con motivo obligatorio', ready: true },
-  { to: '/users', title: 'Usuarios', text: 'Clientes y estados', ready: false },
-  { to: '/businesses', title: 'Negocios', text: 'Alta y estado', ready: false },
-  { to: '/levels', title: 'Niveles', text: 'Rangos de puntos', ready: false },
-  { to: '/island-elements', title: 'Elementos de isla', text: 'Catalogo de la isla', ready: false },
-  { to: '/point-rules', title: 'Reglas de puntos', text: 'Por monto', ready: false },
+const PLATFORM_MENU: MenuItem[] = [
+  { to: '/administrators', icon: '🛡️', label: 'Administradores' },
+  { to: '/adjustments', icon: '⚖️', label: 'Ajustes de puntos' },
 ]
 
 const money = (value: number) => `$${value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-function ShortcutGrid({ items }: { items: Shortcut[] }) {
+function MenuList({ items }: { items: MenuItem[] }) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {items.map((item) =>
-        item.ready ? (
-          <Link className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-400" key={item.to} to={item.to}>
-            <span className="block font-semibold text-slate-900">{item.title}</span>
-            <span className="text-xs text-slate-500">{item.text}</span>
-          </Link>
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4" key={item.to}>
-            <span className="block font-semibold text-slate-400">{item.title}</span>
-            <span className="text-xs text-slate-400">En construccion</span>
-          </div>
-        ),
-      )}
+    <div className="grid gap-2 md:grid-cols-2">
+      {items.map((item) => (
+        <Link className="pb-card flex items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-all active:scale-[0.98]" key={item.to} to={item.to}>
+          <span className="w-7 text-xl">{item.icon}</span>
+          <span className="flex-1 text-sm font-semibold text-white">{item.label}</span>
+          <ChevronRight size={14} />
+        </Link>
+      ))}
     </div>
   )
 }
 
 export function DashboardPage() {
+  const navigate = useNavigate()
   const role = getAdminSession()?.role
   const isGeneral = role === 'ADMINISTRADOR_GENERAL'
   const [me, setMe] = useState<Me | null>(null)
+  const [business, setBusiness] = useState<Business | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
 
   useEffect(() => {
     apiGet<Me>('/auth/me').then((response) => setMe(response.data)).catch(() => setMe(null))
     apiGet<Summary>('/statistics?dias=7').then((response) => setSummary(response.data)).catch(() => setSummary(null))
-  }, [])
+    if (!isGeneral) {
+      apiGet<Business[]>('/businesses')
+        .then((response) => setBusiness(listData(response.data)[0] ?? null))
+        .catch(() => setBusiness(null))
+    }
+  }, [isGeneral])
 
-  const tiles = summary
+  function logout() {
+    clearAdminSession()
+    navigate('/login', { replace: true })
+  }
+
+  const stats = summary
     ? [
-        { label: 'Ventas (7 dias)', value: summary.resumen.ventas.toLocaleString('es-MX') },
-        { label: 'Ingresos (7 dias)', value: money(summary.resumen.ingresos) },
-        { label: 'Puntos otorgados', value: summary.resumen.puntos_otorgados.toLocaleString('es-MX') },
-        { label: 'Clientes activos', value: summary.resumen.clientes_activos.toLocaleString('es-MX') },
+        { label: 'Ventas (7 días)', value: summary.resumen.ventas.toLocaleString('es-MX'), icon: '🧾', color: '#60a5fa' },
+        { label: 'Ingresos (7 días)', value: money(summary.resumen.ingresos), icon: '💰', color: '#10b981' },
+        { label: 'Puntos otorgados', value: summary.resumen.puntos_otorgados.toLocaleString('es-MX'), icon: '⭐', color: '#f59e0b' },
+        { label: 'Clientes activos', value: summary.resumen.clientes_activos.toLocaleString('es-MX'), icon: '👥', color: '#a855f7' },
       ]
     : []
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-sm text-slate-500">{isGeneral ? 'Administrador general' : 'Administrador de negocio'}</p>
-          <h1 className="text-2xl font-semibold text-slate-900">{me?.nombre ?? 'Panel'}</h1>
-        </div>
-        <button
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-          onClick={() => {
-            clearAdminSession()
-            location.href = '/login'
-          }}
-          type="button"
-        >
-          Cerrar sesión
-        </button>
-      </header>
-
-      {tiles.length > 0 && (
-        <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {tiles.map((tile) => (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" key={tile.label}>
-              <p className="text-xs uppercase tracking-wide text-slate-500">{tile.label}</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">{tile.value}</p>
+    <div className="flex flex-1 flex-col" style={{ background: isGeneral ? 'linear-gradient(180deg, #0d0018 0%, #080c18 100%)' : 'linear-gradient(180deg, #060c04 0%, #080c18 100%)' }}>
+      <div className="px-5 pb-4 pt-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        {isGeneral ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="mb-0.5 font-display text-xs uppercase tracking-widest text-white/40">Panel General · {me?.nombre ?? ''}</p>
+              <p className="pb-text-purple font-display text-xl font-bold tracking-widest">ADMINISTRADOR GENERAL</p>
             </div>
-          ))}
-        </section>
-      )}
+            <button className="font-display text-xs font-semibold tracking-wide text-white/40 hover:text-white/70" onClick={logout} type="button">
+              Salir
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-1 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+                🏪
+              </div>
+              <div className="min-w-0">
+                <p className="font-display text-xs uppercase tracking-widest text-white/40">Negocio</p>
+                <p className="truncate font-display text-lg font-bold tracking-wide text-white">{business?.nombre ?? me?.nombre ?? '-'}</p>
+              </div>
+              <button className="ml-auto font-display text-xs font-semibold tracking-wide text-white/40 hover:text-white/70" onClick={logout} type="button">
+                Salir
+              </button>
+            </div>
+            <p className="font-display text-xl font-bold tracking-widest text-yellow-400">ADMINISTRACIÓN</p>
+          </>
+        )}
+      </div>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-slate-900">{isGeneral ? 'Operacion de negocios' : 'Mi negocio'}</h2>
-        <ShortcutGrid items={isGeneral ? BUSINESS.filter((item) => item.to !== '/sales') : BUSINESS} />
-      </section>
+      <div className="flex flex-col gap-5 px-5 py-4 pb-8">
+        {stats.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {stats.map((stat) => (
+              <div className="flex flex-col gap-2 rounded-2xl p-4" key={stat.label} style={{ background: 'linear-gradient(135deg, #1a2235, #111827)', border: `1px solid ${stat.color}20` }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{stat.icon}</span>
+                  <span className="font-display text-xs font-bold tracking-wide" style={{ color: stat.color }}>
+                    {stat.label}
+                  </span>
+                </div>
+                <span className="font-mono-game text-2xl font-bold text-white">{stat.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {isGeneral && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Plataforma</h2>
-          <ShortcutGrid items={PLATFORM} />
-        </section>
-      )}
+        <div className="flex flex-col gap-3">
+          <SectionTitle className="text-white/40">Acciones Rápidas</SectionTitle>
+          {!isGeneral && (
+            <Button className="w-full tracking-widest" onClick={() => navigate('/sales')}>
+              🔳 GENERAR CÓDIGO QR
+            </Button>
+          )}
+          <Link
+            className="w-full rounded-xl py-3 text-center font-display text-sm font-bold tracking-widest transition-all active:scale-95"
+            style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.08))', border: '1px solid rgba(124,58,237,0.3)', color: '#a855f7' }}
+            to="/rewards"
+          >
+            🎁 {isGeneral ? 'RECOMPENSAS' : 'MIS RECOMPENSAS'}
+          </Link>
+          <Link
+            className="pb-soft w-full rounded-xl py-3 text-center font-display text-sm font-bold tracking-widest text-white/60 transition-all active:scale-95"
+            to="/redemptions"
+          >
+            📋 GESTIONAR CANJES
+          </Link>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <SectionTitle className="text-white/40">Gestión</SectionTitle>
+          <MenuList items={isGeneral ? [...PLATFORM_MENU, ...BUSINESS_MENU] : BUSINESS_MENU} />
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,7 +1,11 @@
 import { Suspense, lazy } from 'react'
+import type { ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { LoadingState } from '@shared/ui'
+import { AppLayout } from './components/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
+import { SplashPage } from './pages/SplashPage'
 
 const IslandPage = lazy(() => import('./pages/IslandPage').then((module) => ({ default: module.IslandPage })))
 const BattlePassPage = lazy(() => import('./pages/BattlePassPage').then((module) => ({ default: module.BattlePassPage })))
@@ -15,117 +19,43 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({
 const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })))
 const RewardDetailPage = lazy(() => import('./pages/RewardDetailPage').then((module) => ({ default: module.RewardDetailPage })))
 
-function RouteLoadingFallback() {
-  return (
-    <div className="mx-auto max-w-5xl rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
-      Cargando modulo...
-    </div>
-  )
+function Lazy({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<LoadingState text="Cargando modulo..." />}>{children}</Suspense>
 }
+
+const PROTECTED = [
+  { path: '/home', element: <HomePage /> },
+  { path: '/island', element: <IslandPage /> },
+  { path: '/battle-pass', element: <BattlePassPage /> },
+  { path: '/points', element: <PointsPage /> },
+  { path: '/scan-qr', element: <QrRedeemPage /> },
+  { path: '/rewards', element: <RewardsPage /> },
+  { path: '/rewards/:id', element: <RewardDetailPage /> },
+  { path: '/redemptions', element: <RedemptionsPage /> },
+  { path: '/history', element: <HistoryPage /> },
+  { path: '/businesses', element: <BusinessesPage /> },
+  { path: '/profile', element: <ProfilePage /> },
+]
 
 function App() {
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-8">
-      <Routes>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route path="/welcome" element={<SplashPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute />}>
-          <Route
-            path="/home"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <HomePage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/island"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <IslandPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/battle-pass"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <BattlePassPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/points"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <PointsPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/scan-qr"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <QrRedeemPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/rewards"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <RewardsPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/rewards/:id"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <RewardDetailPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/redemptions"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <RedemptionsPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/history"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <HistoryPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/businesses"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <BusinessesPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <ProfilePage />
-              </Suspense>
-            }
-          />
+          {PROTECTED.map((route) => (
+            <Route element={<Lazy>{route.element}</Lazy>} key={route.path} path={route.path} />
+          ))}
         </Route>
 
         <Route path="*" element={<Navigate to="/home" replace />} />
-      </Routes>
-    </div>
+      </Route>
+    </Routes>
   )
 }
 

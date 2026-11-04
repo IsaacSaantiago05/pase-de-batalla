@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiGet, apiPost, listData } from '../lib/api'
+import { ChevronRight, EmptyState, Notice, ScreenHeader, StatusChip, formatDate, formatPoints } from '@shared/ui'
+import { Page, useGoBack } from '../components/AppLayout'
+import { apiGet, listData } from '../lib/api'
 
 type Reward = {
   id: number
   negocio_id: number
+  negocio_nombre?: string | null
   nombre: string
   descripcion: string | null
   puntos_requeridos: number
@@ -28,125 +31,131 @@ type RedemptionListPayload = {
   data: Redemption[]
 }
 
-type CreateRedemptionPayload = {
-  canje: Redemption
-  saldo_global: number
-  nivel_id: number | null
-}
-
 export function RewardsPage() {
+  const goBack = useGoBack()
   const [rewards, setRewards] = useState<Reward[]>([])
-  const [message, setMessage] = useState('')
+  const [balance, setBalance] = useState<number | null>(null)
   const [error, setError] = useState('')
 
-  const loadRewards = async () => {
-    try {
-      const response = await apiGet<RewardListPayload>('/rewards')
-      setRewards(listData(response.data))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible cargar recompensas')
-    }
-  }
-
   useEffect(() => {
-    void loadRewards()
+    apiGet<RewardListPayload>('/rewards')
+      .then((response) => setRewards(listData(response.data)))
+      .catch((err) => setError(err instanceof Error ? err.message : 'No fue posible cargar recompensas'))
+    apiGet<{ saldo_global: number }>('/points/balance').then((response) => setBalance(response.data.saldo_global)).catch(() => setBalance(null))
   }, [])
 
-  async function redeem(rewardId: number) {
-    setMessage('')
-    setError('')
-
-    try {
-      const response = await apiPost<CreateRedemptionPayload>('/redemptions', {
-        recompensa_id: rewardId,
-      })
-      setMessage(`Canje creado. Saldo actual: ${response.data.saldo_global}`)
-      await loadRewards()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible realizar el canje')
-    }
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-2 text-2xl font-semibold">Recompensas disponibles</h1>
-        <p className="mb-4 text-sm text-slate-600">El stock y los puntos se descuentan al crear el canje.</p>
-        {message && <p className="mb-3 text-sm text-emerald-700">{message}</p>}
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+    <Page>
+      <ScreenHeader onBack={goBack} title="RECOMPENSAS" />
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {rewards.map((reward) => (
-            <div className="rounded-lg border border-slate-200 p-4" key={reward.id}>
-              <p className="text-sm text-slate-500">Negocio #{reward.negocio_id}</p>
-              <h2 className="text-lg font-semibold text-slate-900">
-                <Link className="hover:underline" to={`/rewards/${reward.id}`}>
-                  {reward.nombre}
-                </Link>
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">{reward.descripcion ?? 'Sin descripcion'}</p>
-              <p className="mt-3 text-sm text-slate-700">Puntos requeridos: <span className="font-semibold">{reward.puntos_requeridos}</span></p>
-              <p className="text-sm text-slate-700">Stock: <span className="font-semibold">{reward.cantidad_disponible}</span></p>
-              <button
-                className="mt-3 rounded-md bg-slate-900 px-3 py-2 text-sm text-white"
-                onClick={() => {
-                  void redeem(reward.id)
-                }}
-                type="button"
-              >
-                Canjear
-              </button>
-            </div>
-          ))}
+      <div className="mb-3 flex flex-wrap items-center gap-2 px-5">
+        <div
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono-game text-sm font-bold"
+          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: '#fcd34d' }}
+        >
+          ⭐ {balance === null ? '-' : formatPoints(balance)} disponibles
         </div>
+        <Link className="ml-auto text-xs font-semibold" style={{ color: '#f59e0b' }} to="/redemptions">
+          Mis canjes
+        </Link>
       </div>
-    </div>
+
+      <div className="px-5 pb-6">
+        {error && <Notice tone="error">{error}</Notice>}
+        <div className="grid gap-3 md:grid-cols-2">
+          {rewards.map((reward) => {
+            const affordable = balance !== null && balance >= reward.puntos_requeridos
+            const exhausted = reward.cantidad_disponible <= 0
+            const content = (
+              <>
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  🎁
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-display text-base font-bold text-white">{reward.nombre}</p>
+                  <p className="text-xs text-white/40">{reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span
+                      className="rounded-full px-2 py-0.5 font-mono-game text-xs font-bold"
+                      style={{ color: affordable ? '#fcd34d' : '#9ca3af', background: affordable ? 'rgba(245,158,11,0.15)' : 'rgba(156,163,175,0.1)' }}
+                    >
+                      ⭐ {formatPoints(reward.puntos_requeridos)}
+                    </span>
+                    <span className="text-xs text-white/30">{exhausted ? 'Agotado' : `${reward.cantidad_disponible} disponibles`}</span>
+                  </div>
+                </div>
+                {exhausted ? (
+                  <span className="shrink-0 rounded-lg px-2 py-1 font-display text-xs font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+                    AGOTADO
+                  </span>
+                ) : (
+                  <ChevronRight />
+                )}
+              </>
+            )
+            const style = {
+              background: 'linear-gradient(135deg, #1a2235, #111827)',
+              border: `1px solid ${exhausted ? 'rgba(239,68,68,0.2)' : affordable ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.06)'}`,
+              opacity: exhausted ? 0.6 : 1,
+            }
+
+            return exhausted ? (
+              <div className="flex items-center gap-4 rounded-2xl p-4" key={reward.id} style={style}>
+                {content}
+              </div>
+            ) : (
+              <Link className="flex items-center gap-4 rounded-2xl p-4 text-left transition-all active:scale-[0.98]" key={reward.id} style={style} to={`/rewards/${reward.id}`}>
+                {content}
+              </Link>
+            )
+          })}
+        </div>
+        {rewards.length === 0 && !error && <EmptyState icon="🎁" text="Los negocios aún no publican recompensas." title="Sin recompensas" />}
+      </div>
+    </Page>
   )
 }
 
+const statusIcon: Record<string, string> = { COMPLETADO: '✓', CONFIRMADO: '✓', PENDIENTE: '⏳', CANCELADO: '✕' }
+const statusColor: Record<string, string> = { COMPLETADO: '#10b981', CONFIRMADO: '#60a5fa', PENDIENTE: '#f59e0b', CANCELADO: '#ef4444' }
+
 export function RedemptionsPage() {
+  const goBack = useGoBack()
   const [rows, setRows] = useState<Redemption[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await apiGet<RedemptionListPayload>('/redemptions/my')
-        setRows(listData(response.data))
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'No fue posible cargar tus canjes')
-      }
-    }
-
-    void load()
+    apiGet<RedemptionListPayload>('/redemptions/my')
+      .then((response) => setRows(listData(response.data)))
+      .catch((err) => setError(err instanceof Error ? err.message : 'No fue posible cargar tus canjes'))
   }, [])
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="mb-4 text-2xl font-semibold">Mis canjes</h1>
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="p-2">Recompensa</th>
-              <th className="p-2">Puntos</th>
-              <th className="p-2">Estado</th>
-              <th className="p-2">Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr className="border-b" key={row.id}>
-                <td className="p-2">{row.recompensa_nombre ?? '-'}</td>
-                <td className="p-2">{row.puntos_utilizados}</td>
-                <td className="p-2">{row.estado}</td>
-                <td className="p-2">{row.fecha}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <Page>
+      <ScreenHeader onBack={goBack} title="MIS CANJES" />
+      <div className="px-5 pb-6">
+        {error && <Notice tone="error">{error}</Notice>}
+        <div className="grid gap-3 md:grid-cols-2">
+          {rows.map((row) => {
+            const color = statusColor[row.estado] ?? '#6b7280'
+
+            return (
+              <div className="pb-card flex items-center gap-4 rounded-2xl p-4" key={row.id}>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base font-bold" style={{ background: `${color}20`, color }}>
+                  {statusIcon[row.estado] ?? '•'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-display text-base font-bold text-white">{row.recompensa_nombre ?? 'Recompensa'}</p>
+                  <p className="text-xs text-white/40">{formatDate(row.fecha)}</p>
+                  <span className="mt-1 inline-block font-mono-game text-xs text-red-400">-{formatPoints(row.puntos_utilizados)} pts</span>
+                </div>
+                <StatusChip status={row.estado} />
+              </div>
+            )
+          })}
+        </div>
+        {rows.length === 0 && !error && <EmptyState icon="🎟️" text="Canjea una recompensa para verla aquí." title="Sin canjes" />}
       </div>
-    </div>
+    </Page>
   )
 }
