@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { clearSession } from '../lib/auth'
 import { apiGet, apiPost } from '../lib/api'
+import { AppNav } from '../components/AppNav'
 
 type TierStatus = 'BLOQUEADO' | 'DESBLOQUEADO' | 'RECLAMADO'
 
@@ -18,6 +18,7 @@ type BattlePassTier = {
 
 type BattlePassProgress = {
   puntos_actuales: number
+  puntos_acumulados: number
   tiers_desbloqueados: number
   tiers_totales: number
   progreso_porcentaje: number
@@ -99,24 +100,7 @@ export function BattlePassPage() {
         </button>
       </header>
 
-      <nav className="flex flex-wrap gap-2 text-sm">
-        {[
-          '/home',
-          '/island',
-          '/battle-pass',
-          '/points',
-          '/scan-qr',
-          '/rewards',
-          '/redemptions',
-          '/history',
-          '/businesses',
-          '/profile',
-        ].map((route) => (
-          <Link className="rounded-md border px-2 py-1" key={route} to={route}>
-            {route}
-          </Link>
-        ))}
-      </nav>
+      <AppNav />
 
       {loading && <p className="text-sm text-slate-600">Cargando progreso...</p>}
 
@@ -127,8 +111,9 @@ export function BattlePassPage() {
         <>
           <section className="grid gap-3 md:grid-cols-3">
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Puntos actuales</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">{progress.puntos_actuales}</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Puntos acumulados</p>
+              <p className="mt-1 text-2xl font-semibold text-slate-900">{progress.puntos_acumulados}</p>
+              <p className="text-xs text-slate-500">Saldo disponible para canjes: {progress.puntos_actuales}</p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs uppercase tracking-wide text-slate-500">Tiers desbloqueados</p>

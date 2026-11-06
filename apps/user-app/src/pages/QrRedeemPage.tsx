@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
 import { apiPost } from '../lib/api'
 import { clearSession } from '../lib/auth'
+import { AppNav } from '../components/AppNav'
 
 type RedeemResult = {
   movimiento: {
@@ -122,13 +122,7 @@ export function QrRedeemPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <nav className="flex flex-wrap gap-2 text-sm">
-            {['/home', '/scan-qr', '/points', '/rewards', '/redemptions'].map((route) => (
-              <Link className="rounded-md border px-2 py-1" key={route} to={route}>
-                {route}
-              </Link>
-            ))}
-          </nav>
+          <AppNav routes={['/home', '/scan-qr', '/points', '/rewards', '/redemptions']} />
           <button
             className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white"
             onClick={() => {

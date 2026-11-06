@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { clearSession } from '../lib/auth'
 import { apiGet, apiPost } from '../lib/api'
+import { AppNav } from '../components/AppNav'
 
 type IslandElementStatus = 'BLOQUEADO' | 'DISPONIBLE' | 'DESBLOQUEADO'
 
@@ -167,19 +167,6 @@ function areMapSnapshotsEqual(a: MapSnapshot, b: MapSnapshot): boolean {
 
   return true
 }
-
-const navLinks = [
-  { route: '/home', label: 'Inicio' },
-  { route: '/island', label: 'Isla' },
-  { route: '/battle-pass', label: 'Battle Pass' },
-  { route: '/points', label: 'Puntos' },
-  { route: '/scan-qr', label: 'Escanear QR' },
-  { route: '/rewards', label: 'Recompensas' },
-  { route: '/redemptions', label: 'Canjes' },
-  { route: '/history', label: 'Historial' },
-  { route: '/businesses', label: 'Negocios' },
-  { route: '/profile', label: 'Perfil' },
-] as const
 
 const statusLabel: Record<IslandElementStatus, string> = {
   BLOQUEADO: 'Bloqueado',
@@ -1115,13 +1102,7 @@ export function IslandPage() {
         </button>
       </header>
 
-      <nav className="flex flex-wrap gap-2 text-sm">
-        {navLinks.map((link) => (
-          <Link className="rounded-full border border-slate-300 bg-white px-3 py-1 text-slate-700 hover:border-slate-500" key={link.route} to={link.route}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+      <AppNav />
 
       {loading && <p className="text-sm text-slate-600">Cargando isla...</p>}
       {!loading && error && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}

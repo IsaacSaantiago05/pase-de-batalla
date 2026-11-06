@@ -24,7 +24,7 @@ class IslandService
         }
 
         $level = Level::query()->find($levelId);
-        if ($level === null) {
+        if ($level === null || ! $level->estado) {
             return 0;
         }
 

@@ -228,6 +228,38 @@ class PointsFlowTest extends TestCase
         $this->assertEquals($nivel2->id, $client->nivel_id);
     }
 
+    public function test_points_can_only_be_awarded_to_clients(): void
+    {
+        $adminNegocio = User::query()->create([
+            'nombre' => 'Admin A',
+            'correo' => 'admin.award.only.clients@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->adminNegocioRole->id,
+            'negocio_id' => $this->businessA->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        $otherAdmin = User::query()->create([
+            'nombre' => 'Admin B',
+            'correo' => 'admin.target@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->adminNegocioRole->id,
+            'negocio_id' => $this->businessA->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
+        Sanctum::actingAs($adminNegocio);
+
+        $this->postJson('/api/points/award', [
+            'usuario_id' => $otherAdmin->id,
+            'regla_puntos_id' => $this->ruleA->id,
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('movimientos_puntos', ['usuario_id' => $otherAdmin->id]);
+    }
+
     public function test_client_cannot_award_points(): void
     {
         $client = User::query()->create([

@@ -17,6 +17,8 @@ class BattlePassService
 
     public function getProgress(User $user): array
     {
+        // El progreso se mide con puntos ganados históricamente: canjear recompensas no hace retroceder el pase.
+        $earnedPoints = $this->pointsService->getUserEarnedPoints($user);
         $balance = $this->pointsService->getUserBalance($user);
         $tiers = BattlePassTier::query()
             ->where('estado', true)
@@ -28,15 +30,18 @@ class BattlePassService
             ->get()
             ->keyBy('tier_id');
 
-        $nextTier = $tiers->first(fn (BattlePassTier $tier) => $tier->puntos_requeridos > $balance);
+        $nextTier = $tiers->first(fn (BattlePassTier $tier) => $tier->puntos_requeridos > $earnedPoints);
         $maxTierPoints = (int) ($tiers->max('puntos_requeridos') ?? 0);
 
-        $mappedTiers = $tiers->map(function (BattlePassTier $tier) use ($balance, $claimed): array {
+        $mappedTiers = $tiers->map(function (BattlePassTier $tier) use ($earnedPoints, $claimed): array {
             $tierClaim = $claimed->get($tier->id);
 
+            // Un tier reclamado se conserva como reclamado sin importar los puntos actuales.
             $status = 'BLOQUEADO';
-            if ($balance >= $tier->puntos_requeridos) {
-                $status = $tierClaim?->estado === 'RECLAMADO' ? 'RECLAMADO' : 'DESBLOQUEADO';
+            if ($tierClaim?->estado === 'RECLAMADO') {
+                $status = 'RECLAMADO';
+            } elseif ($earnedPoints >= $tier->puntos_requeridos) {
+                $status = 'DESBLOQUEADO';
             }
 
             return [
@@ -54,16 +59,17 @@ class BattlePassService
         $unlockedCount = $mappedTiers->filter(fn (array $tier) => in_array($tier['estado_usuario'], ['DESBLOQUEADO', 'RECLAMADO'], true))->count();
 
         $percentage = $maxTierPoints > 0
-            ? round(min(100, ($balance / $maxTierPoints) * 100), 2)
+            ? round(min(100, ($earnedPoints / $maxTierPoints) * 100), 2)
             : 0;
 
         return [
             'puntos_actuales' => $balance,
+            'puntos_acumulados' => $earnedPoints,
             'tiers_desbloqueados' => $unlockedCount,
             'tiers_totales' => $mappedTiers->count(),
             'progreso_porcentaje' => $percentage,
             'siguiente_hito_puntos' => $nextTier?->puntos_requeridos,
-            'siguiente_hito_faltante' => $nextTier !== null ? max(0, $nextTier->puntos_requeridos - $balance) : 0,
+            'siguiente_hito_faltante' => $nextTier !== null ? max(0, $nextTier->puntos_requeridos - $earnedPoints) : 0,
             'tiers' => $mappedTiers,
         ];
     }
@@ -77,9 +83,9 @@ class BattlePassService
             }
 
             $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
-            $balance = $this->pointsService->getUserBalance($lockedUser);
+            $earnedPoints = $this->pointsService->getUserEarnedPoints($lockedUser);
 
-            if ($balance < $tier->puntos_requeridos) {
+            if ($earnedPoints < $tier->puntos_requeridos) {
                 throw new RuntimeException('No tienes puntos suficientes para reclamar este tier.');
             }
 

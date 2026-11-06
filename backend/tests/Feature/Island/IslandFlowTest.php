@@ -153,6 +153,28 @@ class IslandFlowTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_island_uses_level_order_instead_of_level_id(): void
+    {
+        // Se re-crea el nivel inicial: su ID pasa a ser 3, pero sigue siendo el nivel número 1.
+        $this->levelOne->delete();
+        $newLevelOne = Level::query()->create([
+            'nombre' => 'Nivel 1 renovado',
+            'puntos_minimos' => 0,
+            'puntos_maximos' => 99,
+            'estado' => true,
+        ]);
+        $this->assertGreaterThanOrEqual(2, $newLevelOne->id);
+
+        $client = $this->createClient('island.level.order@example.com', $newLevelOne->id);
+        Sanctum::actingAs($client);
+
+        $this->postJson('/api/island/unlock', ['elemento_id' => $this->elementLevelTwo->id])
+            ->assertStatus(422);
+
+        $this->postJson('/api/island/unlock', ['elemento_id' => $this->elementLevelOne->id])
+            ->assertSuccessful();
+    }
+
     private function createClient(string $email, int $levelId): User
     {
         return User::query()->create([

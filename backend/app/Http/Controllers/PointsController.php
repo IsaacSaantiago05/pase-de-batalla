@@ -29,6 +29,7 @@ class PointsController extends Controller
         return $this->success('Saldo global obtenido correctamente.', [
             'usuario_id' => $user->id,
             'saldo_global' => $balance,
+            'puntos_acumulados' => $this->pointsService->getUserEarnedPoints($user),
             'nivel_id' => $user->nivel_id,
         ]);
     }

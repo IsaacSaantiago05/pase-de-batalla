@@ -19,6 +19,25 @@ class PointsService
             ->sum('cantidad');
     }
 
+    /**
+     * Puntos ganados históricamente (sin restar canjes). Se usa para niveles y pase de batalla,
+     * de modo que gastar puntos no haga retroceder al usuario.
+     */
+    public function getUserEarnedPoints(User $user): int
+    {
+        // Cuentan las ganancias y los ajustes manuales (con otorgado_por). Las devoluciones por
+        // cancelación de canje también son AJUSTE, pero sin otorgado_por, y solo reponen el saldo.
+        $earned = (int) PointMovement::query()
+            ->where('usuario_id', $user->id)
+            ->where(function ($query): void {
+                $query->where('tipo', 'GANANCIA')
+                    ->orWhere(fn ($adjustments) => $adjustments->where('tipo', 'AJUSTE')->whereNotNull('otorgado_por'));
+            })
+            ->sum('cantidad');
+
+        return max(0, $earned);
+    }
+
     public function getUserHistory(User $user, int $perPage = 20): LengthAwarePaginator
     {
         return PointMovement::query()
@@ -41,6 +60,10 @@ class PointsService
             $targetUser = User::query()->lockForUpdate()->findOrFail($targetUserId);
             $rule = PointRule::query()->lockForUpdate()->findOrFail($pointRuleId);
 
+            if (! $targetUser->hasRole('CLIENTE')) {
+                throw new RuntimeException('Solo se pueden asignar puntos a clientes.');
+            }
+
             if (! $rule->estado) {
                 throw new RuntimeException('La regla de puntos no está activa.');
             }
@@ -58,8 +81,7 @@ class PointsService
                 'fecha' => now(),
             ]);
 
-            $newBalance = $this->getUserBalance($targetUser);
-            $this->syncUserLevel($targetUser, $newBalance);
+            $this->syncUserLevel($targetUser);
 
             return $movement;
         });
@@ -92,31 +114,23 @@ class PointsService
                 'fecha' => now(),
             ]);
 
-            $this->syncUserLevel($targetUser, $balance + $amount);
+            $this->syncUserLevel($targetUser);
 
             return $movement;
         });
     }
 
-    public function syncUserLevel(User $user, ?int $currentBalance = null): void
+    public function syncUserLevel(User $user): void
     {
-        $balance = $currentBalance ?? $this->getUserBalance($user);
+        $earnedPoints = $this->getUserEarnedPoints($user);
 
+        // Se toma el nivel más alto alcanzado; el último nivel queda abierto aunque se supere su máximo.
         $level = Level::query()
             ->where('estado', true)
-            ->where('puntos_minimos', '<=', $balance)
-            ->where('puntos_maximos', '>=', $balance)
+            ->where('puntos_minimos', '<=', $earnedPoints)
             ->orderByDesc('puntos_minimos')
             ->first();
 
-        if (! $level) {
-            // Fallback para saldos por encima del ultimo rango configurado.
-            $level = Level::query()
-                ->where('estado', true)
-                ->where('puntos_minimos', '<=', $balance)
-                ->orderByDesc('puntos_minimos')
-                ->first();
-        }
 
         $user->update([
             'nivel_id' => $level?->id,

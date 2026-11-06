@@ -59,9 +59,6 @@ class RedemptionService
                 'fecha' => now(),
             ]);
 
-            $newBalance = $balance - (int) $reward->puntos_requeridos;
-            $this->pointsService->syncUserLevel($lockedClient, $newBalance);
-
             return $redemption->load(['reward', 'user']);
         });
     }
@@ -112,9 +109,6 @@ class RedemptionService
                     'tipo' => 'AJUSTE',
                     'fecha' => now(),
                 ]);
-
-                $newBalance = $this->pointsService->getUserBalance($lockedClient);
-                $this->pointsService->syncUserLevel($lockedClient, $newBalance);
             }
 
             return $redemption->fresh()->load(['reward', 'user']);
