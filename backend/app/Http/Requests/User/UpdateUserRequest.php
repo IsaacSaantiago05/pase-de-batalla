@@ -21,7 +21,6 @@ class UpdateUserRequest extends FormRequest
             'correo' => ['sometimes', 'email', 'max:150', Rule::unique('usuarios', 'correo')->ignore($userId)],
             'rol_id' => ['sometimes', 'exists:roles,id'],
             'negocio_id' => ['nullable', 'exists:negocios,id'],
-            'nivel_id' => ['nullable', 'exists:niveles,id'],
             'estado' => ['sometimes', 'boolean'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];

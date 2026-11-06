@@ -19,6 +19,8 @@ use RuntimeException;
 
 class QrService
 {
+    private const QR_LIFETIME_SECONDS = 30;
+
     public function __construct(private readonly PointsService $pointsService)
     {
     }
@@ -66,20 +68,43 @@ class QrService
         ];
     }
 
-    public function generate(User $actor, int $points, ?int $businessId = null, ?Carbon $expiresAt = null): QrCode
+    public function generate(User $actor, int $points, ?int $businessId = null, ?int $saleId = null): QrCode
     {
         $resolvedBusinessId = $this->resolveBusinessId($actor, $businessId);
 
         return QrCode::query()->create([
             'negocio_id' => $resolvedBusinessId,
+            'venta_id' => $saleId,
             'token' => $this->generateUniqueToken(),
             'puntos' => $points,
             'estado' => 'ACTIVO',
             'fecha_creacion' => now(),
-            'fecha_expiracion' => $expiresAt,
+            'fecha_expiracion' => now()->addSeconds(self::QR_LIFETIME_SECONDS),
             'fecha_uso' => null,
             'usuario_id' => null,
         ]);
+    }
+
+    public function cancel(User $actor, int $qrCodeId): QrCode
+    {
+        return DB::transaction(function () use ($actor, $qrCodeId) {
+            $qrCode = QrCode::query()->lockForUpdate()->find($qrCodeId);
+            if ($qrCode === null) {
+                throw new ModelNotFoundException('El código QR no existe.');
+            }
+
+            if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $qrCode->negocio_id) {
+                throw new AuthorizationException('No puedes cancelar QR de otro negocio.');
+            }
+
+            if ($qrCode->estado !== 'ACTIVO') {
+                throw new RuntimeException("Solo se puede cancelar un QR activo (estado actual: {$qrCode->estado}).");
+            }
+
+            $qrCode->update(['estado' => 'CANCELADO']);
+
+            return $qrCode;
+        });
     }
 
     public function redeem(User $actor, string $token): PointMovement
@@ -123,6 +148,8 @@ class QrService
                 'usuario_id' => $actor->id,
                 'negocio_id' => $qrCode->negocio_id,
                 'qr_id' => $qrCode->id,
+                'venta_id' => $qrCode->venta_id,
+                'otorgado_por' => $qrCode->sale?->creado_por,
                 'cantidad' => $qrCode->puntos,
                 'tipo' => 'GANANCIA',
                 'fecha' => now(),

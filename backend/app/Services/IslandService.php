@@ -13,9 +13,30 @@ use RuntimeException;
 
 class IslandService
 {
+    /**
+     * Posicion del nivel (1 = el mas bajo), no su id: los ids autoincrementales
+     * no son un orden de progresion confiable.
+     */
+    private function levelRank(?int $levelId): int
+    {
+        if ($levelId === null) {
+            return 0;
+        }
+
+        $level = Level::query()->find($levelId);
+        if ($level === null || ! $level->estado) {
+            return 0;
+        }
+
+        return Level::query()
+            ->where('estado', true)
+            ->where('puntos_minimos', '<=', $level->puntos_minimos)
+            ->count();
+    }
+
     public function getCatalog(User $user): array
     {
-        $userLevel = $this->resolveLevelNumber($user);
+        $userLevel = $this->levelRank($user->nivel_id);
 
         $elements = IslandElement::query()
             ->where('estado', true)
@@ -86,7 +107,7 @@ class IslandService
                 throw new ModelNotFoundException('El elemento de isla no existe o está inactivo.');
             }
 
-            $userLevel = $this->resolveLevelNumber($lockedUser);
+            $userLevel = $this->levelRank($lockedUser->nivel_id);
             if ($userLevel < (int) $element->nivel_requerido) {
                 throw new RuntimeException('Tu nivel actual no permite desbloquear este elemento.');
             }
@@ -139,16 +160,5 @@ class IslandService
 
             return $configuration->fresh()->load('element');
         });
-    }
-
-    private function resolveLevelNumber(User $user): int
-    {
-        if ($user->nivel_id === null) {
-            return 0;
-        }
-
-        $level = Level::query()->find($user->nivel_id);
-
-        return $level?->estado ? $level->numero() : 0;
     }
 }

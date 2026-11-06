@@ -15,6 +15,7 @@ class QrCode extends Model
 
     protected $fillable = [
         'negocio_id',
+        'venta_id',
         'token',
         'puntos',
         'estado',
@@ -33,6 +34,11 @@ class QrCode extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class, 'negocio_id');
+    }
+
+    public function sale(): BelongsTo
+    {
+        return $this->belongsTo(Sale::class, 'venta_id');
     }
 
     public function usedBy(): BelongsTo

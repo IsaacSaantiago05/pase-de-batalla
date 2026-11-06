@@ -16,7 +16,6 @@ class GenerateQrRequest extends FormRequest
         return [
             'negocio_id' => ['nullable', 'integer', 'exists:negocios,id'],
             'puntos' => ['required', 'integer', 'min:1'],
-            'fecha_expiracion' => ['nullable', 'date', 'after:now'],
         ];
     }
 }

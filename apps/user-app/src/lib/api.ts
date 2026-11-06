@@ -40,9 +40,22 @@ export function apiGet<T>(path: string): Promise<ApiEnvelope<T>> {
   return request<T>(path, { method: 'GET' })
 }
 
+export function apiPut<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>> {
+  return request<T>(path, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
 export function apiPatch<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>> {
   return request<T>(path, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   })
+}
+
+// Los listados de la API llegan en `data` como arreglo; se acepta tambien { data: [...] } por compatibilidad.
+export function listData<T>(payload: T[] | { data?: T[] } | null | undefined): T[] {
+  if (Array.isArray(payload)) return payload
+  return payload?.data ?? []
 }

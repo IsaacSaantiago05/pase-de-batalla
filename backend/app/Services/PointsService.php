@@ -25,10 +25,17 @@ class PointsService
      */
     public function getUserEarnedPoints(User $user): int
     {
-        return (int) PointMovement::query()
+        // Cuentan las ganancias y los ajustes manuales (con otorgado_por). Las devoluciones por
+        // cancelación de canje también son AJUSTE, pero sin otorgado_por, y solo reponen el saldo.
+        $earned = (int) PointMovement::query()
             ->where('usuario_id', $user->id)
-            ->where('tipo', 'GANANCIA')
+            ->where(function ($query): void {
+                $query->where('tipo', 'GANANCIA')
+                    ->orWhere(fn ($adjustments) => $adjustments->where('tipo', 'AJUSTE')->whereNotNull('otorgado_por'));
+            })
             ->sum('cantidad');
+
+        return max(0, $earned);
     }
 
     public function getUserHistory(User $user, int $perPage = 20): LengthAwarePaginator
@@ -80,6 +87,39 @@ class PointsService
         });
     }
 
+    /**
+     * Ajuste manual auditado: queda registrado quien lo hizo y por que. Nunca deja el saldo en negativo.
+     */
+    public function adjustPoints(User $actor, string $email, int $amount, string $reason, ?int $businessId = null): PointMovement
+    {
+        return DB::transaction(function () use ($actor, $email, $amount, $reason, $businessId) {
+            $targetUser = User::query()->where('correo', $email)->lockForUpdate()->firstOrFail();
+
+            if (! $targetUser->hasRole('CLIENTE')) {
+                throw new RuntimeException('Solo se pueden ajustar puntos de clientes.');
+            }
+
+            $balance = $this->getUserBalance($targetUser);
+            if ($balance + $amount < 0) {
+                throw new RuntimeException("El ajuste dejaria el saldo en negativo (saldo actual: {$balance}).");
+            }
+
+            $movement = PointMovement::query()->create([
+                'usuario_id' => $targetUser->id,
+                'negocio_id' => $businessId,
+                'otorgado_por' => $actor->id,
+                'cantidad' => $amount,
+                'tipo' => 'AJUSTE',
+                'motivo' => $reason,
+                'fecha' => now(),
+            ]);
+
+            $this->syncUserLevel($targetUser);
+
+            return $movement;
+        });
+    }
+
     public function syncUserLevel(User $user): void
     {
         $earnedPoints = $this->getUserEarnedPoints($user);
@@ -90,6 +130,7 @@ class PointsService
             ->where('puntos_minimos', '<=', $earnedPoints)
             ->orderByDesc('puntos_minimos')
             ->first();
+
 
         $user->update([
             'nivel_id' => $level?->id,

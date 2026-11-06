@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiGet, apiPost } from '../lib/api'
+import { apiGet, apiPost, listData } from '../lib/api'
 
 type Rule = {
   id: number
@@ -42,8 +42,8 @@ export function BusinessPointsPage() {
         apiGet<RuleList>('/point-rules'),
         apiGet<MovementList>('/points/business-history'),
       ])
-      setRules(rulesResponse.data.data ?? [])
-      setHistory(historyResponse.data.data ?? [])
+      setRules(listData(rulesResponse.data))
+      setHistory(listData(historyResponse.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible cargar datos')
     }
@@ -105,7 +105,6 @@ export function BusinessPointsPage() {
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b">
-                <th className="p-2">Movimiento</th>
                 <th className="p-2">Usuario</th>
                 <th className="p-2">Tipo</th>
                 <th className="p-2">Cantidad</th>
@@ -115,7 +114,6 @@ export function BusinessPointsPage() {
             <tbody>
               {history.map((row) => (
                 <tr className="border-b" key={row.id}>
-                  <td className="p-2">{row.id}</td>
                   <td className="p-2">{row.usuario_id}</td>
                   <td className="p-2">{row.tipo}</td>
                   <td className="p-2">{row.cantidad}</td>

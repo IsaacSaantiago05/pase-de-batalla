@@ -1,12 +1,17 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedAdminRoute } from './components/ProtectedAdminRoute'
 import { AdministratorsPage } from './pages/AdministratorsPage'
+import { BusinessClientsPage } from './pages/BusinessClientsPage'
 import { BusinessPointsPage } from './pages/BusinessPointsPage'
+import { PointAdjustmentsPage } from './pages/PointAdjustmentsPage'
 import { LoginPage } from './pages/LoginPage'
+import { ProductsAdminPage } from './pages/ProductsAdminPage'
 import { QrManagementPage } from './pages/QrManagementPage'
 import { RedemptionsAdminPage } from './pages/RedemptionsAdminPage'
 import { RewardsAdminPage } from './pages/RewardsAdminPage'
+import { SalesAdminPage } from './pages/SalesAdminPage'
 import { ShellPage } from './pages/ShellPage'
+import { StatisticsPage } from './pages/StatisticsPage'
 
 function App() {
   return (
@@ -17,7 +22,11 @@ function App() {
         <Route element={<ProtectedAdminRoute />}>
           <Route path="/dashboard" element={<ShellPage title="Dashboard" />} />
           <Route path="/business" element={<ShellPage title="Mi Negocio" />} />
-          <Route path="/qr" element={<QrManagementPage />} />
+          <Route path="/products" element={<ProductsAdminPage />} />
+          <Route path="/sales" element={<SalesAdminPage />} />
+          <Route path="/clients" element={<BusinessClientsPage />} />
+          <Route path="/adjustments" element={<PointAdjustmentsPage />} />
+          <Route path="/qr"element={<QrManagementPage />} />
           <Route path="/points" element={<BusinessPointsPage />} />
           <Route path="/rewards" element={<RewardsAdminPage />} />
           <Route path="/redemptions" element={<RedemptionsAdminPage />} />
@@ -28,7 +37,7 @@ function App() {
           <Route path="/levels" element={<ShellPage title="Niveles" />} />
           <Route path="/island-elements" element={<ShellPage title="Elementos de Isla" />} />
           <Route path="/point-rules" element={<ShellPage title="Reglas de Puntos" />} />
-          <Route path="/statistics" element={<ShellPage title="Estadísticas" />} />
+          <Route path="/statistics" element={<StatisticsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

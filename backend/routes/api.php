@@ -3,13 +3,19 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdministratorController;
 use App\Http\Controllers\BattlePassController;
+use App\Http\Controllers\BusinessClientController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\IslandController;
 use App\Http\Controllers\PointRuleController;
 use App\Http\Controllers\PointsController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\RedemptionController;
 use App\Http\Controllers\RewardController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +30,19 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('auth')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
+    });
+
+    Route::middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::put('/profile', [ProfileController::class, 'update']);
+        Route::get('/directory/businesses', [DirectoryController::class, 'businesses']);
+    });
+
+    Route::get('/business-clients', [BusinessClientController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+    Route::get('/statistics', [StatisticsController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+
+    Route::prefix('points/adjustments')->middleware('role:ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::get('/', [PointsController::class, 'adjustments']);
+        Route::post('/', [PointsController::class, 'adjust']);
     });
 
     Route::prefix('users')->middleware('role:ADMINISTRADOR_GENERAL,ADMINISTRADOR_NEGOCIO')->group(function (): void {
@@ -64,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/', [QrController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::get('/{qrCode}', [QrController::class, 'show'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::get('/{qrCode}/image', [QrController::class, 'image'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        Route::patch('/{qrCode}/cancel', [QrController::class, 'cancel'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::post('/generate', [QrController::class, 'generate'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::post('/redeem', [QrController::class, 'redeem'])->middleware(['role:CLIENTE', 'throttle:qr-redeem']);
     });
@@ -73,6 +93,18 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [RewardController::class, 'store'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::put('/{reward}', [RewardController::class, 'update'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::patch('/{reward}/status', [RewardController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+    });
+
+    Route::prefix('products')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::get('/', [ProductController::class, 'index']);
+        Route::post('/', [ProductController::class, 'store'])->middleware('role:ADMINISTRADOR_NEGOCIO');
+        Route::put('/{product}', [ProductController::class, 'update'])->middleware('role:ADMINISTRADOR_NEGOCIO');
+        Route::patch('/{product}/status', [ProductController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+    });
+
+    Route::prefix('sales')->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::get('/', [SaleController::class, 'index']);
+        Route::post('/', [SaleController::class, 'store'])->middleware('role:ADMINISTRADOR_NEGOCIO');
     });
 
     Route::prefix('redemptions')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {

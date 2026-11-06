@@ -84,9 +84,9 @@ class UserController extends Controller
             unset($data['password']);
         }
 
-        $restrictedFields = ['rol_id', 'negocio_id', 'nivel_id', 'password'];
+        $restrictedFields = ['rol_id', 'negocio_id', 'password'];
         if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && array_intersect($restrictedFields, array_keys($data)) !== []) {
-            return $this->error('No puedes modificar rol, negocio, nivel ni contraseña de un usuario.', null, 403);
+            return $this->error('No puedes modificar rol, negocio ni contraseña de un usuario.', null, 403);
         }
 
         $user->update($data);

@@ -192,32 +192,40 @@ class PointsFlowTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
-    public function test_level_stays_at_highest_level_beyond_its_maximum(): void
+    public function test_level_falls_back_to_highest_active_when_balance_exceeds_ranges(): void
     {
+        $adminGeneral = User::query()->create([
+            'nombre' => 'Admin General Alto',
+            'correo' => 'adminglobalmax@example.com',
+            'password' => 'Password123',
+            'rol_id' => $this->adminGeneralRole->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+
         $client = User::query()->create([
-            'nombre' => 'Cliente Tope',
-            'correo' => 'cliente.tope@example.com',
+            'nombre' => 'Cliente Alto',
+            'correo' => 'clientealto@example.com',
             'password' => 'Password123',
             'rol_id' => $this->clienteRole->id,
             'estado' => true,
             'fecha_registro' => now(),
         ]);
 
-        DB::table('movimientos_puntos')->insert([
-            'usuario_id' => $client->id,
-            'negocio_id' => $this->businessA->id,
-            'qr_id' => null,
-            'cantidad' => 5000,
-            'tipo' => 'GANANCIA',
-            'fecha' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        Sanctum::actingAs($adminGeneral);
 
-        app(\App\Services\PointsService::class)->syncUserLevel($client);
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/points/award', [
+                'usuario_id' => $client->id,
+                'regla_puntos_id' => $this->ruleA->id,
+            ])->assertCreated();
+        }
+
+        $client->refresh();
 
         $nivel2 = Level::query()->where('nombre', 'Nivel 2')->firstOrFail();
-        $this->assertEquals($nivel2->id, $client->fresh()->nivel_id);
+        $this->assertEquals(250, (int) DB::table('movimientos_puntos')->where('usuario_id', $client->id)->sum('cantidad'));
+        $this->assertEquals($nivel2->id, $client->nivel_id);
     }
 
     public function test_points_can_only_be_awarded_to_clients(): void

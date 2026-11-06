@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiGet, apiPost } from '../lib/api'
+import { apiGet, apiPost, listData } from '../lib/api'
 
 type AdminItem = {
   id: number
@@ -41,8 +41,8 @@ export function AdministratorsPage() {
         apiGet<BusinessList>('/businesses'),
       ])
 
-      setItems(adminsRes.data.data ?? [])
-      setBusinesses(businessesRes.data.data ?? [])
+      setItems(listData(adminsRes.data))
+      setBusinesses(listData(businessesRes.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible cargar datos')
     }

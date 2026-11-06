@@ -57,7 +57,7 @@ class BusinessAdminUserAccessTest extends TestCase
         $this->getJson('/api/users/'.$clientB->id)->assertStatus(403);
     }
 
-    public function test_business_admin_cannot_change_client_password_or_level(): void
+    public function test_business_admin_cannot_change_client_password(): void
     {
         $client = $this->createClientWithMovement('cliente.users.pwd@example.com', $this->businessA->id);
 
@@ -66,10 +66,6 @@ class BusinessAdminUserAccessTest extends TestCase
         $this->putJson('/api/users/'.$client->id, [
             'password' => 'NuevaPassword123',
             'password_confirmation' => 'NuevaPassword123',
-        ])->assertStatus(403);
-
-        $this->putJson('/api/users/'.$client->id, [
-            'nivel_id' => null,
         ])->assertStatus(403);
 
         $this->putJson('/api/users/'.$client->id, [

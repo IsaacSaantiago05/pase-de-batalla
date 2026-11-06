@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiGet, apiPatch } from '../lib/api'
+import { apiGet, apiPatch, listData } from '../lib/api'
 
 type Redemption = {
   id: number
@@ -25,7 +25,7 @@ export function RedemptionsAdminPage() {
   const loadRows = async () => {
     try {
       const response = await apiGet<RedemptionListPayload>('/redemptions/business')
-      setRows(response.data.data ?? [])
+      setRows(listData(response.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible cargar canjes')
     }
@@ -62,7 +62,6 @@ export function RedemptionsAdminPage() {
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b">
-                <th className="p-2">ID</th>
                 <th className="p-2">Usuario</th>
                 <th className="p-2">Recompensa</th>
                 <th className="p-2">Puntos</th>
@@ -74,7 +73,6 @@ export function RedemptionsAdminPage() {
             <tbody>
               {rows.map((row) => (
                 <tr className="border-b" key={row.id}>
-                  <td className="p-2">{row.id}</td>
                   <td className="p-2">{row.usuario_nombre ?? row.usuario_id}</td>
                   <td className="p-2">{row.recompensa_nombre ?? '-'}</td>
                   <td className="p-2">{row.puntos_utilizados}</td>

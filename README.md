@@ -121,12 +121,45 @@ Reglas de puntos:
 - PUT /api/point-rules/{pointRule}
 - PATCH /api/point-rules/{pointRule}/status
 
+Productos (catalogo por negocio, con precio y puntos fijos):
+
+- GET /api/products (cliente: solo activos; admin de negocio: los suyos; admin general: todos, filtro `negocio_id`)
+- POST /api/products (solo ADMINISTRADOR_NEGOCIO, se crea en su negocio)
+- PUT /api/products/{product} (solo ADMINISTRADOR_NEGOCIO, solo de su negocio)
+- PATCH /api/products/{product}/status (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL)
+
+Ventas (cada venta genera un QR de un solo uso con la suma de puntos de sus productos):
+
+- POST /api/sales (solo ADMINISTRADOR_NEGOCIO). Cuerpo: `{"items": [{"producto_id": 1, "cantidad": 2}]}`. Solo productos activos de su negocio; guarda una copia fija de nombre, precio y puntos.
+- GET /api/sales (admin de negocio: las suyas; admin general: todas, filtro `negocio_id`)
+
+Al canjear el QR de una venta, el movimiento de puntos guarda `venta_id` y `otorgado_por` (quien registro la venta).
+
+Directorio y perfil (cualquier usuario autenticado):
+
+- GET /api/directory/businesses (negocios activos con datos publicos y `productos_activos`)
+- PUT /api/profile (nombre, correo; para cambiar `password` se exige `password_actual` y se cierran las demas sesiones)
+
+Clientes del negocio:
+
+- GET /api/business-clients (ADMINISTRADOR_NEGOCIO: su negocio; ADMINISTRADOR_GENERAL: requiere `negocio_id`). Clientes con movimientos en el negocio, con puntos ganados, visitas y ultima visita.
+
+Ajustes manuales (solo ADMINISTRADOR_GENERAL):
+
+- GET /api/points/adjustments
+- POST /api/points/adjustments. Cuerpo: `{"correo": "...", "cantidad": -10, "motivo": "...", "negocio_id": null}`. Motivo obligatorio (min. 5), solo clientes, nunca deja el saldo en negativo; guarda `otorgado_por` y `motivo`.
+
+Estadisticas (ADMINISTRADOR_NEGOCIO: su negocio; ADMINISTRADOR_GENERAL: toda la plataforma o `negocio_id`):
+
+- GET /api/statistics?dias=30 (7 a 90). Devuelve `resumen` (ventas, ingresos, puntos otorgados y canjeados, canjes, clientes activos, estado de los QR), `por_dia` (un registro por dia, con ceros en dias sin actividad), `top_productos` (5 mas vendidos) y, para el admin general sin filtro, `por_negocio`. Los QR ACTIVO ya vencidos se cuentan como expirados.
+
 QR:
 
 - GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - GET /api/qr/{qrCode} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - GET /api/qr/{qrCode}/image (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- PATCH /api/qr/{qrCode}/cancel (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL; solo QR en estado ACTIVO)
 - POST /api/qr/redeem (solo CLIENTE)
 
 Recompensas:
@@ -226,6 +259,8 @@ Si usas recuperación de contraseña por correo para user-app, agrega también:
 
 - FRONTEND_USER_URL=http://localhost:5173
 
+Los tokens de sesion vencen a los 30 dias (`SANCTUM_EXPIRATION`, en minutos). Los vencidos se borran con la tarea programada `sanctum:prune-expired`, que corre si esta activo `php artisan schedule:work` (o un cron con `schedule:run`).
+
 Frontends: copiar en cada app:
 
 - apps/user-app/.env.example -> apps/user-app/.env
@@ -279,6 +314,14 @@ npm run dev
 ```
 
 ## Pruebas
+
+Las pruebas del backend usan MySQL/MariaDB (base `pase_de_batalla_test`, definida en `backend/phpunit.xml`). Crearla una vez:
+
+```
+CREATE DATABASE pase_de_batalla_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Las pruebas reinician esa base en cada ejecucion; no apuntarla a `pase_de_batalla`.
 
 Backend:
 
