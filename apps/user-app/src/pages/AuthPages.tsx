@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { BackButton, Button, InputField, Notice } from '@shared/ui'
+import { BackButton, Button, Icon, InputField, Notice } from '@shared/ui'
+import type { IconName } from '@shared/ui'
 import { useGoBack } from '../components/AppLayout'
 import { apiPost } from '../lib/api'
 import { setSession } from '../lib/auth'
@@ -12,7 +13,7 @@ type AuthResponse = {
 }
 
 // Marco comun de las pantallas de acceso: boton atras, icono, titulo dorado y subtitulo.
-function AuthShell({ icon, title, subtitle, children }: { icon: string; title: string; subtitle: string; children: ReactNode }) {
+function AuthShell({ icon, title, subtitle, children }: { icon: IconName; title: string; subtitle: string; children: ReactNode }) {
   const goBack = useGoBack('/welcome')
 
   return (
@@ -23,7 +24,7 @@ function AuthShell({ icon, title, subtitle, children }: { icon: string; title: s
 
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-6 pb-8 pt-4">
         <div className="flex flex-col items-center gap-2 pt-2">
-          <span className="text-5xl">{icon}</span>
+          <Icon className="text-6xl" color="#fbbf24" name={icon} style={{ filter: 'drop-shadow(0 0 16px rgba(245,158,11,0.35))' }} />
           <h1 className="pb-text-gold text-center font-display text-3xl font-bold uppercase tracking-widest">{title}</h1>
           <p className="text-sm text-white/40">{subtitle}</p>
         </div>
@@ -57,7 +58,7 @@ export function LoginPage() {
   }
 
   return (
-    <AuthShell icon="🏝️" subtitle="Continúa tu aventura" title="Iniciar Sesión">
+    <AuthShell icon="island" subtitle="Continúa tu aventura" title="Iniciar Sesión">
       <form className="flex flex-col gap-8" onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
           <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
@@ -113,7 +114,7 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthShell icon="⚔️" subtitle="Comienza tu aventura hoy" title="Crear Cuenta">
+    <AuthShell icon="sword" subtitle="Comienza tu aventura hoy" title="Crear Cuenta">
       <form className="flex flex-col gap-6" onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
           <InputField autoComplete="name" label="Nombre de jugador" onChange={(e) => setNombre(e.target.value)} placeholder="ej. JUGADOR01" value={nombre} />
@@ -167,7 +168,7 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <AuthShell icon="🔑" subtitle="Te enviaremos un enlace a tu correo" title="Recuperar Contraseña">
+    <AuthShell icon="key" subtitle="Te enviaremos un enlace a tu correo" title="Recuperar Contraseña">
       <form className="flex flex-col gap-6" onSubmit={onSubmit}>
         <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
         {error && <Notice tone="error">{error}</Notice>}
@@ -214,7 +215,7 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <AuthShell icon="🛡️" subtitle="Elige una contraseña nueva" title="Nueva Contraseña">
+    <AuthShell icon="shield" subtitle="Elige una contraseña nueva" title="Nueva Contraseña">
       <form className="flex flex-col gap-6" onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
           <InputField label="Token" onChange={(e) => setToken(e.target.value)} value={token} />

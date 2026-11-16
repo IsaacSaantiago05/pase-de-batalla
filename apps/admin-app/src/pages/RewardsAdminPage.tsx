@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Button, ChipButton, EmptyState, FieldLabel, InputField, Notice, SectionTitle, StatusChip, formatPoints } from '@shared/ui'
+import { Button, ChipButton, EmptyState, FieldLabel, Icon, InputField, Notice, SectionTitle, StatusChip, formatPoints } from '@shared/ui'
 import { AdminPage } from '../components/AdminLayout'
 import { apiGet, apiPatch, apiPost, listData } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
@@ -132,14 +132,15 @@ export function RewardsAdminPage() {
             <div className="pb-card rounded-2xl p-4" key={row.id} style={{ opacity: row.estado ? 1 : 0.6 }}>
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="text-2xl">🎁</span>
+                  <Icon className="text-2xl" name="reward" />
                   <p className="truncate font-display text-base font-bold text-white">{row.nombre}</p>
                 </div>
                 <StatusChip status={status} />
               </div>
               {row.descripcion && <p className="mb-2 text-xs text-white/50">{row.descripcion}</p>}
               <div className="flex flex-wrap items-center gap-3 text-xs text-white/40">
-                <span className="font-mono-game text-yellow-400">⭐ {formatPoints(row.puntos_requeridos)} pts</span>
+                <span className="font-mono-game text-yellow-400"><Icon className="mr-1" name="pointsSolid" />
+                  {formatPoints(row.puntos_requeridos)} pts</span>
                 <span>·</span>
                 <span>{row.cantidad_disponible} disponibles</span>
                 {isGeneral && (
@@ -158,7 +159,7 @@ export function RewardsAdminPage() {
           )
         })}
       </div>
-      {rows.length === 0 && !error && <EmptyState icon="🎁" text="Crea la primera con el botón de arriba." title="Sin recompensas" />}
+      {rows.length === 0 && !error && <EmptyState icon="reward" text="Crea la primera con el botón de arriba." title="Sin recompensas" />}
     </AdminPage>
   )
 }

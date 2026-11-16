@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, ChevronRight, InputField, Notice, ScreenHeader, formatDate, formatPoints } from '@shared/ui'
+import { Button, ChevronRight, Icon, InputField, Notice, ScreenHeader, formatDate, formatPoints } from '@shared/ui'
+import type { IconName } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, apiPut, listData } from '../lib/api'
 import { clearSession } from '../lib/auth'
@@ -90,12 +91,12 @@ export function ProfilePage() {
 
   const info = levelInfo(progress)
   const menu = [
-    { icon: '✏️', label: 'Editar perfil', action: () => togglePanel('data'), open: panel === 'data' },
-    { icon: '🔑', label: 'Cambiar contraseña', action: () => togglePanel('password'), open: panel === 'password' },
-    { icon: '📊', label: 'Ver historial', action: () => navigate('/history') },
-    { icon: '🎟️', label: 'Mis canjes', action: () => navigate('/redemptions') },
-    { icon: '🏪', label: 'Negocios participantes', action: () => navigate('/businesses') },
-    { icon: '🏝️', label: 'Personalizar mi isla', action: () => navigate('/island') },
+    { icon: 'edit' as IconName, label: 'Editar perfil', action: () => togglePanel('data'), open: panel === 'data' },
+    { icon: 'key' as IconName, label: 'Cambiar contraseña', action: () => togglePanel('password'), open: panel === 'password' },
+    { icon: 'history' as IconName, label: 'Ver historial', action: () => navigate('/history') },
+    { icon: 'ticket' as IconName, label: 'Mis canjes', action: () => navigate('/redemptions') },
+    { icon: 'business' as IconName, label: 'Negocios participantes', action: () => navigate('/businesses') },
+    { icon: 'island' as IconName, label: 'Personalizar mi isla', action: () => navigate('/island') },
   ]
 
   return (
@@ -109,7 +110,7 @@ export function ProfilePage() {
               className="flex h-20 w-20 items-center justify-center rounded-full text-4xl"
               style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d1424)', border: '3px solid rgba(245,158,11,0.4)', boxShadow: '0 0 24px rgba(245,158,11,0.15)' }}
             >
-              🧑‍🚀
+              <Icon name="avatar" />
             </div>
             <div className="text-center">
               <p className="font-display text-2xl font-bold uppercase tracking-widest text-white">{profile?.nombre ?? '-'}</p>
@@ -168,7 +169,7 @@ export function ProfilePage() {
             {menu.map((item) => (
               <div key={item.label}>
                 <button className="pb-soft flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-all active:scale-[0.98]" onClick={item.action} type="button">
-                  <span className="w-7 text-xl">{item.icon}</span>
+                  <Icon className="w-7 text-xl" name={item.icon} />
                   <span className="flex-1 text-sm font-semibold text-white">{item.label}</span>
                   <span className={`transition-transform ${item.open ? 'rotate-90' : ''}`}>
                     <ChevronRight size={14} />
@@ -214,7 +215,7 @@ export function ProfilePage() {
               style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}
               type="button"
             >
-              <span className="w-7 text-xl">🚪</span>
+              <Icon className="w-7 text-xl" name="logout" />
               <span className="flex-1 text-sm font-bold text-red-400">Cerrar sesión</span>
             </button>
           </div>

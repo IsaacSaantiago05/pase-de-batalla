@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Button, LoadingState, Notice, ScreenHeader, formatPoints } from '@shared/ui'
+import { Button, Icon, LoadingState, Notice, ScreenHeader, formatPoints } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, apiPost } from '../lib/api'
 
@@ -69,7 +69,7 @@ export function RewardDetailPage() {
       <Page background="linear-gradient(180deg, #021a0e 0%, #080c18 100%)" className="items-center justify-center gap-8 px-6 py-10">
         <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center anim-scale-in">
           <div className="flex h-28 w-28 items-center justify-center rounded-full text-5xl" style={{ background: '#10b98120', border: '3px solid #10b981', boxShadow: '0 0 48px rgba(16,185,129,0.4)' }}>
-            🎁
+            <Icon color="#34d399" name="reward" />
           </div>
           <div>
             <p className="font-display text-3xl font-bold tracking-wide text-green-400">¡Canjeado!</p>
@@ -104,7 +104,7 @@ export function RewardDetailPage() {
     return (
       <Page background="linear-gradient(180deg, #080c18 0%, #040d1e 100%)" className="items-center justify-center gap-6 px-6 py-10">
         <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center anim-scale-in">
-          <div className="text-7xl">🎁</div>
+          <Icon className="text-7xl" name="reward" />
           <div>
             <p className="font-display text-2xl font-bold tracking-wide text-white">{reward.nombre}</p>
             <p className="mt-1 text-sm text-white/50">{reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
@@ -142,18 +142,21 @@ export function RewardDetailPage() {
         {reward && (
           <>
             <div className="flex items-center justify-center rounded-3xl" style={{ height: 180, background: 'linear-gradient(135deg, #1a2235, #0d1424)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <span className="text-8xl">🎁</span>
+              <Icon className="text-8xl" name="reward" style={{ filter: 'drop-shadow(0 0 24px rgba(168,85,247,0.35))' }} />
             </div>
 
             <div>
               <h2 className="font-display text-2xl font-bold text-white">{reward.nombre}</h2>
-              <p className="mt-0.5 text-sm font-semibold text-yellow-400">🏪 {reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
+              <p className="mt-0.5 text-sm font-semibold text-yellow-400"><Icon className="mr-1" color="currentColor" name="business" />
+                {reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
             </div>
 
             <div className="pb-card flex flex-col gap-3 rounded-2xl p-4">
               <div className="flex justify-between">
                 <span className="text-sm text-white/60">Puntos necesarios</span>
-                <span className="font-mono-game font-bold text-yellow-400">⭐ {formatPoints(reward.puntos_requeridos)}</span>
+                <span className="font-mono-game font-bold text-yellow-400"><Icon className="mr-1" name="pointsSolid" />
+                  {formatPoints(reward.puntos_requeridos)}
+                </span>
               </div>
               {divider}
               <div className="flex justify-between">
@@ -180,7 +183,7 @@ export function RewardDetailPage() {
                 </div>
               ) : (
                 <Button className="w-full tracking-widest" onClick={() => setStep('confirm')} size="lg">
-                  CANJEAR POR {formatPoints(reward.puntos_requeridos)} PUNTOS ⭐
+                  CANJEAR POR {formatPoints(reward.puntos_requeridos)} PUNTOS <Icon className="ml-1" color="currentColor" name="pointsSolid" />
                 </Button>
               )}
             </div>

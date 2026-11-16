@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, ChipButton, EmptyState, FilterTabs, InputField, IslandView, LoadingState, Notice, ScreenHeader, SectionTitle } from '@shared/ui'
+import { Button, ChipButton, EmptyState, FilterTabs, Icon, InputField, IslandView, LoadingState, Notice, ScreenHeader, SectionTitle } from '@shared/ui'
+import type { IconName } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, apiPost } from '../lib/api'
 
@@ -175,11 +176,11 @@ const statusLabel: Record<IslandElementStatus, string> = {
 }
 
 // Icono por categoria del catalogo (el diseño usa un icono para cada elemento).
-const CATEGORY_ICON: Record<string, string> = {
-  ESTRUCTURA: '🏠',
-  DECORACION: '🌳',
-  MASCOTA: '🐕',
-  TERRENO: '🌿',
+const CATEGORY_ICON: Record<string, IconName> = {
+  ESTRUCTURA: 'structure',
+  DECORACION: 'decoration',
+  MASCOTA: 'pet',
+  TERRENO: 'terrain',
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -189,8 +190,8 @@ const CATEGORY_LABEL: Record<string, string> = {
   TERRENO: 'Terreno',
 }
 
-function elementIcon(item: IslandCatalogItem) {
-  return CATEGORY_ICON[item.categoria.toUpperCase()] ?? '🧩'
+function elementIcon(item: IslandCatalogItem): IconName {
+  return CATEGORY_ICON[item.categoria.toUpperCase()] ?? 'element'
 }
 
 function categoryLabel(category: string) {
@@ -1254,7 +1255,7 @@ export function IslandPage() {
                       title={`${item.nombre} (${position.x}, ${position.y})`}
                       type="button"
                     >
-                      {elementIcon(item)}
+                      <Icon name={elementIcon(item)} />
                     </button>
                   )
                 })}
@@ -1293,13 +1294,14 @@ export function IslandPage() {
                       opacity: item.estado_usuario === 'BLOQUEADO' ? 0.5 : 1,
                     }}
                   >
-                    <span className="text-4xl">{elementIcon(item)}</span>
+                    <Icon className="text-4xl" name={elementIcon(item)} />
                     <span className="text-center font-display text-sm font-bold text-white">{item.nombre}</span>
                     <span className="text-xs text-white/40">{categoryLabel(item.categoria)}</span>
 
                     {item.estado_usuario === 'BLOQUEADO' && (
                       <div className="w-full rounded-xl py-1.5 text-center font-display text-xs font-bold tracking-wider" style={{ background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.3)' }}>
-                        🔒 NV. {item.nivel_requerido}
+                        <Icon className="mr-1" name="lockSolid" />
+                        NV. {item.nivel_requerido}
                       </div>
                     )}
 
@@ -1346,7 +1348,7 @@ export function IslandPage() {
               })}
             </div>
 
-            {filteredCatalog.length === 0 && <EmptyState icon="🏝️" title="No hay elementos para estos filtros" />}
+            {filteredCatalog.length === 0 && <EmptyState icon="island" title="No hay elementos para estos filtros" />}
           </section>
         </div>
       )}

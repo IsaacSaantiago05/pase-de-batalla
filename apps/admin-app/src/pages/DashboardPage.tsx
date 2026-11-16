@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button, ChevronRight, SectionTitle } from '@shared/ui'
+import { Button, ChevronRight, Icon, SectionTitle } from '@shared/ui'
+import type { IconName } from '@shared/ui'
 import { apiGet, listData } from '../lib/api'
 import { clearAdminSession, getAdminSession } from '../lib/auth'
 
@@ -9,20 +10,20 @@ type Business = { id: number; nombre: string }
 type Summary = {
   resumen: { ventas: number; ingresos: number; puntos_otorgados: number; clientes_activos: number }
 }
-type MenuItem = { to: string; icon: string; label: string }
+type MenuItem = { to: string; icon: IconName; label: string }
 
 // Pantallas del negocio que ya estan construidas (las que faltan no se muestran).
 const BUSINESS_MENU: MenuItem[] = [
-  { to: '/clients', icon: '👥', label: 'Clientes del negocio' },
-  { to: '/points', icon: '⭐', label: 'Movimientos de puntos' },
-  { to: '/qr', icon: '🔳', label: 'Códigos QR' },
-  { to: '/products', icon: '📦', label: 'Productos' },
-  { to: '/statistics', icon: '📊', label: 'Estadísticas' },
+  { to: '/clients', icon: 'clients', label: 'Clientes del negocio' },
+  { to: '/points', icon: 'points', label: 'Movimientos de puntos' },
+  { to: '/qr', icon: 'qr', label: 'Códigos QR' },
+  { to: '/products', icon: 'product', label: 'Productos' },
+  { to: '/statistics', icon: 'stats', label: 'Estadísticas' },
 ]
 
 const PLATFORM_MENU: MenuItem[] = [
-  { to: '/administrators', icon: '🛡️', label: 'Administradores' },
-  { to: '/adjustments', icon: '⚖️', label: 'Ajustes de puntos' },
+  { to: '/administrators', icon: 'shield', label: 'Administradores' },
+  { to: '/adjustments', icon: 'adjust', label: 'Ajustes de puntos' },
 ]
 
 const money = (value: number) => `$${value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -32,7 +33,7 @@ function MenuList({ items }: { items: MenuItem[] }) {
     <div className="grid gap-2 md:grid-cols-2">
       {items.map((item) => (
         <Link className="pb-card flex items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-all active:scale-[0.98]" key={item.to} to={item.to}>
-          <span className="w-7 text-xl">{item.icon}</span>
+          <Icon className="w-7 text-xl" name={item.icon} />
           <span className="flex-1 text-sm font-semibold text-white">{item.label}</span>
           <ChevronRight size={14} />
         </Link>
@@ -64,12 +65,12 @@ export function DashboardPage() {
     navigate('/login', { replace: true })
   }
 
-  const stats = summary
+  const stats: { label: string; value: string; icon: IconName; color: string }[] = summary
     ? [
-        { label: 'Ventas (7 días)', value: summary.resumen.ventas.toLocaleString('es-MX'), icon: '🧾', color: '#60a5fa' },
-        { label: 'Ingresos (7 días)', value: money(summary.resumen.ingresos), icon: '💰', color: '#10b981' },
-        { label: 'Puntos otorgados', value: summary.resumen.puntos_otorgados.toLocaleString('es-MX'), icon: '⭐', color: '#f59e0b' },
-        { label: 'Clientes activos', value: summary.resumen.clientes_activos.toLocaleString('es-MX'), icon: '👥', color: '#a855f7' },
+        { label: 'Ventas (7 días)', value: summary.resumen.ventas.toLocaleString('es-MX'), icon: 'receipt', color: '#60a5fa' },
+        { label: 'Ingresos (7 días)', value: money(summary.resumen.ingresos), icon: 'money', color: '#10b981' },
+        { label: 'Puntos otorgados', value: summary.resumen.puntos_otorgados.toLocaleString('es-MX'), icon: 'points', color: '#f59e0b' },
+        { label: 'Clientes activos', value: summary.resumen.clientes_activos.toLocaleString('es-MX'), icon: 'clients', color: '#a855f7' },
       ]
     : []
 
@@ -90,7 +91,7 @@ export function DashboardPage() {
           <>
             <div className="mb-1 flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-                🏪
+                <Icon name="business" />
               </div>
               <div className="min-w-0">
                 <p className="font-display text-xs uppercase tracking-widest text-white/40">Negocio</p>
@@ -111,7 +112,7 @@ export function DashboardPage() {
             {stats.map((stat) => (
               <div className="flex flex-col gap-2 rounded-2xl p-4" key={stat.label} style={{ background: 'linear-gradient(135deg, #1a2235, #111827)', border: `1px solid ${stat.color}20` }}>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{stat.icon}</span>
+                  <Icon className="text-xl" color={stat.color} name={stat.icon} />
                   <span className="font-display text-xs font-bold tracking-wide" style={{ color: stat.color }}>
                     {stat.label}
                   </span>
@@ -126,7 +127,8 @@ export function DashboardPage() {
           <SectionTitle className="text-white/40">Acciones Rápidas</SectionTitle>
           {!isGeneral && (
             <Button className="w-full tracking-widest" onClick={() => navigate('/sales')}>
-              🔳 GENERAR CÓDIGO QR
+              <Icon className="mr-1.5" color="currentColor" name="qr" />
+              GENERAR CÓDIGO QR
             </Button>
           )}
           <Link
@@ -134,13 +136,15 @@ export function DashboardPage() {
             style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.08))', border: '1px solid rgba(124,58,237,0.3)', color: '#a855f7' }}
             to="/rewards"
           >
-            🎁 {isGeneral ? 'RECOMPENSAS' : 'MIS RECOMPENSAS'}
+            <Icon className="mr-1.5" color="currentColor" name="reward" />
+            {isGeneral ? 'RECOMPENSAS' : 'MIS RECOMPENSAS'}
           </Link>
           <Link
             className="pb-soft w-full rounded-xl py-3 text-center font-display text-sm font-bold tracking-widest text-white/60 transition-all active:scale-95"
             to="/redemptions"
           >
-            📋 GESTIONAR CANJES
+            <Icon className="mr-1.5" color="currentColor" name="clipboard" />
+            GESTIONAR CANJES
           </Link>
         </div>
 

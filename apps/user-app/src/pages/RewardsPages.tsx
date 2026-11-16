@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, EmptyState, Notice, ScreenHeader, StatusChip, formatDate, formatPoints } from '@shared/ui'
+import { ChevronRight, EmptyState, Icon, Notice, ScreenHeader, StatusChip, formatDate, formatPoints } from '@shared/ui'
+import type { IconName } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, listData } from '../lib/api'
 
@@ -53,7 +54,8 @@ export function RewardsPage() {
           className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono-game text-sm font-bold"
           style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: '#fcd34d' }}
         >
-          ⭐ {balance === null ? '-' : formatPoints(balance)} disponibles
+          <Icon name="pointsSolid" />
+          {balance === null ? '-' : formatPoints(balance)} disponibles
         </div>
         <Link className="ml-auto text-xs font-semibold" style={{ color: '#f59e0b' }} to="/redemptions">
           Mis canjes
@@ -69,7 +71,7 @@ export function RewardsPage() {
             const content = (
               <>
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  🎁
+                  <Icon color={exhausted ? '#6b7280' : undefined} name="reward" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-base font-bold text-white">{reward.nombre}</p>
@@ -79,7 +81,8 @@ export function RewardsPage() {
                       className="rounded-full px-2 py-0.5 font-mono-game text-xs font-bold"
                       style={{ color: affordable ? '#fcd34d' : '#9ca3af', background: affordable ? 'rgba(245,158,11,0.15)' : 'rgba(156,163,175,0.1)' }}
                     >
-                      ⭐ {formatPoints(reward.puntos_requeridos)}
+                      <Icon className="mr-1" color="currentColor" name="pointsSolid" />
+                      {formatPoints(reward.puntos_requeridos)}
                     </span>
                     <span className="text-xs text-white/30">{exhausted ? 'Agotado' : `${reward.cantidad_disponible} disponibles`}</span>
                   </div>
@@ -110,13 +113,13 @@ export function RewardsPage() {
             )
           })}
         </div>
-        {rewards.length === 0 && !error && <EmptyState icon="🎁" text="Los negocios aún no publican recompensas." title="Sin recompensas" />}
+        {rewards.length === 0 && !error && <EmptyState icon="reward" text="Los negocios aún no publican recompensas." title="Sin recompensas" />}
       </div>
     </Page>
   )
 }
 
-const statusIcon: Record<string, string> = { COMPLETADO: '✓', CONFIRMADO: '✓', PENDIENTE: '⏳', CANCELADO: '✕' }
+const statusIcon: Record<string, IconName> = { COMPLETADO: 'check', CONFIRMADO: 'check', PENDIENTE: 'pending', CANCELADO: 'close' }
 const statusColor: Record<string, string> = { COMPLETADO: '#10b981', CONFIRMADO: '#60a5fa', PENDIENTE: '#f59e0b', CANCELADO: '#ef4444' }
 
 export function RedemptionsPage() {
@@ -142,7 +145,7 @@ export function RedemptionsPage() {
             return (
               <div className="pb-card flex items-center gap-4 rounded-2xl p-4" key={row.id}>
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base font-bold" style={{ background: `${color}20`, color }}>
-                  {statusIcon[row.estado] ?? '•'}
+                  <Icon color="currentColor" name={statusIcon[row.estado] ?? 'ticket'} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-base font-bold text-white">{row.recompensa_nombre ?? 'Recompensa'}</p>
@@ -154,7 +157,7 @@ export function RedemptionsPage() {
             )
           })}
         </div>
-        {rows.length === 0 && !error && <EmptyState icon="🎟️" text="Canjea una recompensa para verla aquí." title="Sin canjes" />}
+        {rows.length === 0 && !error && <EmptyState icon="ticket" text="Canjea una recompensa para verla aquí." title="Sin canjes" />}
       </div>
     </Page>
   )

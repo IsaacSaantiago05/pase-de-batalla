@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
-import { Button, Notice, ScreenHeader, formatPoints } from '@shared/ui'
+import { Button, Icon, Notice, ScreenHeader, formatPoints } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiPost } from '../lib/api'
 
@@ -143,7 +143,7 @@ export function QrRedeemPage() {
             className="flex h-28 w-28 items-center justify-center rounded-full text-6xl"
             style={{ background: 'linear-gradient(135deg, #10b98120, #059669 20%)', border: '3px solid #10b981', boxShadow: '0 0 48px rgba(16,185,129,0.4)' }}
           >
-            ⭐
+            <Icon name="pointsSolid" />
           </div>
 
           <div className="text-center">
@@ -179,7 +179,7 @@ export function QrRedeemPage() {
             className="flex h-28 w-28 items-center justify-center rounded-full text-5xl"
             style={{ background: 'linear-gradient(135deg, #ef444420, #dc2626 20%)', border: '3px solid #ef4444', boxShadow: '0 0 48px rgba(239,68,68,0.35)' }}
           >
-            ✕
+            <Icon color="#f87171" name="close" />
           </div>
           <div className="text-center">
             <p className="font-display text-3xl font-bold tracking-wide text-red-400">Código no válido</p>
@@ -213,7 +213,7 @@ export function QrRedeemPage() {
 
           {!isScanning && (
             <button className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/50" onClick={() => void startScanner()} type="button">
-              <span className="text-5xl">📷</span>
+              <Icon className="text-5xl" name="camera" />
               <span className="font-display text-sm font-bold tracking-widest">{redeeming ? 'VALIDANDO...' : 'TOCA PARA ACTIVAR LA CÁMARA'}</span>
             </button>
           )}

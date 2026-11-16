@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { EmptyState, FieldLabel, Notice, formatDate, formatPoints } from '@shared/ui'
+import { EmptyState, FieldLabel, Icon, Notice, formatDate, formatPoints } from '@shared/ui'
 import { AdminPage } from '../components/AdminLayout'
 import { apiGet, listData } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
@@ -71,13 +71,14 @@ export function BusinessClientsPage() {
         {clients.map((client) => (
           <div className="pb-card flex items-start gap-3 rounded-2xl p-4" key={client.usuario_id}>
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              🧑‍🚀
+              <Icon name="avatar" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate font-display text-sm font-bold text-white">{client.nombre}</p>
               <p className="mt-0.5 truncate text-xs text-white/40">{client.correo}</p>
               <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                <span className="font-mono-game text-yellow-400">⭐ {formatPoints(client.puntos_ganados)}</span>
+                <span className="font-mono-game text-yellow-400"><Icon className="mr-1" name="pointsSolid" />
+                  {formatPoints(client.puntos_ganados)}</span>
                 <span className="text-white/30">·</span>
                 <span className="text-white/50">{client.visitas} visitas</span>
                 <span className="text-white/30">·</span>
@@ -87,7 +88,7 @@ export function BusinessClientsPage() {
           </div>
         ))}
       </div>
-      {clients.length === 0 && !error && <EmptyState icon="👥" title={isGeneral && !businessId ? 'Elige un negocio para ver sus clientes' : 'Sin clientes todavía'} />}
+      {clients.length === 0 && !error && <EmptyState icon="clients" title={isGeneral && !businessId ? 'Elige un negocio para ver sus clientes' : 'Sin clientes todavía'} />}
     </AdminPage>
   )
 }

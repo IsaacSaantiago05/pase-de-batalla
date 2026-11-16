@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, InputField, Notice } from '@shared/ui'
+import { Button, Icon, InputField, Notice } from '@shared/ui'
 import { apiPost } from '../lib/api'
 import { setAdminSession } from '../lib/auth'
 
@@ -38,7 +38,7 @@ export function LoginPage() {
       <form className="mx-auto flex w-full max-w-md flex-col gap-8 px-6 py-10" onSubmit={onSubmit}>
         <div className="flex flex-col items-center gap-2">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-4xl" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            🏪
+            <Icon name="business" />
           </div>
           <p className="font-display text-xs uppercase tracking-widest text-white/40">Pase de Batalla</p>
           <h1 className="font-display text-3xl font-bold tracking-widest text-yellow-400">ADMINISTRACIÓN</h1>

@@ -26,7 +26,8 @@
     "paths": {
       "@shared/*": ["../../packages/shared/src/*"],
       "react": ["./node_modules/@types/react"],
-      "react/*": ["./node_modules/@types/react/*"]
+      "react/*": ["./node_modules/@types/react/*"],
+      "@iconify/react": ["./node_modules/@iconify/react"]
     }
   },
   "include": ["src", "../../packages/shared/src"]

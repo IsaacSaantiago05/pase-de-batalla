@@ -11,8 +11,8 @@ const sharedDir = fileURLToPath(new URL('../../packages/shared/src', import.meta
 export default defineConfig({
   resolve: {
     alias: { '@shared': sharedDir },
-    // packages/shared no tiene node_modules: React se resuelve desde la app.
-    dedupe: ['react', 'react-dom'],
+    // packages/shared no tiene node_modules: React e Iconify se resuelven desde la app.
+    dedupe: ['react', 'react-dom', '@iconify/react'],
   },
   server: {
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), sharedDir] },

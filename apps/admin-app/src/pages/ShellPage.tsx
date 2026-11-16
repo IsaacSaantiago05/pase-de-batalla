@@ -5,7 +5,7 @@ import { AdminPage } from '../components/AdminLayout'
 export function ShellPage({ title }: { title: string }) {
   return (
     <AdminPage title={title.toUpperCase()}>
-      <EmptyState icon="🚧" text="Esta sección todavía está en construcción." title={title} />
+      <EmptyState icon="construction" text="Esta sección todavía está en construcción." title={title} />
     </AdminPage>
   )
 }

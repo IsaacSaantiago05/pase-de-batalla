@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { EmptyState, FilterTabs, LevelBadge, Notice, ProgressBar, ScreenHeader, SectionTitle, formatDate, formatPoints } from '@shared/ui'
+import { EmptyState, FilterTabs, Icon, LevelBadge, Notice, ProgressBar, ScreenHeader, SectionTitle, formatDate, formatPoints } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, listData } from '../lib/api'
 import { levelInfo, movementLabel } from '../lib/progress'
@@ -35,7 +35,7 @@ function MovementRow({ item }: { item: Movement }) {
   return (
     <div className="pb-card flex items-center gap-3 rounded-2xl px-4 py-3.5">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg" style={{ background: positive ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)' }}>
-        {positive ? '⭐' : '🎁'}
+        <Icon color={color} name={positive ? 'pointsSolid' : 'reward'} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-white">{movementLabel(item)}</p>
@@ -75,14 +75,14 @@ export function PointsPage() {
           style={{ background: 'linear-gradient(135deg, #1c1600, #0a1628)', border: '1px solid rgba(245,158,11,0.3)', boxShadow: '0 8px 40px rgba(245,158,11,0.12)' }}
         >
           <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #f59e0b, transparent)' }} />
-          <span className="text-5xl">⭐</span>
+          <Icon className="text-5xl" name="pointsSolid" style={{ filter: 'drop-shadow(0 0 16px rgba(245,158,11,0.45))' }} />
           <div className="pb-text-gold font-mono-game text-6xl font-bold">{saldo === null ? '-' : formatPoints(saldo)}</div>
           <p className="font-display text-sm font-bold uppercase tracking-widest text-white/60">Puntos para canjear</p>
 
           <div className="mt-1 w-full">
             <div className="mb-2 flex justify-between">
               <LevelBadge level={info.level} size="sm" />
-              <span className="font-mono-game text-xs text-white/40">{info.maxed ? 'NIVEL MÁXIMO' : info.noTiers ? '' : `→ NV. ${info.level + 1}`}</span>
+              <span className="font-mono-game text-xs text-white/40">{info.maxed ? 'NIVEL MÁXIMO' : info.noTiers ? '' : <><Icon className="mr-1" name="arrowRight" />NV. {info.level + 1}</>}</span>
             </div>
             <ProgressBar current={info.earned} height={10} max={info.goal} />
             <p className="mt-1.5 text-center text-xs text-white/40">

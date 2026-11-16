@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Button, EmptyState, FieldLabel, InputField, Notice, SectionTitle, StatusChip } from '@shared/ui'
+import { Button, EmptyState, FieldLabel, Icon, InputField, Notice, SectionTitle, StatusChip } from '@shared/ui'
 import { AdminPage } from '../components/AdminLayout'
 import { apiGet, apiPost, listData } from '../lib/api'
 
@@ -116,7 +116,7 @@ export function AdministratorsPage() {
         {items.map((item) => (
           <div className="pb-card flex items-start gap-3 rounded-2xl p-4" key={item.id} style={{ opacity: item.estado ? 1 : 0.6 }}>
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              🛡️
+              <Icon name="shield" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -131,7 +131,7 @@ export function AdministratorsPage() {
           </div>
         ))}
       </div>
-      {items.length === 0 && !error && <EmptyState icon="🛡️" title="Sin administradores" />}
+      {items.length === 0 && !error && <EmptyState icon="shield" title="Sin administradores" />}
     </AdminPage>
   )
 }

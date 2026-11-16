@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Icon } from '@shared/ui'
+import type { IconName } from '@shared/ui'
 
 // Navegacion inferior del diseño: solo aparece en las pantallas principales.
-const NAV_ITEMS = [
-  { to: '/home', icon: '🏝️', label: 'Mi Isla' },
-  { to: '/battle-pass', icon: '⭐', label: 'Pase' },
-  { to: '/rewards', icon: '🎁', label: 'Recompensas' },
-  { to: '/scan-qr', icon: '📷', label: 'Escanear' },
-  { to: '/profile', icon: '👤', label: 'Perfil' },
+const NAV_ITEMS: { to: string; icon: IconName; label: string }[] = [
+  { to: '/home', icon: 'island', label: 'Mi Isla' },
+  { to: '/battle-pass', icon: 'points', label: 'Pase' },
+  { to: '/rewards', icon: 'reward', label: 'Recompensas' },
+  { to: '/scan-qr', icon: 'scan', label: 'Escanear' },
+  { to: '/profile', icon: 'user', label: 'Perfil' },
 ]
 
 function BottomNav() {
@@ -25,9 +27,7 @@ function BottomNav() {
         <NavLink className="relative flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-all active:scale-90" key={item.to} to={item.to}>
           {({ isActive }) => (
             <>
-              <span className="text-xl" style={{ opacity: isActive ? 1 : 0.45 }}>
-                {item.icon}
-              </span>
+              <Icon className="text-2xl" color={isActive ? '#f59e0b' : 'rgba(255,255,255,0.4)'} name={item.icon} />
               <span className="text-xs font-display font-semibold tracking-wide" style={{ color: isActive ? '#f59e0b' : 'rgba(255,255,255,0.4)' }}>
                 {item.label}
               </span>

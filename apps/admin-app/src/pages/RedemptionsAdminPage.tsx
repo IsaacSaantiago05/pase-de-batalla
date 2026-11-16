@@ -90,7 +90,7 @@ export function RedemptionsAdminPage() {
           )
         })}
       </div>
-      {rows.length === 0 && !error && <EmptyState icon="📋" title="Sin canjes todavía" />}
+      {rows.length === 0 && !error && <EmptyState icon="clipboard" title="Sin canjes todavía" />}
     </AdminPage>
   )
 }

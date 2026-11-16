@@ -1,5 +1,10 @@
 // Componentes visuales del diseño de Figma, comunes a user-app y admin-app.
 import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from 'react'
+import { Icon } from './icons'
+import type { IconName } from './icons'
+
+export { Icon }
+export type { IconName }
 
 type ButtonVariant = 'gold' | 'ghost' | 'purple' | 'green' | 'danger'
 
@@ -255,10 +260,10 @@ export function FilterTabs<T extends string>({
   )
 }
 
-export function EmptyState({ icon = '📭', title = 'Sin registros', text }: { icon?: string; title?: string; text?: string }) {
+export function EmptyState({ icon = 'empty', title = 'Sin registros', text }: { icon?: IconName; title?: string; text?: string }) {
   return (
     <div className="text-center py-12 text-white/30">
-      <p className="text-3xl mb-2">{icon}</p>
+      <Icon className="mx-auto mb-2 text-4xl opacity-70" color="currentColor" name={icon} />
       <p className="font-display font-bold">{title}</p>
       {text && <p className="text-xs mt-1">{text}</p>}
     </div>
@@ -293,22 +298,22 @@ export function IslandView({ level = 1, size = 'lg', animate = true }: { level?:
         />
       ))}
 
-      <div className="absolute text-3xl opacity-40" style={{ top: '12%', left: '4%' }}>☁️</div>
-      <div className="absolute text-2xl opacity-25" style={{ top: '18%', right: '6%' }}>☁️</div>
+      <Icon className="absolute text-3xl opacity-40" name="cloud" style={{ top: '12%', left: '4%' }} />
+      <Icon className="absolute text-2xl opacity-25" name="cloud" style={{ top: '18%', right: '6%' }} />
 
       <div className="relative z-10 flex flex-col items-center" style={{ transform: `scale(${scale})` }}>
         <div className="relative" style={{ width: 240, height: 100 }}>
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 55%, #15803d 100%)', borderRadius: '120px 120px 0 0' }} />
           <div className="absolute" style={{ width: 18, height: 55, background: 'linear-gradient(180deg, #d97706, #92400e)', left: 111, top: 45, borderRadius: 4 }} />
-          <div className="absolute text-5xl" style={{ left: 88, top: -42, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' }}>🏠</div>
-          <div className="absolute text-4xl" style={{ left: 8, top: 4, ...shadow(6) }}>🌳</div>
-          <div className="absolute text-2xl" style={{ left: 28, top: 42, ...shadow(4) }}>🌲</div>
-          <div className="absolute text-3xl" style={{ right: 10, top: 8, ...shadow(6) }}>🌳</div>
-          <div className="absolute text-xl" style={{ right: 32, top: 48, ...shadow(4) }}>🌸</div>
-          {level >= 1 && <div className="absolute text-2xl" style={{ left: 65, top: 52 }}>🐕</div>}
-          {level >= 12 && <div className="absolute text-xl" style={{ right: 50, top: 46 }}>⛲</div>}
-          <div className="absolute text-base" style={{ left: 50, top: 70 }}>🪨</div>
-          {level >= 20 && <div className="absolute text-2xl" style={{ right: 5, top: 50 }}>🏰</div>}
+          <Icon className="absolute text-[44px]" name="house" style={{ left: 96, top: -28, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' }} />
+          <Icon className="absolute text-4xl" name="tree" style={{ left: 8, top: 4, ...shadow(6) }} />
+          <Icon className="absolute text-2xl" name="pine" style={{ left: 28, top: 42, ...shadow(4) }} />
+          <Icon className="absolute text-3xl" name="tree" style={{ right: 10, top: 8, ...shadow(6) }} />
+          <Icon className="absolute text-xl" name="flower" style={{ right: 32, top: 48, ...shadow(4) }} />
+          {level >= 1 && <Icon className="absolute text-2xl" name="dog" style={{ left: 65, top: 52 }} />}
+          {level >= 12 && <Icon className="absolute text-xl" name="fountain" style={{ right: 50, top: 46 }} />}
+          <Icon className="absolute text-base" name="rock" style={{ left: 50, top: 70 }} />
+          {level >= 20 && <Icon className="absolute text-2xl" name="castle" style={{ right: 5, top: 50 }} />}
         </div>
 
         <div style={{ width: 240, height: 70, background: 'linear-gradient(180deg, #92400e 0%, #78350f 50%, #431407 100%)', borderRadius: '0 0 100px 100px', boxShadow: '0 24px 48px rgba(0,0,0,0.7)' }} />

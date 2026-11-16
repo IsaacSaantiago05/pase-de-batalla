@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChipButton, EmptyState, LoadingState, Notice, ProgressBar, ScreenHeader, SectionTitle, formatPoints } from '@shared/ui'
+import { ChipButton, EmptyState, Icon, LoadingState, Notice, ProgressBar, ScreenHeader, SectionTitle, formatPoints } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, apiPost } from '../lib/api'
 import { levelInfo } from '../lib/progress'
@@ -76,7 +76,7 @@ export function BattlePassPage() {
               className="flex h-16 w-16 items-center justify-center rounded-2xl text-4xl"
               style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05))', border: '1px solid rgba(245,158,11,0.3)' }}
             >
-              ⭐
+              <Icon name="pointsSolid" />
             </div>
           </div>
 
@@ -99,7 +99,7 @@ export function BattlePassPage() {
           <SectionTitle className="mb-2">Próxima Recompensa</SectionTitle>
           <div className="flex items-center gap-4 rounded-2xl p-4" style={{ background: 'linear-gradient(135deg, #a855f715, #1a2235)', border: '1px solid #a855f735' }}>
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" style={{ background: '#a855f720', border: '1px solid #a855f730' }}>
-              🎁
+              <Icon color="#a855f7" name="reward" />
             </div>
             <div className="min-w-0 flex-1">
               <span className="font-display text-xs font-bold tracking-widest" style={{ color: '#a855f7' }}>
@@ -108,12 +108,12 @@ export function BattlePassPage() {
               <p className="font-display text-base font-bold text-white">{info.nextTier.recompensa_nombre}</p>
               <p className="mt-0.5 text-xs text-white/40">{formatPoints(info.remaining)} pts para desbloquear</p>
             </div>
-            <div className="text-2xl">🔒</div>
+            <Icon className="text-2xl" color="rgba(255,255,255,0.4)" name="lock" />
           </div>
         </div>
       )}
 
-      {!loading && info.noTiers && <EmptyState icon="⭐" text="La administración aún no configura los niveles del pase." title="Sin niveles todavía" />}
+      {!loading && info.noTiers && <EmptyState icon="points" text="La administración aún no configura los niveles del pase." title="Sin niveles todavía" />}
 
       {!loading && progress && !info.noTiers && (
         <div className="px-5 pb-6">
@@ -134,7 +134,7 @@ export function BattlePassPage() {
                         color: reached ? '#000' : 'rgba(255,255,255,0.3)',
                       }}
                     >
-                      {reached ? '✓' : i + 1}
+                      {reached ? <Icon color="currentColor" name="check" /> : i + 1}
                     </div>
                     {i < progress.tiers.length - 1 && <div className="mt-1 h-4 w-0.5" style={{ background: reached ? `${color}40` : 'rgba(255,255,255,0.06)' }} />}
                   </div>
@@ -148,7 +148,7 @@ export function BattlePassPage() {
                     }}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ background: reached ? `${color}20` : 'rgba(255,255,255,0.04)' }}>
-                      🎁
+                      <Icon color={reached ? color : 'rgba(255,255,255,0.3)'} name="reward" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <span className="font-display text-xs font-bold tracking-wider" style={{ color: reached ? color : 'rgba(255,255,255,0.4)' }}>
@@ -166,10 +166,10 @@ export function BattlePassPage() {
                       </ChipButton>
                     ) : tier.estado_usuario === 'RECLAMADO' ? (
                       <span className="rounded-full px-2 py-0.5 font-display text-xs font-bold" style={{ background: `${color}20`, color }}>
-                        ✓
+                        <Icon color="currentColor" name="check" />
                       </span>
                     ) : (
-                      <span className="text-sm text-white/20">🔒</span>
+                      <Icon className="text-base" color="rgba(255,255,255,0.2)" name="lockSolid" />
                     )}
                   </div>
                 </div>

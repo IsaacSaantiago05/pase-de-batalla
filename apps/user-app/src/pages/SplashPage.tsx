@@ -1,5 +1,5 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { Button, IslandView } from '@shared/ui'
+import { Button, Icon, IslandView } from '@shared/ui'
 import { getSession } from '../lib/auth'
 
 export function SplashPage() {
@@ -36,10 +36,10 @@ export function SplashPage() {
               className="flex h-20 w-20 items-center justify-center rounded-3xl text-5xl anim-pulse-gold"
               style={{ background: 'linear-gradient(135deg, #1a2a0a 0%, #0a1628 100%)', border: '2px solid rgba(245,158,11,0.4)' }}
             >
-              🏝️
+              <Icon color="#fbbf24" name="island" />
             </div>
             <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold" style={{ background: '#f59e0b', color: '#000' }}>
-              ⭐
+              <Icon color="#000" name="pointsSolid" />
             </div>
           </div>
 
