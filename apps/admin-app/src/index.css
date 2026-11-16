@@ -1,12 +1,5 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
+@import "../../../packages/shared/src/theme.css";
 
-html,
-body,
-#root {
- min-height: 100%;
-}
-
-body {
- margin: 0;
- font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
-}
+/* Las clases de los componentes compartidos tambien se generan. */
+@source "../../../packages/shared/src";

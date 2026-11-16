@@ -9,7 +9,7 @@ export function ProtectedRoute({ allowedRoles }: Props) {
   const session = getSession()
 
   if (!session) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/welcome" replace />
   }
 
   if (allowedRoles && !allowedRoles.includes(session.role)) {

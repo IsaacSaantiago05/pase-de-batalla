@@ -76,24 +76,24 @@ export function ProductsAdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="space-y-6 px-5 py-5">
+      <div className="pb-card rounded-2xl p-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold">Productos</h1>
-          <Link className="rounded-md border px-3 py-1 text-sm" to="/dashboard">
+          <h1 className="text-2xl font-semibold font-display tracking-wider text-white">Productos</h1>
+          <Link className="rounded-md border px-3 py-1 text-sm border-white/10" to="/dashboard">
             Volver
           </Link>
         </div>
         {canCreate ? (
           <>
             <form className="grid gap-3 md:grid-cols-4" onSubmit={onSubmit}>
-              <input className="rounded-md border p-2" placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-              <input className="rounded-md border p-2" placeholder="Precio" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} />
-              <input className="rounded-md border p-2" placeholder="Puntos que otorga" inputMode="numeric" value={puntos} onChange={(e) => setPuntos(e.target.value)} />
-              <button className="rounded-md bg-slate-900 p-2 text-white" type="submit">Crear</button>
+              <input className="pb-input" placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              <input className="pb-input" placeholder="Precio" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} />
+              <input className="pb-input" placeholder="Puntos que otorga" inputMode="numeric" value={puntos} onChange={(e) => setPuntos(e.target.value)} />
+              <button className="rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 font-display font-bold tracking-wider text-[#0d0a00] p-2" type="submit">Crear</button>
             </form>
             <textarea
-              className="mt-3 w-full rounded-md border p-2"
+              className="pb-input mt-3 w-full"
               placeholder="Descripcion (opcional)"
               rows={2}
               value={descripcion}
@@ -101,18 +101,18 @@ export function ProductsAdminPage() {
             />
           </>
         ) : (
-          <p className="text-sm text-slate-600">El administrador general puede ver y activar o desactivar productos; solo cada negocio los crea.</p>
+          <p className="text-sm text-white/60">El administrador general puede ver y activar o desactivar productos; solo cada negocio los crea.</p>
         )}
-        {message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {message && <p className="mt-3 text-sm text-emerald-400">{message}</p>}
+        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-xl font-semibold">Listado</h2>
+      <div className="pb-card rounded-2xl p-6">
+        <h2 className="mb-3 text-xl font-semibold font-display tracking-wider text-white">Listado</h2>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+          <table className="pb-table">
             <thead>
-              <tr className="border-b">
+              <tr>
                 <th className="p-2">Negocio</th>
                 <th className="p-2">Nombre</th>
                 <th className="p-2">Precio</th>
@@ -123,7 +123,7 @@ export function ProductsAdminPage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr className="border-b" key={row.id}>
+                <tr key={row.id}>
                   <td className="p-2">{row.negocio_id}</td>
                   <td className="p-2">{row.nombre}</td>
                   <td className="p-2">${row.precio}</td>
@@ -131,7 +131,7 @@ export function ProductsAdminPage() {
                   <td className="p-2">{row.estado ? 'ACTIVO' : 'INACTIVO'}</td>
                   <td className="p-2">
                     <button
-                      className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                      className="rounded-md border border-white/10 px-3 py-1 text-xs font-medium text-white/70 hover:bg-white/5"
                       onClick={() => {
                         void toggleStatus(row)
                       }}
@@ -144,7 +144,7 @@ export function ProductsAdminPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td className="p-2 text-slate-500" colSpan={6}>Sin productos todavia.</td>
+                  <td className="p-2 text-white/40" colSpan={6}>Sin productos todavia.</td>
                 </tr>
               )}
             </tbody>

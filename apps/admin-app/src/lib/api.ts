@@ -1,61 +1,9 @@
+import { createApiClient } from '@shared/api'
 import { getAdminSession } from './auth'
+
+export { listData } from '@shared/api'
+export type { ApiEnvelope } from '@shared/api'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api'
 
-type ApiEnvelope<T> = {
-  success: boolean
-  message: string
-  data: T
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<ApiEnvelope<T>> {
-  const session = getAdminSession()
-
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}),
-      ...(init?.headers ?? {}),
-    },
-  })
-
-  const body = (await response.json()) as ApiEnvelope<T>
-
-  if (!response.ok) {
-    throw new Error(body.message ?? 'Error de servidor')
-  }
-
-  return body
-}
-
-export function apiPost<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>> {
-  return request<T>(path, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
-}
-
-export function apiGet<T>(path: string): Promise<ApiEnvelope<T>> {
-  return request<T>(path, { method: 'GET' })
-}
-
-export function apiPut<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>> {
-  return request<T>(path, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  })
-}
-
-export function apiPatch<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>> {
-  return request<T>(path, {
-    method: 'PATCH',
-    body: JSON.stringify(payload),
-  })
-}
-
-// Los listados de la API llegan en `data` como arreglo; se acepta tambien { data: [...] } por compatibilidad.
-export function listData<T>(payload: T[] | { data?: T[] } | null | undefined): T[] {
-  if (Array.isArray(payload)) return payload
-  return payload?.data ?? []
-}
+export const { apiGet, apiPost, apiPut, apiPatch } = createApiClient(API_URL, () => getAdminSession()?.token)

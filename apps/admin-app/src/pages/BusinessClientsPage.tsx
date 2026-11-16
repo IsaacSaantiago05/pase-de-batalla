@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { EmptyState, FieldLabel, Icon, Notice, formatDate, formatPoints } from '@shared/ui'
+import { AdminPage } from '../components/AdminLayout'
 import { apiGet, listData } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
 
@@ -48,58 +49,46 @@ export function BusinessClientsPage() {
   }, [isGeneral, businessId])
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Clientes del negocio</h1>
-        <Link className="rounded-md border px-3 py-1 text-sm" to="/dashboard">
-          Volver
-        </Link>
-      </div>
-      <p className="mb-4 text-sm text-slate-600">Clientes que han ganado o usado puntos en el negocio.</p>
+    <AdminPage title="CLIENTES">
+      <p className="text-sm text-white/50">Clientes que han ganado o usado puntos en el negocio.</p>
 
       {isGeneral && (
-        <select className="mb-4 rounded-md border p-2" value={businessId} onChange={(e) => setBusinessId(e.target.value)}>
-          <option value="">Elige un negocio</option>
-          {businesses.map((business) => (
-            <option key={business.id} value={business.id}>
-              {business.nombre}
-            </option>
-          ))}
-        </select>
-      )}
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="p-2">Cliente</th>
-              <th className="p-2">Correo</th>
-              <th className="p-2">Visitas</th>
-              <th className="p-2">Puntos ganados</th>
-              <th className="p-2">Ultima visita</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clients.map((client) => (
-              <tr className="border-b" key={client.usuario_id}>
-                <td className="p-2">{client.nombre}</td>
-                <td className="p-2">{client.correo}</td>
-                <td className="p-2">{client.visitas}</td>
-                <td className="p-2">{client.puntos_ganados}</td>
-                <td className="p-2">{client.ultima_visita ? new Date(client.ultima_visita).toLocaleString() : '-'}</td>
-              </tr>
+        <div className="flex flex-col gap-1.5">
+          <FieldLabel htmlFor="clients-business">Negocio</FieldLabel>
+          <select className="pb-input" id="clients-business" onChange={(e) => setBusinessId(e.target.value)} value={businessId}>
+            <option value="">Elige un negocio</option>
+            {businesses.map((business) => (
+              <option key={business.id} value={business.id}>
+                {business.nombre}
+              </option>
             ))}
-            {clients.length === 0 && (
-              <tr>
-                <td className="p-2 text-slate-500" colSpan={5}>
-                  {isGeneral && !businessId ? 'Elige un negocio para ver sus clientes.' : 'Sin clientes todavia.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          </select>
+        </div>
+      )}
+      {error && <Notice tone="error">{error}</Notice>}
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {clients.map((client) => (
+          <div className="pb-card flex items-start gap-3 rounded-2xl p-4" key={client.usuario_id}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Icon name="avatar" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-display text-sm font-bold text-white">{client.nombre}</p>
+              <p className="mt-0.5 truncate text-xs text-white/40">{client.correo}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <span className="font-mono-game text-yellow-400"><Icon className="mr-1" name="pointsSolid" />
+                  {formatPoints(client.puntos_ganados)}</span>
+                <span className="text-white/30">·</span>
+                <span className="text-white/50">{client.visitas} visitas</span>
+                <span className="text-white/30">·</span>
+                <span className="text-white/50">Última: {formatDate(client.ultima_visita, true)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
+      {clients.length === 0 && !error && <EmptyState icon="clients" title={isGeneral && !businessId ? 'Elige un negocio para ver sus clientes' : 'Sin clientes todavía'} />}
+    </AdminPage>
   )
 }

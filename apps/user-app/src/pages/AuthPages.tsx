@@ -1,6 +1,9 @@
 import { useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { BackButton, Button, Icon, InputField, Notice } from '@shared/ui'
+import type { IconName } from '@shared/ui'
+import { useGoBack } from '../components/AppLayout'
 import { apiPost } from '../lib/api'
 import { setSession } from '../lib/auth'
 
@@ -9,15 +12,39 @@ type AuthResponse = {
   token: string
 }
 
+// Marco comun de las pantallas de acceso: boton atras, icono, titulo dorado y subtitulo.
+function AuthShell({ icon, title, subtitle, children }: { icon: IconName; title: string; subtitle: string; children: ReactNode }) {
+  const goBack = useGoBack('/welcome')
+
+  return (
+    <div className="flex flex-1 flex-col" style={{ background: 'linear-gradient(180deg, #040d1e 0%, #080c18 100%)' }}>
+      <div className="px-5 pt-5">
+        <BackButton onBack={goBack} />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-6 pb-8 pt-4">
+        <div className="flex flex-col items-center gap-2 pt-2">
+          <Icon className="text-6xl" color="#fbbf24" name={icon} style={{ filter: 'drop-shadow(0 0 16px rgba(245,158,11,0.35))' }} />
+          <h1 className="pb-text-gold text-center font-display text-3xl font-bold uppercase tracking-widest">{title}</h1>
+          <p className="text-sm text-white/40">{subtitle}</p>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export function LoginPage() {
   const navigate = useNavigate()
   const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setError('')
+    setSending(true)
 
     try {
       const response = await apiPost<AuthResponse>('/auth/login', { correo, password })
@@ -25,24 +52,34 @@ export function LoginPage() {
       navigate('/home')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible iniciar sesión')
+    } finally {
+      setSending(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-semibold">Pase de Batalla</h1>
-      <p className="text-sm text-slate-600">Inicia sesión para continuar.</p>
-      <form className="space-y-3" onSubmit={onSubmit}>
-        <input className="w-full rounded-md border p-2" placeholder="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} />
-        <input className="w-full rounded-md border p-2" placeholder="Contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button className="w-full rounded-md bg-slate-900 p-2 text-white" type="submit">Entrar</button>
+    <AuthShell icon="island" subtitle="Continúa tu aventura" title="Iniciar Sesión">
+      <form className="flex flex-col gap-8" onSubmit={onSubmit}>
+        <div className="flex flex-col gap-4">
+          <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
+          <InputField autoComplete="current-password" label="Contraseña" onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" type="password" value={password} />
+          <Link className="text-right text-sm font-semibold" style={{ color: '#f59e0b' }} to="/forgot-password">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+
+        {error && <Notice tone="error">{error}</Notice>}
+
+        <div className="flex flex-col gap-3">
+          <Button className="w-full tracking-widest" disabled={sending} type="submit">
+            {sending ? 'ENTRANDO...' : 'INICIAR SESIÓN'}
+          </Button>
+          <Button className="w-full" onClick={() => navigate('/register')} variant="ghost">
+            Crear cuenta nueva
+          </Button>
+        </div>
       </form>
-      <div className="flex justify-between text-sm">
-        <Link className="text-slate-700 underline" to="/register">Crear cuenta</Link>
-        <Link className="text-slate-700 underline" to="/forgot-password">Recuperar contraseña</Link>
-      </div>
-    </div>
+    </AuthShell>
   )
 }
 
@@ -53,10 +90,12 @@ export function RegisterPage() {
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setError('')
+    setSending(true)
 
     try {
       const response = await apiPost<AuthResponse>('/auth/register', {
@@ -69,22 +108,44 @@ export function RegisterPage() {
       navigate('/home')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible registrar la cuenta')
+    } finally {
+      setSending(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-semibold">Crear cuenta</h1>
-      <form className="space-y-3" onSubmit={onSubmit}>
-        <input className="w-full rounded-md border p-2" placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        <input className="w-full rounded-md border p-2" placeholder="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} />
-        <input className="w-full rounded-md border p-2" placeholder="Contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <input className="w-full rounded-md border p-2" placeholder="Confirmar contraseña" type="password" value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button className="w-full rounded-md bg-slate-900 p-2 text-white" type="submit">Registrarme</button>
+    <AuthShell icon="sword" subtitle="Comienza tu aventura hoy" title="Crear Cuenta">
+      <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+        <div className="flex flex-col gap-4">
+          <InputField autoComplete="name" label="Nombre de jugador" onChange={(e) => setNombre(e.target.value)} placeholder="ej. JUGADOR01" value={nombre} />
+          <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
+          <InputField autoComplete="new-password" label="Contraseña" onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" type="password" value={password} />
+          <InputField
+            autoComplete="new-password"
+            label="Confirmar contraseña"
+            onChange={(e) => setPasswordConfirmation(e.target.value)}
+            placeholder="Repite tu contraseña"
+            type="password"
+            value={passwordConfirmation}
+          />
+        </div>
+
+        <div className="rounded-xl p-3 text-xs leading-relaxed text-white/40" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          Al crear una cuenta aceptas nuestros <span style={{ color: '#f59e0b' }}>Términos y Condiciones</span> y{' '}
+          <span style={{ color: '#f59e0b' }}>Política de Privacidad</span>.
+        </div>
+
+        {error && <Notice tone="error">{error}</Notice>}
+
+        <Button className="w-full tracking-widest" disabled={sending} type="submit">
+          {sending ? 'CREANDO...' : 'CREAR CUENTA'}
+        </Button>
+
+        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+          Ya tengo una cuenta
+        </Link>
       </form>
-      <Link className="text-sm text-slate-700 underline" to="/login">Ya tengo cuenta</Link>
-    </div>
+    </AuthShell>
   )
 }
 
@@ -107,16 +168,19 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-semibold">Recuperar contraseña</h1>
-      <form className="space-y-3" onSubmit={onSubmit}>
-        <input className="w-full rounded-md border p-2" placeholder="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {message && <p className="text-sm text-emerald-700">{message}</p>}
-        <button className="w-full rounded-md bg-slate-900 p-2 text-white" type="submit">Enviar</button>
+    <AuthShell icon="key" subtitle="Te enviaremos un enlace a tu correo" title="Recuperar Contraseña">
+      <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+        <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
+        {error && <Notice tone="error">{error}</Notice>}
+        {message && <Notice tone="success">{message}</Notice>}
+        <Button className="w-full tracking-widest" type="submit">
+          ENVIAR
+        </Button>
+        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+          Volver a iniciar sesión
+        </Link>
       </form>
-      <Link className="text-sm text-slate-700 underline" to="/login">Volver</Link>
-    </div>
+    </AuthShell>
   )
 }
 
@@ -151,24 +215,30 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-semibold">Restablecer contraseña</h1>
-      <form className="space-y-3" onSubmit={onSubmit}>
-        <input className="w-full rounded-md border p-2" placeholder="Token" value={token} onChange={(e) => setToken(e.target.value)} />
-        <input className="w-full rounded-md border p-2" placeholder="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} />
-        <input className="w-full rounded-md border p-2" placeholder="Nueva contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <input
-          className="w-full rounded-md border p-2"
-          placeholder="Confirmar nueva contraseña"
-          type="password"
-          value={passwordConfirmation}
-          onChange={(e) => setPasswordConfirmation(e.target.value)}
-        />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {message && <p className="text-sm text-emerald-700">{message}</p>}
-        <button className="w-full rounded-md bg-slate-900 p-2 text-white" type="submit">Guardar contraseña</button>
+    <AuthShell icon="shield" subtitle="Elige una contraseña nueva" title="Nueva Contraseña">
+      <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+        <div className="flex flex-col gap-4">
+          <InputField label="Token" onChange={(e) => setToken(e.target.value)} value={token} />
+          <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
+          <InputField autoComplete="new-password" label="Nueva contraseña" onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" type="password" value={password} />
+          <InputField
+            autoComplete="new-password"
+            label="Confirmar contraseña"
+            onChange={(e) => setPasswordConfirmation(e.target.value)}
+            placeholder="Repite tu contraseña"
+            type="password"
+            value={passwordConfirmation}
+          />
+        </div>
+        {error && <Notice tone="error">{error}</Notice>}
+        {message && <Notice tone="success">{message}</Notice>}
+        <Button className="w-full tracking-widest" type="submit">
+          GUARDAR CONTRASEÑA
+        </Button>
+        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+          Volver a iniciar sesión
+        </Link>
       </form>
-      <Link className="text-sm text-slate-700 underline" to="/login">Volver</Link>
-    </div>
+    </AuthShell>
   )
 }

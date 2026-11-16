@@ -126,11 +126,11 @@ export function SalesAdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="space-y-6 px-5 py-5">
+      <div className="pb-card rounded-2xl p-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold">Ventas</h1>
-          <Link className="rounded-md border px-3 py-1 text-sm" to="/dashboard">
+          <h1 className="text-2xl font-semibold font-display tracking-wider text-white">Ventas</h1>
+          <Link className="rounded-md border px-3 py-1 text-sm border-white/10" to="/dashboard">
             Volver
           </Link>
         </div>
@@ -140,30 +140,30 @@ export function SalesAdminPage() {
             <div>
               <h2 className="mb-2 font-semibold">Productos</h2>
               {products.length === 0 && (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-white/40">
                   No hay productos activos. Crea alguno en <Link className="underline" to="/products">/products</Link>.
                 </p>
               )}
-              <ul className="divide-y rounded-lg border">
+              <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
                 {products.map((product) => (
                   <li className="flex items-center justify-between gap-3 p-3" key={product.id}>
                     <div>
                       <p className="font-medium">{product.nombre}</p>
-                      <p className="text-xs text-slate-500">${product.precio} · {product.puntos} pts</p>
+                      <p className="text-xs text-white/40">${product.precio} · {product.puntos} pts</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button className="h-8 w-8 rounded-md border" onClick={() => changeQuantity(product.id, -1)} type="button">-</button>
+                      <button className="h-8 w-8 rounded-md border border-white/10" onClick={() => changeQuantity(product.id, -1)} type="button">-</button>
                       <span className="w-6 text-center">{cart[product.id] ?? 0}</span>
-                      <button className="h-8 w-8 rounded-md border" onClick={() => changeQuantity(product.id, 1)} type="button">+</button>
+                      <button className="h-8 w-8 rounded-md border border-white/10" onClick={() => changeQuantity(product.id, 1)} type="button">+</button>
                     </div>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="space-y-3 rounded-lg border bg-slate-50 p-4">
+            <div className="space-y-3 rounded-lg border bg-white/5 p-4 border-white/10">
               <h2 className="font-semibold">Resumen</h2>
-              {lines.length === 0 && <p className="text-sm text-slate-500">Agrega productos a la venta.</p>}
+              {lines.length === 0 && <p className="text-sm text-white/40">Agrega productos a la venta.</p>}
               {lines.map((product) => (
                 <p className="flex justify-between text-sm" key={product.id}>
                   <span>{cart[product.id]} × {product.nombre}</span>
@@ -174,12 +174,12 @@ export function SalesAdminPage() {
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </p>
-              <p className="flex justify-between text-sm text-emerald-700">
+              <p className="flex justify-between text-sm text-emerald-400">
                 <span>Puntos para el cliente</span>
                 <span>{points}</span>
               </p>
               <button
-                className="w-full rounded-md bg-slate-900 p-2 text-white disabled:opacity-50"
+                className="rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 font-display font-bold tracking-wider text-[#0d0a00] w-full p-2 disabled:opacity-50"
                 disabled={lines.length === 0 || saving}
                 onClick={() => {
                   void registerSale()
@@ -191,27 +191,27 @@ export function SalesAdminPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-slate-600">Solo el administrador de cada negocio registra ventas. Aqui puedes consultar el historial.</p>
+          <p className="text-sm text-white/60">Solo el administrador de cada negocio registra ventas. Aqui puedes consultar el historial.</p>
         )}
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       </div>
 
       {qr && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <h2 className="text-xl font-semibold">Pide al cliente que escanee este QR</h2>
-          <p className="mb-3 text-sm text-slate-600">{qr.image.puntos} puntos · un solo uso</p>
+        <div className="pb-card rounded-2xl p-6 text-center">
+          <h2 className="text-xl font-semibold font-display tracking-wider text-white">Pide al cliente que escanee este QR</h2>
+          <p className="mb-3 text-sm text-white/60">{qr.image.puntos} puntos · un solo uso</p>
           <img
             alt={`QR ${qr.image.qr_id}`}
             className={`mx-auto h-72 w-72 rounded-lg border bg-white p-2 ${secondsLeft === 0 ? 'opacity-30' : ''}`}
             src={qr.image.data_url}
           />
-          <p className={`mt-3 font-semibold ${secondsLeft === 0 ? 'text-red-600' : 'text-slate-900'}`}>
+          <p className={`mt-3 font-semibold ${secondsLeft === 0 ? 'text-red-400' : 'text-white'}`}>
             {secondsLeft > 0 ? `Expira en ${secondsLeft} s` : 'QR expirado'}
           </p>
           <div className="mt-3 flex justify-center gap-2">
             {secondsLeft > 0 && (
               <button
-                className="rounded-md border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
+                className="rounded-md border border-red-500/40 px-3 py-1 text-sm text-red-400 hover:bg-red-500/10"
                 onClick={() => {
                   void cancelQr()
                 }}
@@ -220,19 +220,19 @@ export function SalesAdminPage() {
                 Cancelar QR
               </button>
             )}
-            <button className="rounded-md border px-3 py-1 text-sm" onClick={() => setQr(null)} type="button">
+            <button className="rounded-md border px-3 py-1 text-sm border-white/10" onClick={() => setQr(null)} type="button">
               Cerrar
             </button>
           </div>
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-xl font-semibold">Historial de ventas</h2>
+      <div className="pb-card rounded-2xl p-6">
+        <h2 className="mb-3 text-xl font-semibold font-display tracking-wider text-white">Historial de ventas</h2>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+          <table className="pb-table">
             <thead>
-              <tr className="border-b">
+              <tr>
                 <th className="p-2">#</th>
                 <th className="p-2">Fecha</th>
                 <th className="p-2">Productos</th>
@@ -243,7 +243,7 @@ export function SalesAdminPage() {
             </thead>
             <tbody>
               {sales.map((sale) => (
-                <tr className="border-b" key={sale.id}>
+                <tr key={sale.id}>
                   <td className="p-2">{sale.id}</td>
                   <td className="p-2">{new Date(sale.created_at).toLocaleString()}</td>
                   <td className="p-2">{sale.items.map((item) => `${item.cantidad}× ${item.nombre}`).join(', ')}</td>
@@ -254,7 +254,7 @@ export function SalesAdminPage() {
               ))}
               {sales.length === 0 && (
                 <tr>
-                  <td className="p-2 text-slate-500" colSpan={6}>Sin ventas todavia.</td>
+                  <td className="p-2 text-white/40" colSpan={6}>Sin ventas todavia.</td>
                 </tr>
               )}
             </tbody>

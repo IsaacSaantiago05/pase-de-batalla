@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Button, EmptyState, FieldLabel, Icon, InputField, Notice, SectionTitle, StatusChip } from '@shared/ui'
+import { AdminPage } from '../components/AdminLayout'
 import { apiGet, apiPost, listData } from '../lib/api'
 
 type AdminItem = {
@@ -23,6 +25,8 @@ type Business = {
 type BusinessList = {
   data: Business[]
 }
+
+const purpleBackground = 'linear-gradient(180deg, #0d0018 0%, #080c18 100%)'
 
 export function AdministratorsPage() {
   const [items, setItems] = useState<AdminItem[]>([])
@@ -77,57 +81,57 @@ export function AdministratorsPage() {
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-xl font-semibold">Crear administrador de negocio</h2>
-        <form className="grid gap-3 md:grid-cols-2" onSubmit={onSubmit}>
-          <input className="rounded-md border p-2" placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-          <input className="rounded-md border p-2" placeholder="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} />
-          <input className="rounded-md border p-2" placeholder="Contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <select className="rounded-md border p-2" value={negocioId} onChange={(e) => setNegocioId(e.target.value)}>
-            <option value="">Selecciona negocio</option>
-            {businesses.map((business) => (
-              <option key={business.id} value={business.id}>
-                {business.nombre}
-              </option>
-            ))}
-          </select>
-          <button className="rounded-md bg-slate-900 p-2 text-white md:col-span-2" type="submit">
-            Crear administrador
-          </button>
-        </form>
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        {message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
-      </div>
+  const businessName = (id: number | null) => businesses.find((business) => business.id === id)?.nombre ?? (id ? `Negocio #${id}` : 'Sin negocio')
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-xl font-semibold">Administradores registrados</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="p-2">Nombre</th>
-                <th className="p-2">Correo</th>
-                <th className="p-2">Rol</th>
-                <th className="p-2">Negocio</th>
-                <th className="p-2">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr className="border-b" key={item.id}>
-                  <td className="p-2">{item.nombre}</td>
-                  <td className="p-2">{item.correo}</td>
-                  <td className="p-2">{item.rol}</td>
-                  <td className="p-2">{item.negocio_id ?? '-'}</td>
-                  <td className="p-2">{item.estado ? 'Activo' : 'Inactivo'}</td>
-                </tr>
+  return (
+    <AdminPage background={purpleBackground} title="ADMINISTRADORES">
+      <form className="pb-card flex flex-col gap-3 rounded-2xl p-5" onSubmit={onSubmit}>
+        <p className="font-display text-sm font-bold uppercase tracking-widest text-purple-400">Nuevo administrador de negocio</p>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InputField label="Nombre" onChange={(e) => setNombre(e.target.value)} value={nombre} />
+          <InputField label="Correo" onChange={(e) => setCorreo(e.target.value)} type="email" value={correo} />
+          <InputField autoComplete="new-password" label="Contraseña" onChange={(e) => setPassword(e.target.value)} type="password" value={password} />
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel htmlFor="admin-business">Negocio</FieldLabel>
+            <select className="pb-input" id="admin-business" onChange={(e) => setNegocioId(e.target.value)} value={negocioId}>
+              <option value="">Selecciona negocio</option>
+              {businesses.map((business) => (
+                <option key={business.id} value={business.id}>
+                  {business.nombre}
+                </option>
               ))}
-            </tbody>
-          </table>
+            </select>
+          </div>
         </div>
+        <Button className="w-full tracking-widest" type="submit" variant="purple">
+          CREAR ADMINISTRADOR
+        </Button>
+      </form>
+
+      {error && <Notice tone="error">{error}</Notice>}
+      {message && <Notice tone="success">{message}</Notice>}
+
+      <SectionTitle className="text-white/40">Administradores registrados ({items.length})</SectionTitle>
+      <div className="grid gap-3 md:grid-cols-2">
+        {items.map((item) => (
+          <div className="pb-card flex items-start gap-3 rounded-2xl p-4" key={item.id} style={{ opacity: item.estado ? 1 : 0.6 }}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Icon name="shield" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="truncate font-display text-sm font-bold text-white">{item.nombre}</p>
+                <StatusChip status={item.estado ? 'ACTIVO' : 'INACTIVO'} />
+              </div>
+              <p className="mt-0.5 truncate text-xs text-white/40">{item.correo}</p>
+              <p className="mt-1.5 text-xs text-white/50">
+                {item.rol === 'ADMINISTRADOR_GENERAL' ? 'Administrador general' : `Negocio: ${businessName(item.negocio_id)}`}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
+      {items.length === 0 && !error && <EmptyState icon="shield" title="Sin administradores" />}
+    </AdminPage>
   )
 }

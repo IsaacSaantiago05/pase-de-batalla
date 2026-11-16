@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { clearSession } from '../lib/auth'
+import { Button, ChipButton, EmptyState, FilterTabs, Icon, InputField, IslandView, LoadingState, Notice, ScreenHeader, SectionTitle } from '@shared/ui'
+import type { IconName } from '@shared/ui'
+import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, apiPost } from '../lib/api'
-import { AppNav } from '../components/AppNav'
 
 type IslandElementStatus = 'BLOQUEADO' | 'DISPONIBLE' | 'DESBLOQUEADO'
 
@@ -174,11 +175,30 @@ const statusLabel: Record<IslandElementStatus, string> = {
   DESBLOQUEADO: 'Desbloqueado',
 }
 
-const statusClass: Record<IslandElementStatus, string> = {
-  BLOQUEADO: 'border-slate-200 bg-white/80',
-  DISPONIBLE: 'border-amber-200 bg-amber-50/90',
-  DESBLOQUEADO: 'border-emerald-200 bg-emerald-50/90',
+// Icono por categoria del catalogo (el diseño usa un icono para cada elemento).
+const CATEGORY_ICON: Record<string, IconName> = {
+  ESTRUCTURA: 'structure',
+  DECORACION: 'decoration',
+  MASCOTA: 'pet',
+  TERRENO: 'terrain',
 }
+
+const CATEGORY_LABEL: Record<string, string> = {
+  ESTRUCTURA: 'Estructuras',
+  DECORACION: 'Decoraciones',
+  MASCOTA: 'Mascotas',
+  TERRENO: 'Terreno',
+}
+
+function elementIcon(item: IslandCatalogItem): IconName {
+  return CATEGORY_ICON[item.categoria.toUpperCase()] ?? 'element'
+}
+
+function categoryLabel(category: string) {
+  return CATEGORY_LABEL[category.toUpperCase()] ?? category
+}
+
+const selectStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }
 
 const presetLabel: Record<PositionPreset, string> = {
   CENTER: 'Centro',
@@ -190,6 +210,8 @@ const presetLabel: Record<PositionPreset, string> = {
 }
 
 export function IslandPage() {
+  const goBack = useGoBack()
+  const [editingId, setEditingId] = useState<number | null>(null)
   const initialPreferences = useMemo(() => loadIslandEditorPreferences(), [])
   const [catalog, setCatalog] = useState<IslandCatalogItem[]>([])
   const [layout, setLayout] = useState<Record<number, IslandLayoutItem>>({})
@@ -1083,100 +1105,63 @@ export function IslandPage() {
     }
   }
 
+  const statusTabs = [
+    { key: 'TODOS' as const, label: `Todos (${catalog.length})` },
+    { key: 'DESBLOQUEADO' as const, label: `${statusLabel.DESBLOQUEADO} (${unlockedCount})` },
+    { key: 'DISPONIBLE' as const, label: `${statusLabel.DISPONIBLE} (${availableCount})` },
+    { key: 'BLOQUEADO' as const, label: `${statusLabel.BLOQUEADO} (${blockedCount})` },
+  ]
+
   return (
-    <div className="mx-auto max-w-6xl space-y-5 rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-sky-50 to-emerald-50 p-6 shadow-lg">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Mi Isla</h1>
-          <p className="text-sm text-slate-600">Gestiona tus elementos, desbloquea recompensas y define su ubicacion.</p>
-        </div>
-        <button
-          className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white"
-          onClick={() => {
-            clearSession()
-            location.href = '/login'
-          }}
-          type="button"
-        >
-          Cerrar sesión
-        </button>
-      </header>
+    <Page>
+      <ScreenHeader onBack={goBack} title="PERSONALIZAR ISLA" />
 
-      <AppNav />
+      <div className="mb-3 px-5">
+        <IslandView animate={false} level={unlockedCount} size="sm" />
+      </div>
 
-      {loading && <p className="text-sm text-slate-600">Cargando isla...</p>}
-      {!loading && error && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      {!loading && feedback && <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{feedback}</p>}
+      <div className="flex flex-col gap-3 px-5">
+        {loading && <LoadingState text="Cargando isla..." />}
+        {!loading && error && <Notice tone="error">{error}</Notice>}
+        {!loading && feedback && <Notice tone="success">{feedback}</Notice>}
+      </div>
 
       {!loading && (
-        <>
-          <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 md:grid-cols-3">
-            <article className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-              <p className="text-xs uppercase tracking-wide text-emerald-700">Desbloqueados</p>
-              <p className="text-2xl font-semibold text-emerald-900">{unlockedCount}</p>
-            </article>
-            <article className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <p className="text-xs uppercase tracking-wide text-amber-700">Disponibles</p>
-              <p className="text-2xl font-semibold text-amber-900">{availableCount}</p>
-            </article>
-            <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs uppercase tracking-wide text-slate-700">Bloqueados</p>
-              <p className="text-2xl font-semibold text-slate-900">{blockedCount}</p>
-            </article>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-slate-900">Vista rapida del terreno</h2>
-              <p className="text-sm text-slate-600">Editables: {draggableItems.length} | Guardados: {serverPlacedCount}</p>
+        <div className="flex flex-col gap-4 px-5 pb-6">
+          <section className="pb-card rounded-2xl p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <SectionTitle>Vista del terreno</SectionTitle>
+              <p className="font-mono-game text-xs text-white/40">
+                Editables: {draggableItems.length} · Guardados: {serverPlacedCount}
+              </p>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
+              <ChipButton
                 disabled={savingMap || dirtyMapCount === 0}
                 onClick={() => void handleSaveMapChanges('manual', Object.keys(dirtyMapIds).map(Number))}
-                type="button"
+                tone="gold"
               >
-                {savingMap ? 'Guardando mapa...' : `Guardar cambios del mapa (${dirtyMapCount})`}
-              </button>
-
-              <button
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={savingMap || mapHistoryPast.length === 0}
-                onClick={handleUndoMapChange}
-                type="button"
-              >
-                Deshacer ({mapHistoryPast.length})
-              </button>
-
-              <button
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={savingMap || mapHistoryFuture.length === 0}
-                onClick={handleRedoMapChange}
-                type="button"
-              >
-                Rehacer ({mapHistoryFuture.length})
-              </button>
-
-              <button
-                className={`rounded-md px-3 py-2 text-sm ${autoSaveEnabled ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
+                {savingMap ? 'GUARDANDO...' : `GUARDAR (${dirtyMapCount})`}
+              </ChipButton>
+              <ChipButton disabled={savingMap || mapHistoryPast.length === 0} onClick={handleUndoMapChange}>
+                DESHACER ({mapHistoryPast.length})
+              </ChipButton>
+              <ChipButton disabled={savingMap || mapHistoryFuture.length === 0} onClick={handleRedoMapChange}>
+                REHACER ({mapHistoryFuture.length})
+              </ChipButton>
+              <ChipButton
                 onClick={() => {
                   setAutoSaveEnabled((current) => !current)
                   setAutoSaveStatus(null)
                 }}
-                type="button"
+                tone={autoSaveEnabled ? 'purple' : 'neutral'}
               >
-                {autoSaveEnabled ? 'Autoguardado: ON' : 'Autoguardado: OFF'}
-              </button>
-
-              <label className="text-xs text-slate-600">
+                AUTOGUARDADO {autoSaveEnabled ? 'ON' : 'OFF'}
+              </ChipButton>
+              <label className="flex items-center gap-1 text-xs text-white/50">
                 Intervalo
-                <select
-                  className="ml-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs"
-                  onChange={(event) => setAutoSaveSeconds(Number(event.target.value))}
-                  value={autoSaveSeconds}
-                >
+                <select className="rounded-lg px-2 py-1 text-xs text-white" onChange={(event) => setAutoSaveSeconds(Number(event.target.value))} style={selectStyle} value={autoSaveSeconds}>
                   {AUTOSAVE_INTERVAL_OPTIONS.map((seconds) => (
                     <option key={seconds} value={seconds}>
                       {seconds}s
@@ -1184,38 +1169,18 @@ export function IslandPage() {
                   ))}
                 </select>
               </label>
-
-              <button
-                className={`rounded-md px-3 py-2 text-sm ${panMode ? 'bg-sky-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
-                onClick={() => setPanMode((current) => !current)}
-                type="button"
-              >
-                {panMode ? 'Modo pan: Activo' : 'Modo pan'}
-              </button>
-
-              <button
-                className={`rounded-md px-3 py-2 text-sm ${snapToGrid ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
-                onClick={() => setSnapToGrid((current) => !current)}
-                type="button"
-              >
-                {snapToGrid ? 'Snap: ON' : 'Snap: OFF'}
-              </button>
-
-              <button
-                className={`rounded-md px-3 py-2 text-sm ${avoidOverlap ? 'bg-fuchsia-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
-                onClick={() => setAvoidOverlap((current) => !current)}
-                type="button"
-              >
-                {avoidOverlap ? 'Colisiones: ON' : 'Colisiones: OFF'}
-              </button>
-
-              <label className="text-xs text-slate-600">
-                Grilla
-                <select
-                  className="ml-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs"
-                  onChange={(event) => setGridStep(Number(event.target.value))}
-                  value={gridStep}
-                >
+              <ChipButton onClick={() => setPanMode((current) => !current)} tone={panMode ? 'blue' : 'neutral'}>
+                {panMode ? 'MOVER VISTA: ON' : 'MOVER VISTA'}
+              </ChipButton>
+              <ChipButton onClick={() => setSnapToGrid((current) => !current)} tone={snapToGrid ? 'green' : 'neutral'}>
+                CUADRÍCULA {snapToGrid ? 'ON' : 'OFF'}
+              </ChipButton>
+              <ChipButton onClick={() => setAvoidOverlap((current) => !current)} tone={avoidOverlap ? 'purple' : 'neutral'}>
+                COLISIONES {avoidOverlap ? 'ON' : 'OFF'}
+              </ChipButton>
+              <label className="flex items-center gap-1 text-xs text-white/50">
+                Paso
+                <select className="rounded-lg px-2 py-1 text-xs text-white" onChange={(event) => setGridStep(Number(event.target.value))} style={selectStyle} value={gridStep}>
                   {GRID_STEP_OPTIONS.map((step) => (
                     <option key={step} value={step}>
                       {step}
@@ -1225,49 +1190,46 @@ export function IslandPage() {
               </label>
 
               <div className="ml-auto flex items-center gap-1">
-                <button className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm" onClick={() => handleZoomButtons(-0.2)} type="button">
-                  -
-                </button>
-                <span className="min-w-16 text-center text-xs text-slate-600">Zoom {mapZoom.toFixed(1)}x</span>
-                <button className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm" onClick={() => handleZoomButtons(0.2)} type="button">
+                <ChipButton aria-label="Alejar" onClick={() => handleZoomButtons(-0.2)}>
+                  −
+                </ChipButton>
+                <span className="min-w-16 text-center font-mono-game text-xs text-white/50">{mapZoom.toFixed(1)}x</span>
+                <ChipButton aria-label="Acercar" onClick={() => handleZoomButtons(0.2)}>
                   +
-                </button>
-                <button className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs" onClick={handleResetView} type="button">
-                  Reset vista
-                </button>
+                </ChipButton>
+                <ChipButton onClick={handleResetView}>CENTRAR</ChipButton>
               </div>
             </div>
 
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-white/40">
               {panMode
-                ? 'Arrastra el fondo para mover la camara. Usa rueda para zoom.'
-                : `Arrastra nodos para moverlos. ${avoidOverlap ? 'Si detecta choque, buscara una posicion cercana libre.' : 'Se permite superposicion entre nodos.'}`}
+                ? 'Arrastra el fondo para mover la cámara. Usa la rueda para acercar.'
+                : `Arrastra los elementos para moverlos. ${avoidOverlap ? 'Si chocan, se busca una posición libre cercana.' : 'Se permite encimar elementos.'}`}
             </p>
-
-            {autoSaveEnabled && <p className="mt-1 text-xs text-indigo-700">Autoguardado activo cada {autoSaveSeconds} segundos.</p>}
-            {autoSaveStatus && <p className="mt-1 text-xs text-slate-600">{autoSaveStatus}</p>}
+            {autoSaveEnabled && <p className="mt-1 text-xs text-purple-400">Autoguardado cada {autoSaveSeconds} segundos.</p>}
+            {autoSaveStatus && <p className="mt-1 text-xs text-white/50">{autoSaveStatus}</p>}
 
             {draggableItems.length === 0 ? (
-              <p className="mt-3 text-sm text-slate-600">Desbloquea elementos para editarlos en el mapa.</p>
+              <p className="mt-3 text-sm text-white/40">Desbloquea elementos para colocarlos en el terreno.</p>
             ) : (
               <div
-                className="relative mt-3 h-72 overflow-hidden rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_20%_20%,rgba(251,191,36,0.22),transparent_35%),radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.2),transparent_35%),radial-gradient(circle_at_50%_100%,rgba(16,185,129,0.2),transparent_45%),#f8fafc)]"
-                onPointerDown={handleMapBackgroundPointerDown}
+                className="relative mt-3 h-72 touch-none overflow-hidden rounded-2xl"
                 onPointerCancel={handleMapPointerEnd}
+                onPointerDown={handleMapBackgroundPointerDown}
                 onPointerMove={handleMapPointerMove}
                 onPointerUp={handleMapPointerEnd}
                 onWheel={handleMapWheel}
                 ref={mapRef}
+                style={{ background: 'radial-gradient(ellipse 80% 70% at 50% 55%, #16a34a 0%, #15803d 45%, #0a1628 75%, #040710 100%)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
-                <div className="absolute inset-x-0 top-1/2 border-t border-slate-300/60" />
-                <div className="absolute inset-y-0 left-1/2 border-l border-slate-300/60" />
+                <div className="absolute inset-x-0 top-1/2 border-t border-white/10" />
+                <div className="absolute inset-y-0 left-1/2 border-l border-white/10" />
                 {snapToGrid && (
                   <div
-                    className="pointer-events-none absolute inset-0 opacity-35"
+                    className="pointer-events-none absolute inset-0 opacity-40"
                     style={{
                       ...gridBackgroundSizePercent,
-                      backgroundImage:
-                        'linear-gradient(to right, rgba(51,65,85,0.18) 1px, transparent 1px), linear-gradient(to bottom, rgba(51,65,85,0.18) 1px, transparent 1px)',
+                      backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)',
                     }}
                   />
                 )}
@@ -1280,14 +1242,20 @@ export function IslandPage() {
 
                   return (
                     <button
-                      className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border px-2 py-1 text-xs font-semibold shadow transition ${isDragging ? 'cursor-grabbing border-slate-800 bg-slate-900 text-white' : 'cursor-grab border-slate-300 bg-white text-slate-700'} ${isDirty ? 'ring-2 ring-amber-400' : ''} ${panMode ? 'opacity-70' : ''}`}
+                      className={`absolute flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl text-2xl transition ${isDragging ? 'scale-110 cursor-grabbing' : 'cursor-grab'} ${panMode ? 'opacity-70' : ''}`}
                       key={item.id}
                       onPointerDown={(event) => handleMapPointerDown(item.id, event)}
-                      style={{ left: `${left}%`, top: `${top}%` }}
+                      style={{
+                        left: `${left}%`,
+                        top: `${top}%`,
+                        background: isDragging ? 'rgba(245,158,11,0.3)' : 'rgba(0,0,0,0.35)',
+                        border: `1px solid ${isDirty ? '#f59e0b' : 'rgba(255,255,255,0.15)'}`,
+                        boxShadow: isDirty ? '0 0 12px rgba(245,158,11,0.5)' : '0 4px 8px rgba(0,0,0,0.4)',
+                      }}
                       title={`${item.nombre} (${position.x}, ${position.y})`}
                       type="button"
                     >
-                      {item.nombre.slice(0, 2).toUpperCase()}
+                      <Icon name={elementIcon(item)} />
                     </button>
                   )
                 })}
@@ -1295,147 +1263,95 @@ export function IslandPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex flex-wrap gap-2">
-                {(['TODOS', 'DESBLOQUEADO', 'DISPONIBLE', 'BLOQUEADO'] as const).map((status) => (
-                  <button
-                    className={`rounded-full border px-3 py-1 text-sm transition ${statusFilter === status ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    type="button"
+          <div className="flex flex-col gap-2">
+            <FilterTabs onChange={setStatusFilter} options={statusTabs} value={statusFilter} />
+            <FilterTabs
+              onChange={setCategoryFilter}
+              options={categoryOptions.map((category) => ({ key: category, label: category === 'TODAS' ? 'Todas las categorías' : categoryLabel(category) }))}
+              value={categoryFilter}
+            />
+          </div>
+
+          <section>
+            <SectionTitle className="mb-3 text-white/40">
+              Mostrando {filteredCatalog.length} de {catalog.length}
+            </SectionTitle>
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {filteredCatalog.map((item) => {
+                const form = positionForms[item.id] ?? { x: '0', y: '0', z: '' }
+                const placed = layout[item.id]
+                const unlocked = item.estado_usuario === 'DESBLOQUEADO'
+                const editing = editingId === item.id
+
+                return (
+                  <article
+                    className={`flex flex-col items-center gap-2 rounded-2xl p-4 transition-all ${editing ? 'col-span-2 md:col-span-3' : ''}`}
+                    key={item.id}
+                    style={{
+                      background: placed ? 'linear-gradient(135deg, rgba(245,158,11,0.12), #1a2235)' : 'linear-gradient(135deg, #1a2235, #111827)',
+                      border: `1px solid ${placed ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                      opacity: item.estado_usuario === 'BLOQUEADO' ? 0.5 : 1,
+                    }}
                   >
-                    {status === 'TODOS' ? 'Todos' : statusLabel[status]}
-                  </button>
-                ))}
-              </div>
+                    <Icon className="text-4xl" name={elementIcon(item)} />
+                    <span className="text-center font-display text-sm font-bold text-white">{item.nombre}</span>
+                    <span className="text-xs text-white/40">{categoryLabel(item.categoria)}</span>
 
-              <label className="text-sm text-slate-700">
-                Categoria
-                <select
-                  className="ml-2 rounded-md border border-slate-300 bg-white px-2 py-1"
-                  onChange={(event) => setCategoryFilter(event.target.value)}
-                  value={categoryFilter}
-                >
-                  {categoryOptions.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold text-slate-900">Catalogo de elementos</h2>
-              <p className="text-sm text-slate-600">
-                Mostrando <strong>{filteredCatalog.length}</strong> de <strong>{catalog.length}</strong>
-              </p>
-            </div>
-
-            {filteredCatalog.map((item) => {
-              const form = positionForms[item.id] ?? { x: '0', y: '0', z: '' }
-              const placed = layout[item.id]
-
-              return (
-                <article className={`rounded-lg border p-4 ${statusClass[item.estado_usuario]}`} key={item.id}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">{item.nombre}</h2>
-                      <p className="text-sm text-slate-600">{item.descripcion ?? 'Sin descripcion adicional.'}</p>
-                      <p className="text-sm text-slate-700">Categoria: {item.categoria}</p>
-                      <p className="text-sm text-slate-700">Nivel requerido: {item.nivel_requerido}</p>
-                      {item.recurso && <p className="text-sm text-slate-700">Recurso: {item.recurso}</p>}
-                    </div>
-                    <span className="rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700">
-                      {statusLabel[item.estado_usuario]}
-                    </span>
-                  </div>
-
-                  {item.estado_usuario === 'DISPONIBLE' && (
-                    <button
-                      className="mt-3 rounded-md bg-slate-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={unlockingId !== null}
-                      onClick={() => void handleUnlock(item.id)}
-                      type="button"
-                    >
-                      {unlockingId === item.id ? 'Desbloqueando...' : 'Desbloquear'}
-                    </button>
-                  )}
-
-                  {item.estado_usuario === 'DESBLOQUEADO' && (
-                    <div className="mt-4 grid gap-2 md:grid-cols-4">
-                      <div className="md:col-span-4 flex flex-wrap gap-2">
-                        {(['CENTER', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'RANDOM'] as PositionPreset[]).map((preset) => (
-                          <button
-                            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:border-slate-500"
-                            key={preset}
-                            onClick={() => handleApplyPreset(item.id, preset)}
-                            type="button"
-                          >
-                            {presetLabel[preset]}
-                          </button>
-                        ))}
+                    {item.estado_usuario === 'BLOQUEADO' && (
+                      <div className="w-full rounded-xl py-1.5 text-center font-display text-xs font-bold tracking-wider" style={{ background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.3)' }}>
+                        <Icon className="mr-1" name="lockSolid" />
+                        NV. {item.nivel_requerido}
                       </div>
+                    )}
 
-                      <label className="text-sm text-slate-700">
-                        X
-                        <input
-                          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1"
-                          onChange={(event) => handlePositionChange(item.id, 'x', event.target.value)}
-                          type="number"
-                          value={form.x}
-                        />
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        Y
-                        <input
-                          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1"
-                          onChange={(event) => handlePositionChange(item.id, 'y', event.target.value)}
-                          type="number"
-                          value={form.y}
-                        />
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        Z
-                        <input
-                          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1"
-                          onChange={(event) => handlePositionChange(item.id, 'z', event.target.value)}
-                          placeholder="Opcional"
-                          type="number"
-                          value={form.z}
-                        />
-                      </label>
-                      <div className="flex items-end">
-                        <button
-                          className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
-                          disabled={savingId !== null}
-                          onClick={() => void handleSavePosition(item.id)}
-                          type="button"
-                        >
-                          {savingId === item.id ? 'Guardando...' : 'Guardar posicion'}
-                        </button>
+                    {item.estado_usuario === 'DISPONIBLE' && (
+                      <ChipButton className="w-full" disabled={unlockingId !== null} onClick={() => void handleUnlock(item.id)} tone="green">
+                        {unlockingId === item.id ? 'DESBLOQUEANDO...' : 'DESBLOQUEAR'}
+                      </ChipButton>
+                    )}
+
+                    {unlocked && (
+                      <ChipButton className="w-full" onClick={() => setEditingId(editing ? null : item.id)} tone={editing || placed ? 'gold' : 'green'}>
+                        {editing ? 'CERRAR' : placed ? 'MOVER' : 'COLOCAR'}
+                      </ChipButton>
+                    )}
+
+                    {unlocked && editing && (
+                      <div className="mt-2 grid w-full gap-2 md:grid-cols-4">
+                        <div className="flex flex-wrap gap-2 md:col-span-4">
+                          {(['CENTER', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'RANDOM'] as PositionPreset[]).map((preset) => (
+                            <ChipButton key={preset} onClick={() => handleApplyPreset(item.id, preset)}>
+                              {presetLabel[preset]}
+                            </ChipButton>
+                          ))}
+                        </div>
+
+                        <InputField id={`pos-x-${item.id}`} label="X" onChange={(event) => handlePositionChange(item.id, 'x', event.target.value)} type="number" value={form.x} />
+                        <InputField id={`pos-y-${item.id}`} label="Y" onChange={(event) => handlePositionChange(item.id, 'y', event.target.value)} type="number" value={form.y} />
+                        <InputField id={`pos-z-${item.id}`} label="Z" onChange={(event) => handlePositionChange(item.id, 'z', event.target.value)} placeholder="Opcional" type="number" value={form.z} />
+                        <div className="flex items-end">
+                          <Button className="w-full" disabled={savingId !== null} onClick={() => void handleSavePosition(item.id)} size="sm" variant="green">
+                            {savingId === item.id ? 'GUARDANDO...' : 'GUARDAR'}
+                          </Button>
+                        </div>
+
+                        <p className="text-xs text-white/40 md:col-span-4">
+                          {placed
+                            ? `Posición actual: X ${placed.posicion_x}, Y ${placed.posicion_y}${placed.posicion_z !== null ? `, Z ${placed.posicion_z}` : ''}`
+                            : 'Aún no tiene posición guardada.'}
+                        </p>
                       </div>
+                    )}
+                  </article>
+                )
+              })}
+            </div>
 
-                      <p className="md:col-span-4 text-xs text-slate-500">
-                        {placed
-                          ? `Posicion actual: X ${placed.posicion_x}, Y ${placed.posicion_y}${placed.posicion_z !== null ? `, Z ${placed.posicion_z}` : ''}`
-                          : 'Aun no tiene posicion guardada.'}
-                      </p>
-                    </div>
-                  )}
-                </article>
-              )
-            })}
-
-            {filteredCatalog.length === 0 && (
-              <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">No hay elementos para los filtros seleccionados.</p>
-            )}
+            {filteredCatalog.length === 0 && <EmptyState icon="island" title="No hay elementos para estos filtros" />}
           </section>
-        </>
+        </div>
       )}
-    </div>
+    </Page>
   )
 }
