@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Points\AdjustPointsRequest;
-use App\Http\Requests\Points\AwardPointsRequest;
 use App\Models\PointMovement;
 use App\Http\Resources\Points\PointMovementResource;
 use App\Models\User;
@@ -90,28 +89,5 @@ class PointsController extends Controller
             ->paginate(20);
 
         return $this->success('Ajustes de puntos obtenidos correctamente.', PointMovementResource::collection($adjustments));
-    }
-
-    public function award(AwardPointsRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        try {
-            $movement = $this->pointsService->awardPointsByRule(
-                $request->user(),
-                (int) $validated['usuario_id'],
-                (int) $validated['regla_puntos_id'],
-            );
-        } catch (RuntimeException $exception) {
-            return $this->error($exception->getMessage(), null, 422);
-        }
-
-        $targetUser = User::query()->findOrFail($validated['usuario_id']);
-
-        return $this->success('Puntos agregados correctamente.', [
-            'movimiento' => new PointMovementResource($movement),
-            'saldo_global' => $this->pointsService->getUserBalance($targetUser),
-            'nivel_id' => $targetUser->nivel_id,
-        ], 201);
     }
 }

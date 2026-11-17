@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             LevelSeeder::class,
             BusinessSeeder::class,
             IslandElementSeeder::class,
-            PointRuleSeeder::class,
             BattlePassTierSeeder::class,
             AdminGeneralSeeder::class,
         ]);

@@ -57,24 +57,19 @@ class SaleService
                 throw new RuntimeException('Hay productos inactivos o que no pertenecen a tu negocio.');
             }
 
-            $total = 0.0;
             $points = 0;
             $rows = [];
 
             foreach ($quantities as $productId => $quantity) {
                 $product = $products[$productId];
-                $subtotal = round((float) $product->precio * $quantity, 2);
                 $subtotalPoints = $product->puntos * $quantity;
-                $total += $subtotal;
                 $points += $subtotalPoints;
 
                 $rows[] = [
                     'producto_id' => $product->id,
                     'nombre' => $product->nombre,
-                    'precio_unitario' => $product->precio,
                     'puntos_unitarios' => $product->puntos,
                     'cantidad' => $quantity,
-                    'subtotal' => $subtotal,
                     'puntos_subtotal' => $subtotalPoints,
                 ];
             }
@@ -82,7 +77,6 @@ class SaleService
             $sale = Sale::query()->create([
                 'negocio_id' => $actor->negocio_id,
                 'creado_por' => $actor->id,
-                'total' => round($total, 2),
                 'puntos_total' => $points,
             ]);
 

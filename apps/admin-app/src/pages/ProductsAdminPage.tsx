@@ -9,7 +9,6 @@ type Product = {
   negocio_id: number
   nombre: string
   descripcion: string | null
-  precio: string
   puntos: number
   estado: boolean
 }
@@ -21,7 +20,6 @@ export function ProductsAdminPage() {
   const [rows, setRows] = useState<Product[]>([])
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
-  const [precio, setPrecio] = useState('')
   const [puntos, setPuntos] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -49,13 +47,11 @@ export function ProductsAdminPage() {
       await apiPost('/products', {
         nombre,
         descripcion: descripcion.trim() || null,
-        precio: Number(precio),
         puntos: Number(puntos),
       })
       setMessage('Producto creado correctamente.')
       setNombre('')
       setDescripcion('')
-      setPrecio('')
       setPuntos('')
       await loadProducts()
     } catch (err) {
@@ -86,9 +82,8 @@ export function ProductsAdminPage() {
         </div>
         {canCreate ? (
           <>
-            <form className="grid gap-3 md:grid-cols-4" onSubmit={onSubmit}>
+            <form className="grid gap-3 md:grid-cols-3" onSubmit={onSubmit}>
               <input className="pb-input" placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-              <input className="pb-input" placeholder="Precio" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} />
               <input className="pb-input" placeholder="Puntos que otorga" inputMode="numeric" value={puntos} onChange={(e) => setPuntos(e.target.value)} />
               <button className="rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 font-display font-bold tracking-wider text-[#0d0a00] p-2" type="submit">Crear</button>
             </form>
@@ -115,7 +110,6 @@ export function ProductsAdminPage() {
               <tr>
                 <th className="p-2">Negocio</th>
                 <th className="p-2">Nombre</th>
-                <th className="p-2">Precio</th>
                 <th className="p-2">Puntos</th>
                 <th className="p-2">Estado</th>
                 <th className="p-2">Accion</th>
@@ -126,7 +120,6 @@ export function ProductsAdminPage() {
                 <tr key={row.id}>
                   <td className="p-2">{row.negocio_id}</td>
                   <td className="p-2">{row.nombre}</td>
-                  <td className="p-2">${row.precio}</td>
                   <td className="p-2">{row.puntos}</td>
                   <td className="p-2">{row.estado ? 'ACTIVO' : 'INACTIVO'}</td>
                   <td className="p-2">
@@ -144,7 +137,7 @@ export function ProductsAdminPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td className="p-2 text-white/40" colSpan={6}>Sin productos todavia.</td>
+                  <td className="p-2 text-white/40" colSpan={5}>Sin productos todavia.</td>
                 </tr>
               )}
             </tbody>

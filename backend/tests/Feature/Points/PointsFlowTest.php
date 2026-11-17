@@ -4,7 +4,7 @@ namespace Tests\Feature\Points;
 
 use App\Models\Business;
 use App\Models\Level;
-use App\Models\PointRule;
+use App\Models\QrCode;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,9 +20,6 @@ class PointsFlowTest extends TestCase
     private Role $adminNegocioRole;
     private Role $adminGeneralRole;
     private Business $businessA;
-    private Business $businessB;
-    private PointRule $ruleA;
-    private PointRule $ruleB;
 
     protected function setUp(): void
     {
@@ -51,104 +48,34 @@ class PointsFlowTest extends TestCase
             'estado' => true,
             'fecha_registro' => now(),
         ]);
-
-        $this->businessB = Business::query()->create([
-            'nombre' => 'Negocio B',
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
-
-        $this->ruleA = PointRule::query()->create([
-            'negocio_id' => $this->businessA->id,
-            'monto_minimo' => 1,
-            'monto_maximo' => 100,
-            'puntos' => 50,
-            'estado' => true,
-        ]);
-
-        $this->ruleB = PointRule::query()->create([
-            'negocio_id' => $this->businessB->id,
-            'monto_minimo' => 1,
-            'monto_maximo' => 100,
-            'puntos' => 25,
-            'estado' => true,
-        ]);
     }
 
     public function test_points_are_awarded_and_global_balance_is_returned(): void
     {
-        $adminNegocio = User::query()->create([
-            'nombre' => 'Admin A',
-            'correo' => 'admina@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->adminNegocioRole->id,
-            'negocio_id' => $this->businessA->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
+        $client = $this->makeUser($this->clienteRole, 'clientex@example.com');
 
-        $client = User::query()->create([
-            'nombre' => 'Cliente X',
-            'correo' => 'clientex@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->clienteRole->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
+        Sanctum::actingAs($client);
 
-        Sanctum::actingAs($adminNegocio);
-
-        $awardResponse = $this->postJson('/api/points/award', [
-            'usuario_id' => $client->id,
-            'regla_puntos_id' => $this->ruleA->id,
-        ]);
-
-        $awardResponse
+        $this->redeemNewQr(50)
             ->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.movimiento.cantidad', 50)
             ->assertJsonPath('data.saldo_global', 50);
 
-        Sanctum::actingAs($client);
-
-        $balanceResponse = $this->getJson('/api/points/balance');
-
-        $balanceResponse
+        $this->getJson('/api/points/balance')
             ->assertOk()
-            ->assertJsonPath('data.saldo_global', 50);
+            ->assertJsonPath('data.saldo_global', 50)
+            ->assertJsonPath('data.puntos_acumulados', 50);
     }
 
     public function test_global_points_accumulate_and_level_is_updated(): void
     {
-        $adminGeneral = User::query()->create([
-            'nombre' => 'Admin General',
-            'correo' => 'adminglobal@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->adminGeneralRole->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
+        $client = $this->makeUser($this->clienteRole, 'clientey@example.com');
 
-        $client = User::query()->create([
-            'nombre' => 'Cliente Y',
-            'correo' => 'clientey@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->clienteRole->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
+        Sanctum::actingAs($client);
 
-        Sanctum::actingAs($adminGeneral);
-
-        $this->postJson('/api/points/award', [
-            'usuario_id' => $client->id,
-            'regla_puntos_id' => $this->ruleA->id,
-        ])->assertCreated();
-
-        $this->postJson('/api/points/award', [
-            'usuario_id' => $client->id,
-            'regla_puntos_id' => $this->ruleA->id,
-        ])->assertCreated();
+        $this->redeemNewQr(50)->assertCreated();
+        $this->redeemNewQr(50)->assertCreated();
 
         $client->refresh();
 
@@ -159,66 +86,14 @@ class PointsFlowTest extends TestCase
         $this->assertEquals($nivel2->id, $client->nivel_id);
     }
 
-    public function test_business_admin_cannot_award_points_using_other_business_rule(): void
-    {
-        $adminNegocio = User::query()->create([
-            'nombre' => 'Admin A',
-            'correo' => 'admina2@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->adminNegocioRole->id,
-            'negocio_id' => $this->businessA->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
-
-        $client = User::query()->create([
-            'nombre' => 'Cliente Z',
-            'correo' => 'clientez@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->clienteRole->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
-
-        Sanctum::actingAs($adminNegocio);
-
-        $response = $this->postJson('/api/points/award', [
-            'usuario_id' => $client->id,
-            'regla_puntos_id' => $this->ruleB->id,
-        ]);
-
-        $response
-            ->assertStatus(422)
-            ->assertJsonPath('success', false);
-    }
-
     public function test_level_falls_back_to_highest_active_when_balance_exceeds_ranges(): void
     {
-        $adminGeneral = User::query()->create([
-            'nombre' => 'Admin General Alto',
-            'correo' => 'adminglobalmax@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->adminGeneralRole->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
+        $client = $this->makeUser($this->clienteRole, 'clientealto@example.com');
 
-        $client = User::query()->create([
-            'nombre' => 'Cliente Alto',
-            'correo' => 'clientealto@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->clienteRole->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
-
-        Sanctum::actingAs($adminGeneral);
+        Sanctum::actingAs($client);
 
         for ($i = 0; $i < 5; $i++) {
-            $this->postJson('/api/points/award', [
-                'usuario_id' => $client->id,
-                'regla_puntos_id' => $this->ruleA->id,
-            ])->assertCreated();
+            $this->redeemNewQr(50)->assertCreated();
         }
 
         $client->refresh();
@@ -228,56 +103,56 @@ class PointsFlowTest extends TestCase
         $this->assertEquals($nivel2->id, $client->nivel_id);
     }
 
-    public function test_points_can_only_be_awarded_to_clients(): void
+    public function test_points_can_only_be_earned_by_clients(): void
     {
-        $adminNegocio = User::query()->create([
-            'nombre' => 'Admin A',
-            'correo' => 'admin.award.only.clients@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->adminNegocioRole->id,
-            'negocio_id' => $this->businessA->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
-
-        $otherAdmin = User::query()->create([
-            'nombre' => 'Admin B',
-            'correo' => 'admin.target@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->adminNegocioRole->id,
-            'negocio_id' => $this->businessA->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
+        $adminNegocio = $this->makeUser($this->adminNegocioRole, 'admin.only.clients@example.com', $this->businessA->id);
 
         Sanctum::actingAs($adminNegocio);
 
-        $this->postJson('/api/points/award', [
-            'usuario_id' => $otherAdmin->id,
-            'regla_puntos_id' => $this->ruleA->id,
-        ])->assertStatus(422);
+        $this->redeemNewQr(50)->assertStatus(403);
 
-        $this->assertDatabaseMissing('movimientos_puntos', ['usuario_id' => $otherAdmin->id]);
+        $this->assertDatabaseMissing('movimientos_puntos', ['usuario_id' => $adminNegocio->id]);
     }
 
-    public function test_client_cannot_award_points(): void
+    public function test_point_rules_and_direct_award_no_longer_exist(): void
     {
-        $client = User::query()->create([
-            'nombre' => 'Cliente Restriccion',
-            'correo' => 'clienter@example.com',
+        $client = $this->makeUser($this->clienteRole, 'cliente.sin.reglas@example.com');
+
+        Sanctum::actingAs($this->makeUser($this->adminGeneralRole, 'general.sin.reglas@example.com'));
+
+        $this->getJson('/api/point-rules')->assertNotFound();
+        $this->postJson('/api/point-rules', ['negocio_id' => $this->businessA->id, 'puntos' => 10])->assertNotFound();
+        $this->postJson('/api/points/award', ['usuario_id' => $client->id])->assertNotFound();
+
+        $this->assertDatabaseCount('movimientos_puntos', 0);
+    }
+
+    private function makeUser(Role $role, string $email, ?int $businessId = null): User
+    {
+        return User::query()->create([
+            'nombre' => 'Usuario '.$role->nombre,
+            'correo' => $email,
             'password' => 'Password123',
-            'rol_id' => $this->clienteRole->id,
+            'rol_id' => $role->id,
+            'negocio_id' => $businessId,
             'estado' => true,
             'fecha_registro' => now(),
         ]);
+    }
 
-        Sanctum::actingAs($client);
-
-        $response = $this->postJson('/api/points/award', [
-            'usuario_id' => $client->id,
-            'regla_puntos_id' => $this->ruleA->id,
+    /**
+     * Crea un QR activo del negocio A y lo canjea con el usuario autenticado.
+     */
+    private function redeemNewQr(int $points): \Illuminate\Testing\TestResponse
+    {
+        $qrCode = QrCode::query()->create([
+            'negocio_id' => $this->businessA->id,
+            'token' => 'TOKEN-PUNTOS-'.uniqid(),
+            'puntos' => $points,
+            'estado' => 'ACTIVO',
+            'fecha_creacion' => now(),
         ]);
 
-        $response->assertStatus(403);
+        return $this->postJson('/api/qr/redeem', ['token' => $qrCode->token]);
     }
 }

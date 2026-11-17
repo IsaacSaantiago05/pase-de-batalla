@@ -8,7 +8,9 @@ import { clearAdminSession, getAdminSession } from '../lib/auth'
 type Me = { nombre: string }
 type Business = { id: number; nombre: string }
 type Summary = {
-  resumen: { ventas: number; ingresos: number; puntos_otorgados: number; clientes_activos: number }
+  qr: { hoy: { generados: number; utilizados: number } }
+  // Solo llega para el administrador general.
+  clientes_activos?: { semana: number }
 }
 type MenuItem = { to: string; icon: IconName; label: string }
 
@@ -22,11 +24,10 @@ const BUSINESS_MENU: MenuItem[] = [
 ]
 
 const PLATFORM_MENU: MenuItem[] = [
+  { to: '/businesses', icon: 'business', label: 'Negocios' },
   { to: '/administrators', icon: 'shield', label: 'Administradores' },
   { to: '/adjustments', icon: 'adjust', label: 'Ajustes de puntos' },
 ]
-
-const money = (value: number) => `$${value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 function MenuList({ items }: { items: MenuItem[] }) {
   return (
@@ -52,7 +53,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     apiGet<Me>('/auth/me').then((response) => setMe(response.data)).catch(() => setMe(null))
-    apiGet<Summary>('/statistics?dias=7').then((response) => setSummary(response.data)).catch(() => setSummary(null))
+    apiGet<Summary>('/statistics').then((response) => setSummary(response.data)).catch(() => setSummary(null))
     if (!isGeneral) {
       apiGet<Business[]>('/businesses')
         .then((response) => setBusiness(listData(response.data)[0] ?? null))
@@ -65,12 +66,19 @@ export function DashboardPage() {
     navigate('/login', { replace: true })
   }
 
-  const stats: { label: string; value: string; icon: IconName; color: string }[] = summary
+  // Tarjetas de arriba: QR del dia para todos y clientes activos solo para el administrador general.
+  const stats: { label: string; value: number; hint: string; icon: IconName; color: string }[] = summary
     ? [
-        { label: 'Ventas (7 días)', value: summary.resumen.ventas.toLocaleString('es-MX'), icon: 'receipt', color: '#60a5fa' },
-        { label: 'Ingresos (7 días)', value: money(summary.resumen.ingresos), icon: 'money', color: '#10b981' },
-        { label: 'Puntos otorgados', value: summary.resumen.puntos_otorgados.toLocaleString('es-MX'), icon: 'points', color: '#f59e0b' },
-        { label: 'Clientes activos', value: summary.resumen.clientes_activos.toLocaleString('es-MX'), icon: 'clients', color: '#a855f7' },
+        {
+          label: 'QR generados hoy',
+          value: summary.qr.hoy.generados,
+          hint: `${summary.qr.hoy.utilizados.toLocaleString('es-MX')} canjeados · ver semana y mes`,
+          icon: 'qr',
+          color: '#60a5fa',
+        },
+        ...(isGeneral && summary.clientes_activos
+          ? [{ label: 'Clientes activos', value: summary.clientes_activos.semana, hint: 'últimos 7 días', icon: 'clients' as IconName, color: '#a855f7' }]
+          : []),
       ]
     : []
 
@@ -108,17 +116,24 @@ export function DashboardPage() {
 
       <div className="flex flex-col gap-5 px-5 py-4 pb-8">
         {stats.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className={`grid gap-3 ${stats.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {stats.map((stat) => (
-              <div className="flex flex-col gap-2 rounded-2xl p-4" key={stat.label} style={{ background: 'linear-gradient(135deg, #1a2235, #111827)', border: `1px solid ${stat.color}20` }}>
+              <Link
+                className="flex flex-col gap-2 rounded-2xl p-4 transition-all active:scale-[0.98]"
+                key={stat.label}
+                style={{ background: 'linear-gradient(135deg, #1a2235, #111827)', border: `1px solid ${stat.color}20` }}
+                to="/statistics"
+              >
                 <div className="flex items-center gap-2">
                   <Icon className="text-xl" color={stat.color} name={stat.icon} />
-                  <span className="font-display text-xs font-bold tracking-wide" style={{ color: stat.color }}>
+                  <span className="flex-1 font-display text-xs font-bold tracking-wide" style={{ color: stat.color }}>
                     {stat.label}
                   </span>
+                  <ChevronRight size={14} />
                 </div>
-                <span className="font-mono-game text-2xl font-bold text-white">{stat.value}</span>
-              </div>
+                <span className="font-mono-game text-3xl font-bold text-white">{stat.value.toLocaleString('es-MX')}</span>
+                <span className="text-xs text-white/40">{stat.hint}</span>
+              </Link>
             ))}
           </div>
         )}

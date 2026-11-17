@@ -49,7 +49,6 @@ class ProductController extends Controller
             'negocio_id' => $actor->negocio_id,
             'nombre' => $validated['nombre'],
             'descripcion' => $validated['descripcion'] ?? null,
-            'precio' => $validated['precio'],
             'puntos' => (int) $validated['puntos'],
             'estado' => ($validated['estado'] ?? null) !== null ? (bool) $validated['estado'] : true,
         ]);

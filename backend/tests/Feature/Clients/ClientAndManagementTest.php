@@ -63,8 +63,8 @@ class ClientAndManagementTest extends TestCase
     public function test_client_sees_only_active_businesses_with_public_data(): void
     {
         Business::query()->create(['nombre' => 'Cerrado', 'estado' => false, 'fecha_registro' => now()]);
-        Product::query()->create(['negocio_id' => $this->businessA->id, 'nombre' => 'Cafe', 'precio' => 10, 'puntos' => 1, 'estado' => true]);
-        Product::query()->create(['negocio_id' => $this->businessA->id, 'nombre' => 'Viejo', 'precio' => 10, 'puntos' => 1, 'estado' => false]);
+        Product::query()->create(['negocio_id' => $this->businessA->id, 'nombre' => 'Cafe', 'puntos' => 1, 'estado' => true]);
+        Product::query()->create(['negocio_id' => $this->businessA->id, 'nombre' => 'Viejo', 'puntos' => 1, 'estado' => false]);
         Sanctum::actingAs($this->makeUser($this->clienteRole, 'c@example.com'));
 
         $data = $this->getJson('/api/directory/businesses')->assertOk()->json('data');

@@ -16,7 +16,6 @@ class UpdateProductRequest extends FormRequest
         return [
             'nombre' => ['sometimes', 'string', 'max:150'],
             'descripcion' => ['nullable', 'string'],
-            'precio' => ['sometimes', 'numeric', 'min:0', 'max:99999999.99'],
             'puntos' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'estado' => ['sometimes', 'boolean'],
         ];

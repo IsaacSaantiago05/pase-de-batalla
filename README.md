@@ -23,7 +23,7 @@ pase-de-batalla/
 - Registro, login, logout, perfil autenticado y recuperacion de password.
 - Roles: CLIENTE, ADMINISTRADOR_NEGOCIO, ADMINISTRADOR_GENERAL.
 - Gestion inicial de usuarios y negocios con aislamiento por negocio.
-- Motor de puntos globales con historial, reglas por negocio y recálculo de nivel.
+- Motor de puntos globales con historial y recálculo de nivel. La plataforma solo maneja puntos, no dinero.
 - Modulo QR transaccional con token unico, expiracion, uso unico y bloqueo de doble uso.
 - Modulo de recompensas y canjes con descuento inmediato de stock/puntos y reposicion por cancelacion.
 - Modulo de battle pass con tiers, progreso por puntos globales y reclamo por tier.
@@ -44,7 +44,6 @@ pase-de-batalla/
 - elementos_isla
 - usuario_elementos
 - configuracion_isla
-- reglas_puntos
 - pase_batalla_tiers
 - usuario_pase_batalla
 - personal_access_tokens (Sanctum)
@@ -54,7 +53,6 @@ pase-de-batalla/
 - RoleSeeder
 - LevelSeeder
 - BusinessSeeder
-- PointRuleSeeder
 - BattlePassTierSeeder
 - IslandElementSeeder
 - AdminGeneralSeeder
@@ -112,16 +110,10 @@ Puntos:
 - GET /api/points/balance
 - GET /api/points/history
 - GET /api/points/business-history
-- POST /api/points/award
 
-Reglas de puntos:
+Los puntos se otorgan con el QR de una venta, con un QR generado por cantidad de puntos o con un ajuste manual del administrador general.
 
-- GET /api/point-rules
-- POST /api/point-rules (solo ADMINISTRADOR_GENERAL)
-- PUT /api/point-rules/{pointRule}
-- PATCH /api/point-rules/{pointRule}/status
-
-Productos (catalogo por negocio, con precio y puntos fijos):
+Productos (catalogo por negocio, con puntos fijos; la plataforma no maneja precios ni dinero):
 
 - GET /api/products (cliente: solo activos; admin de negocio: los suyos; admin general: todos, filtro `negocio_id`)
 - POST /api/products (solo ADMINISTRADOR_NEGOCIO, se crea en su negocio)
@@ -130,7 +122,7 @@ Productos (catalogo por negocio, con precio y puntos fijos):
 
 Ventas (cada venta genera un QR de un solo uso con la suma de puntos de sus productos):
 
-- POST /api/sales (solo ADMINISTRADOR_NEGOCIO). Cuerpo: `{"items": [{"producto_id": 1, "cantidad": 2}]}`. Solo productos activos de su negocio; guarda una copia fija de nombre, precio y puntos.
+- POST /api/sales (solo ADMINISTRADOR_NEGOCIO). Cuerpo: `{"items": [{"producto_id": 1, "cantidad": 2}]}`. Solo productos activos de su negocio; guarda una copia fija de nombre y puntos.
 - GET /api/sales (admin de negocio: las suyas; admin general: todas, filtro `negocio_id`)
 
 Al canjear el QR de una venta, el movimiento de puntos guarda `venta_id` y `otorgado_por` (quien registro la venta).
@@ -151,7 +143,7 @@ Ajustes manuales (solo ADMINISTRADOR_GENERAL):
 
 Estadisticas (ADMINISTRADOR_NEGOCIO: su negocio; ADMINISTRADOR_GENERAL: toda la plataforma o `negocio_id`):
 
-- GET /api/statistics?dias=30 (7 a 90). Devuelve `resumen` (ventas, ingresos, puntos otorgados y canjeados, canjes, clientes activos, estado de los QR), `por_dia` (un registro por dia, con ceros en dias sin actividad), `top_productos` (5 mas vendidos) y, para el admin general sin filtro, `por_negocio`. Los QR ACTIVO ya vencidos se cuentan como expirados.
+- GET /api/statistics. Devuelve `qr` con tres periodos (`hoy`, `semana` = ultimos 7 dias, `mes` = ultimos 30 dias), cada uno con `generados`, `utilizados`, `expirados`, `cancelados` y `activos`. Los QR ACTIVO ya vencidos se cuentan como expirados. Solo para el ADMINISTRADOR_GENERAL agrega `clientes_activos` (clientes distintos que ganaron puntos en cada periodo) y `clientes_registrados`. El dia empieza a medianoche de `APP_LOCAL_TIMEZONE` (por defecto America/Mexico_City). No incluye ventas ni dinero.
 
 QR:
 
@@ -234,10 +226,9 @@ Rutas funcionales iniciales:
 - /administrators
 - /levels
 - /island-elements
-- /point-rules
 - /statistics
 
-Incluye proteccion de rutas por sesion y rol administrativo, mas flujo funcional para otorgar puntos y consultar historial del negocio.
+Incluye proteccion de rutas por sesion y rol administrativo, mas consulta del historial de puntos del negocio.
 
 El modulo QR de admin genera y visualiza imagen QR real (SVG) para cada codigo.
 
@@ -344,7 +335,6 @@ Cobertura actual minima:
 - Puntos agregados correctamente
 - Puntos globales acumulados correctamente
 - Nivel actualizado al cruzar umbral de puntos
-- Bloqueo de otorgamiento con regla de otro negocio
 - Generacion de QR por admin de negocio en su propio negocio
 - Bloqueo de generacion QR para negocio ajeno
 - Canje QR valido con impacto en saldo global

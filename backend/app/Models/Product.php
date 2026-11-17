@@ -13,13 +13,11 @@ class Product extends Model
         'negocio_id',
         'nombre',
         'descripcion',
-        'precio',
         'puntos',
         'estado',
     ];
 
     protected $casts = [
-        'precio' => 'decimal:2',
         'puntos' => 'integer',
         'estado' => 'boolean',
     ];

@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Zona horaria local: solo define donde empieza "hoy" en las estadisticas. Las fechas se siguen guardando en UTC.
+    'local_timezone' => env('APP_LOCAL_TIMEZONE', 'America/Mexico_City'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

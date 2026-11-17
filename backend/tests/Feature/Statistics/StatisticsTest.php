@@ -3,12 +3,12 @@
 namespace Tests\Feature\Statistics;
 
 use App\Models\Business;
-use App\Models\Level;
 use App\Models\PointMovement;
-use App\Models\Product;
+use App\Models\QrCode;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -22,20 +22,23 @@ class StatisticsTest extends TestCase
     private Business $businessA;
     private Business $businessB;
     private User $adminA;
-    private User $adminB;
+    private User $general;
+    private int $tokenCounter = 0;
 
     protected function setUp(): void
     {
         parent::setUp();
 
+        // 17 de noviembre, 9 de la noche en Mexico: en UTC ya es dia 18.
+        $this->travelTo(Carbon::parse('2026-11-17 21:00:00', 'America/Mexico_City'));
+
         $this->clienteRole = Role::query()->create(['nombre' => 'CLIENTE', 'estado' => true]);
         $this->adminNegocioRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_NEGOCIO', 'estado' => true]);
         $this->adminGeneralRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_GENERAL', 'estado' => true]);
-        Level::query()->create(['nombre' => 'Nivel 1', 'puntos_minimos' => 0, 'puntos_maximos' => 9999, 'estado' => true]);
         $this->businessA = Business::query()->create(['nombre' => 'Negocio A', 'estado' => true, 'fecha_registro' => now()]);
         $this->businessB = Business::query()->create(['nombre' => 'Negocio B', 'estado' => true, 'fecha_registro' => now()]);
         $this->adminA = $this->makeUser($this->adminNegocioRole, 'a@example.com', $this->businessA->id);
-        $this->adminB = $this->makeUser($this->adminNegocioRole, 'b@example.com', $this->businessB->id);
+        $this->general = $this->makeUser($this->adminGeneralRole, 'general@example.com');
     }
 
     private function makeUser(Role $role, string $email, ?int $businessId = null): User
@@ -51,105 +54,136 @@ class StatisticsTest extends TestCase
         ]);
     }
 
-    /** Registra una venta por la API y la canjea con un cliente nuevo. */
-    private function sellAndRedeem(User $admin, Product $product, int $quantity, string $clientEmail): void
+    /** Crea un QR generado en la fecha local indicada (hora de Mexico). */
+    private function makeQr(Business $business, string $localDateTime, string $status = 'UTILIZADO', ?string $localExpiration = null): QrCode
     {
-        Sanctum::actingAs($admin);
-        $token = $this->postJson('/api/sales', ['items' => [['producto_id' => $product->id, 'cantidad' => $quantity]]])
-            ->assertCreated()
-            ->json('data.qr.token');
+        $created = Carbon::parse($localDateTime, 'America/Mexico_City')->utc();
 
-        Sanctum::actingAs($this->makeUser($this->clienteRole, $clientEmail));
-        $this->postJson('/api/qr/redeem', ['token' => $token])->assertCreated();
+        return QrCode::query()->create([
+            'negocio_id' => $business->id,
+            'token' => 'TOKEN-ESTADISTICAS-'.(++$this->tokenCounter),
+            'puntos' => 10,
+            'estado' => $status,
+            'fecha_creacion' => $created,
+            'fecha_expiracion' => $localExpiration !== null ? Carbon::parse($localExpiration, 'America/Mexico_City')->utc() : null,
+        ]);
     }
 
-    private function seedActivity(): void
+    private function earnPoints(User $client, Business $business, string $localDateTime): void
     {
-        $cafe = Product::query()->create(['negocio_id' => $this->businessA->id, 'nombre' => 'Cafe', 'precio' => 30, 'puntos' => 5, 'estado' => true]);
-        $pan = Product::query()->create(['negocio_id' => $this->businessA->id, 'nombre' => 'Pan', 'precio' => 10, 'puntos' => 1, 'estado' => true]);
-        $taco = Product::query()->create(['negocio_id' => $this->businessB->id, 'nombre' => 'Taco', 'precio' => 20, 'puntos' => 2, 'estado' => true]);
-
-        $this->sellAndRedeem($this->adminA, $cafe, 2, 'c1@example.com');
-        $this->sellAndRedeem($this->adminA, $pan, 5, 'c2@example.com');
-        $this->sellAndRedeem($this->adminB, $taco, 1, 'c3@example.com');
-
-        // Venta cuyo QR nunca se escanea.
-        Sanctum::actingAs($this->adminA);
-        $this->postJson('/api/sales', ['items' => [['producto_id' => $cafe->id, 'cantidad' => 1]]])->assertCreated();
+        PointMovement::query()->create([
+            'usuario_id' => $client->id,
+            'negocio_id' => $business->id,
+            'cantidad' => 10,
+            'tipo' => 'GANANCIA',
+            'fecha' => Carbon::parse($localDateTime, 'America/Mexico_City')->utc(),
+        ]);
     }
 
-    public function test_business_admin_sees_only_own_business_totals(): void
+    private function seedQrCodes(): void
     {
-        $this->seedActivity();
-        Sanctum::actingAs($this->adminA);
-
-        $response = $this->getJson("/api/statistics?negocio_id={$this->businessB->id}")->assertOk();
-
-        $response->assertJsonPath('data.negocio_id', $this->businessA->id)
-            ->assertJsonPath('data.resumen.ventas', 3)
-            ->assertJsonPath('data.resumen.ingresos', 140)
-            ->assertJsonPath('data.resumen.puntos_otorgados', 15)
-            ->assertJsonPath('data.resumen.clientes_activos', 2)
-            ->assertJsonPath('data.resumen.qr.generados', 3)
-            ->assertJsonPath('data.resumen.qr.utilizados', 2)
-            ->assertJsonPath('data.resumen.qr.activos', 1)
-            ->assertJsonPath('data.top_productos.0.nombre', 'Pan')
-            ->assertJsonPath('data.top_productos.0.unidades', 5)
-            ->assertJsonMissingPath('data.por_negocio');
+        // Negocio A, hoy (17 nov hora local).
+        $this->makeQr($this->businessA, '2026-11-17 00:30:00', 'UTILIZADO');
+        $this->makeQr($this->businessA, '2026-11-17 10:00:00', 'CANCELADO');
+        $this->makeQr($this->businessA, '2026-11-17 20:59:00', 'ACTIVO', '2026-11-17 21:05:00');
+        $this->makeQr($this->businessA, '2026-11-17 20:00:00', 'ACTIVO', '2026-11-17 20:01:00'); // ya vencio
+        // Negocio A, ayer a las 11 de la noche hora local: no es de hoy aunque en UTC ya era 17.
+        $this->makeQr($this->businessA, '2026-11-16 23:00:00', 'EXPIRADO');
+        // Negocio A, hace 6 dias (entra en la semana) y hace 7 (solo en el mes).
+        $this->makeQr($this->businessA, '2026-11-11 12:00:00', 'UTILIZADO');
+        $this->makeQr($this->businessA, '2026-11-10 12:00:00', 'UTILIZADO');
+        // Negocio A, hace 29 dias (entra en el mes) y hace 30 (fuera de todo).
+        $this->makeQr($this->businessA, '2026-10-19 08:00:00', 'UTILIZADO');
+        $this->makeQr($this->businessA, '2026-10-18 23:00:00', 'UTILIZADO');
+        // Negocio B, hoy.
+        $this->makeQr($this->businessB, '2026-11-17 12:00:00', 'UTILIZADO');
     }
 
-    public function test_daily_series_covers_every_day_of_period(): void
+    public function test_business_admin_sees_qr_of_today_week_and_month_for_own_business(): void
     {
-        $this->seedActivity();
-        Sanctum::actingAs($this->adminA);
-
-        $series = $this->getJson('/api/statistics?dias=7')->assertOk()->json('data.por_dia');
-
-        $this->assertCount(7, $series);
-        $this->assertSame(now()->toDateString(), $series[6]['dia']);
-        $this->assertSame(3, $series[6]['ventas']);
-        $this->assertSame(0, $series[0]['ventas']);
-    }
-
-    public function test_general_admin_sees_platform_totals_and_per_business(): void
-    {
-        $this->seedActivity();
-        PointMovement::query()->create(['usuario_id' => $this->adminA->id, 'negocio_id' => null, 'cantidad' => 99, 'tipo' => 'AJUSTE', 'fecha' => now()]);
-        Sanctum::actingAs($this->makeUser($this->adminGeneralRole, 'g@example.com'));
-
-        $response = $this->getJson('/api/statistics')->assertOk();
-
-        $response->assertJsonPath('data.negocio_id', null)
-            ->assertJsonPath('data.resumen.ventas', 4)
-            ->assertJsonPath('data.resumen.puntos_otorgados', 17)
-            ->assertJsonPath('data.resumen.clientes_registrados', 3)
-            ->assertJsonCount(2, 'data.por_negocio');
-
-        $this->getJson("/api/statistics?negocio_id={$this->businessB->id}")
-            ->assertOk()
-            ->assertJsonPath('data.resumen.ventas', 1)
-            ->assertJsonMissingPath('data.por_negocio');
-    }
-
-    public function test_active_qr_past_expiration_counts_as_expired(): void
-    {
-        $this->seedActivity();
-        $this->travel(5)->minutes();
+        $this->seedQrCodes();
         Sanctum::actingAs($this->adminA);
 
         $this->getJson('/api/statistics')
             ->assertOk()
-            ->assertJsonPath('data.resumen.qr.activos', 0)
-            ->assertJsonPath('data.resumen.qr.expirados', 1);
+            ->assertJsonPath('data.negocio_id', $this->businessA->id)
+            ->assertJsonPath('data.qr.hoy', ['generados' => 4, 'utilizados' => 1, 'expirados' => 1, 'cancelados' => 1, 'activos' => 1])
+            ->assertJsonPath('data.qr.semana', ['generados' => 6, 'utilizados' => 2, 'expirados' => 2, 'cancelados' => 1, 'activos' => 1])
+            ->assertJsonPath('data.qr.mes', ['generados' => 8, 'utilizados' => 4, 'expirados' => 2, 'cancelados' => 1, 'activos' => 1]);
     }
 
-    public function test_statistics_validation_and_access(): void
+    public function test_business_admin_does_not_get_active_clients_nor_other_business(): void
     {
+        $this->seedQrCodes();
+        $this->earnPoints($this->makeUser($this->clienteRole, 'c1@example.com'), $this->businessA, '2026-11-17 10:00:00');
         Sanctum::actingAs($this->adminA);
-        $this->getJson('/api/statistics?dias=3')->assertStatus(422);
-        $this->getJson('/api/statistics?dias=500')->assertStatus(422);
 
-        Sanctum::actingAs($this->makeUser($this->clienteRole, 'c@example.com'));
+        // Aunque pida otro negocio, recibe el suyo y sin datos de clientes.
+        $this->getJson('/api/statistics?negocio_id='.$this->businessB->id)
+            ->assertOk()
+            ->assertJsonPath('data.negocio_id', $this->businessA->id)
+            ->assertJsonPath('data.qr.hoy.generados', 4)
+            ->assertJsonMissingPath('data.clientes_activos')
+            ->assertJsonMissingPath('data.clientes_registrados');
+    }
+
+    public function test_general_admin_sees_platform_qr_and_active_clients(): void
+    {
+        $this->seedQrCodes();
+        $clientToday = $this->makeUser($this->clienteRole, 'c1@example.com');
+        $clientWeek = $this->makeUser($this->clienteRole, 'c2@example.com');
+        $clientMonth = $this->makeUser($this->clienteRole, 'c3@example.com');
+        $this->makeUser($this->clienteRole, 'sin.actividad@example.com');
+
+        // El mismo cliente con dos movimientos hoy cuenta una sola vez.
+        $this->earnPoints($clientToday, $this->businessA, '2026-11-17 09:00:00');
+        $this->earnPoints($clientToday, $this->businessB, '2026-11-17 15:00:00');
+        $this->earnPoints($clientWeek, $this->businessB, '2026-11-13 12:00:00');
+        $this->earnPoints($clientMonth, $this->businessA, '2026-10-25 12:00:00');
+
+        Sanctum::actingAs($this->general);
+
+        $this->getJson('/api/statistics')
+            ->assertOk()
+            ->assertJsonPath('data.negocio_id', null)
+            ->assertJsonPath('data.qr.hoy.generados', 5)
+            ->assertJsonPath('data.qr.semana.generados', 7)
+            ->assertJsonPath('data.qr.mes.generados', 9)
+            ->assertJsonPath('data.clientes_activos', ['hoy' => 1, 'semana' => 2, 'mes' => 3])
+            ->assertJsonPath('data.clientes_registrados', 4);
+
+        // Con filtro de negocio, todo se limita a ese negocio.
+        $this->getJson('/api/statistics?negocio_id='.$this->businessB->id)
+            ->assertOk()
+            ->assertJsonPath('data.negocio_id', $this->businessB->id)
+            ->assertJsonPath('data.qr.mes.generados', 1)
+            ->assertJsonPath('data.clientes_activos', ['hoy' => 1, 'semana' => 2, 'mes' => 2]);
+    }
+
+    public function test_statistics_do_not_expose_sales_or_money(): void
+    {
+        Sanctum::actingAs($this->general);
+
+        $this->getJson('/api/statistics')
+            ->assertOk()
+            ->assertJsonPath('data.qr.hoy.generados', 0)
+            ->assertJsonMissingPath('data.resumen')
+            ->assertJsonMissingPath('data.por_dia')
+            ->assertJsonMissingPath('data.top_productos')
+            ->assertJsonMissingPath('data.por_negocio');
+    }
+
+    public function test_statistics_validate_business_and_require_admin_role(): void
+    {
+        Sanctum::actingAs($this->general);
+        $this->getJson('/api/statistics?negocio_id=9999')->assertStatus(422);
+
+        Sanctum::actingAs($this->makeUser($this->clienteRole, 'cliente@example.com'));
         $this->getJson('/api/statistics')->assertStatus(403);
+    }
+
+    public function test_statistics_require_authentication(): void
+    {
+        $this->getJson('/api/statistics')->assertStatus(401);
     }
 }
