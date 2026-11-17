@@ -49,12 +49,11 @@ class SaleFlowTest extends TestCase
         ]);
     }
 
-    private function makeProduct(Business $business, string $name, float $price, int $points, bool $active = true): Product
+    private function makeProduct(Business $business, string $name, int $points, bool $active = true): Product
     {
         return Product::query()->create([
             'negocio_id' => $business->id,
             'nombre' => $name,
-            'precio' => $price,
             'puntos' => $points,
             'estado' => $active,
         ]);
@@ -62,8 +61,8 @@ class SaleFlowTest extends TestCase
 
     public function test_business_admin_registers_sale_and_gets_qr_with_product_points(): void
     {
-        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 35, 10);
-        $cake = $this->makeProduct($this->businessA, 'Pastel', 65.5, 25);
+        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 10);
+        $cake = $this->makeProduct($this->businessA, 'Pastel', 25);
         Sanctum::actingAs($this->adminA);
 
         $response = $this->postJson('/api/sales', [
@@ -75,7 +74,9 @@ class SaleFlowTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('data.negocio_id', $this->businessA->id)
-            ->assertJsonPath('data.total', '135.50')
+            ->assertJsonMissingPath('data.total')
+            ->assertJsonMissingPath('data.items.0.precio_unitario')
+            ->assertJsonMissingPath('data.items.0.subtotal')
             ->assertJsonPath('data.puntos_total', 45)
             ->assertJsonPath('data.qr.puntos', 45)
             ->assertJsonPath('data.qr.estado', 'ACTIVO')
@@ -86,14 +87,14 @@ class SaleFlowTest extends TestCase
 
     public function test_sale_keeps_product_snapshot_after_catalog_changes(): void
     {
-        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 35, 10);
+        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 10);
         Sanctum::actingAs($this->adminA);
 
         $saleId = $this->postJson('/api/sales', ['items' => [['producto_id' => $cupcake->id, 'cantidad' => 1]]])
             ->assertCreated()
             ->json('data.id');
 
-        $cupcake->update(['nombre' => 'Cupcake nuevo', 'precio' => 99, 'puntos' => 50]);
+        $cupcake->update(['nombre' => 'Cupcake nuevo', 'puntos' => 50]);
 
         $this->assertDatabaseHas('venta_items', [
             'venta_id' => $saleId,
@@ -104,8 +105,8 @@ class SaleFlowTest extends TestCase
 
     public function test_sale_rejects_products_from_other_business_or_inactive(): void
     {
-        $foreign = $this->makeProduct($this->businessB, 'Ajeno', 10, 5);
-        $inactive = $this->makeProduct($this->businessA, 'Inactivo', 10, 5, false);
+        $foreign = $this->makeProduct($this->businessB, 'Ajeno', 5);
+        $inactive = $this->makeProduct($this->businessA, 'Inactivo', 5, false);
         Sanctum::actingAs($this->adminA);
 
         $this->postJson('/api/sales', ['items' => [['producto_id' => $foreign->id, 'cantidad' => 1]]])->assertStatus(422);
@@ -126,7 +127,7 @@ class SaleFlowTest extends TestCase
 
     public function test_client_redeems_sale_qr_and_movement_is_audited(): void
     {
-        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 35, 10);
+        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 10);
         Sanctum::actingAs($this->adminA);
         $sale = $this->postJson('/api/sales', ['items' => [['producto_id' => $cupcake->id, 'cantidad' => 3]]])->json('data');
 
@@ -145,8 +146,8 @@ class SaleFlowTest extends TestCase
 
     public function test_business_admin_lists_only_own_sales(): void
     {
-        $own = $this->makeProduct($this->businessA, 'Propio', 10, 1);
-        $foreign = $this->makeProduct($this->businessB, 'Ajeno', 10, 1);
+        $own = $this->makeProduct($this->businessA, 'Propio', 1);
+        $foreign = $this->makeProduct($this->businessB, 'Ajeno', 1);
         $adminB = $this->makeUser($this->adminNegocioRole, 'b@example.com', $this->businessB->id);
 
         Sanctum::actingAs($this->adminA);
@@ -163,7 +164,7 @@ class SaleFlowTest extends TestCase
 
     public function test_only_business_admin_can_register_sales(): void
     {
-        $product = $this->makeProduct($this->businessA, 'Cupcake', 35, 10);
+        $product = $this->makeProduct($this->businessA, 'Cupcake', 10);
         $payload = ['items' => [['producto_id' => $product->id, 'cantidad' => 1]]];
 
         Sanctum::actingAs($this->makeUser($this->clienteRole, 'c@example.com'));

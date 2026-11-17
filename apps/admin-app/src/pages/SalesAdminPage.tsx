@@ -6,7 +6,6 @@ import { getAdminSession } from '../lib/auth'
 type Product = {
   id: number
   nombre: string
-  precio: string
   puntos: number
   estado: boolean
 }
@@ -14,16 +13,13 @@ type Product = {
 type SaleItem = {
   producto_id: number | null
   nombre: string
-  precio_unitario: string
   cantidad: number
-  subtotal: string
   puntos_subtotal: number
 }
 
 type Sale = {
   id: number
   negocio_id: number
-  total: string
   puntos_total: number
   items: SaleItem[]
   qr: { id: number; estado: string; fecha_expiracion: string | null; usuario_id: number | null } | null
@@ -79,7 +75,6 @@ export function SalesAdminPage() {
   }, [qr])
 
   const lines = products.filter((product) => (cart[product.id] ?? 0) > 0)
-  const total = lines.reduce((sum, product) => sum + Number(product.precio) * cart[product.id], 0)
   const points = lines.reduce((sum, product) => sum + product.puntos * cart[product.id], 0)
 
   function changeQuantity(productId: number, delta: number) {
@@ -149,7 +144,7 @@ export function SalesAdminPage() {
                   <li className="flex items-center justify-between gap-3 p-3" key={product.id}>
                     <div>
                       <p className="font-medium">{product.nombre}</p>
-                      <p className="text-xs text-white/40">${product.precio} · {product.puntos} pts</p>
+                      <p className="text-xs text-white/40">{product.puntos} pts</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button className="h-8 w-8 rounded-md border border-white/10" onClick={() => changeQuantity(product.id, -1)} type="button">-</button>
@@ -167,14 +162,10 @@ export function SalesAdminPage() {
               {lines.map((product) => (
                 <p className="flex justify-between text-sm" key={product.id}>
                   <span>{cart[product.id]} × {product.nombre}</span>
-                  <span>${(Number(product.precio) * cart[product.id]).toFixed(2)}</span>
+                  <span>{product.puntos * cart[product.id]} pts</span>
                 </p>
               ))}
-              <p className="flex justify-between border-t pt-2 font-semibold">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
-              </p>
-              <p className="flex justify-between text-sm text-emerald-400">
+              <p className="flex justify-between border-t border-white/10 pt-2 font-semibold text-emerald-400">
                 <span>Puntos para el cliente</span>
                 <span>{points}</span>
               </p>
@@ -236,7 +227,6 @@ export function SalesAdminPage() {
                 <th className="p-2">#</th>
                 <th className="p-2">Fecha</th>
                 <th className="p-2">Productos</th>
-                <th className="p-2">Total</th>
                 <th className="p-2">Puntos</th>
                 <th className="p-2">QR</th>
               </tr>
@@ -247,14 +237,13 @@ export function SalesAdminPage() {
                   <td className="p-2">{sale.id}</td>
                   <td className="p-2">{new Date(sale.created_at).toLocaleString()}</td>
                   <td className="p-2">{sale.items.map((item) => `${item.cantidad}× ${item.nombre}`).join(', ')}</td>
-                  <td className="p-2">${sale.total}</td>
                   <td className="p-2">{sale.puntos_total}</td>
                   <td className="p-2">{sale.qr?.estado ?? '-'}</td>
                 </tr>
               ))}
               {sales.length === 0 && (
                 <tr>
-                  <td className="p-2 text-white/40" colSpan={6}>Sin ventas todavia.</td>
+                  <td className="p-2 text-white/40" colSpan={5}>Sin ventas todavia.</td>
                 </tr>
               )}
             </tbody>

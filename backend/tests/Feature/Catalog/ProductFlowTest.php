@@ -49,7 +49,6 @@ class ProductFlowTest extends TestCase
         return Product::query()->create([
             'negocio_id' => $business->id,
             'nombre' => $name,
-            'precio' => 35.50,
             'puntos' => 10,
             'estado' => $active,
         ]);
@@ -62,21 +61,23 @@ class ProductFlowTest extends TestCase
         $response = $this->postJson('/api/products', [
             'negocio_id' => $this->businessB->id,
             'nombre' => 'Cafe americano',
-            'precio' => 35.5,
             'puntos' => 10,
         ]);
 
-        $response->assertCreated()->assertJsonPath('data.negocio_id', $this->businessA->id);
+        $response->assertCreated()
+            ->assertJsonPath('data.negocio_id', $this->businessA->id)
+            ->assertJsonPath('data.puntos', 10)
+            ->assertJsonMissingPath('data.precio');
         $this->assertDatabaseHas('productos', ['nombre' => 'Cafe americano', 'negocio_id' => $this->businessA->id]);
     }
 
-    public function test_product_requires_valid_price_and_points(): void
+    public function test_product_requires_valid_points(): void
     {
         Sanctum::actingAs($this->makeUser($this->adminNegocioRole, 'a@example.com', $this->businessA->id));
 
-        $this->postJson('/api/products', ['nombre' => 'X', 'precio' => -1, 'puntos' => 0])
+        $this->postJson('/api/products', ['nombre' => 'X', 'puntos' => 0])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['precio', 'puntos']);
+            ->assertJsonValidationErrors(['puntos']);
     }
 
     public function test_business_admin_cannot_edit_product_of_other_business(): void
@@ -105,7 +106,7 @@ class ProductFlowTest extends TestCase
         $product = $this->makeProduct($this->businessA);
         Sanctum::actingAs($this->makeUser($this->adminGeneralRole, 'g@example.com'));
 
-        $this->postJson('/api/products', ['nombre' => 'X', 'precio' => 1, 'puntos' => 1])->assertStatus(403);
+        $this->postJson('/api/products', ['nombre' => 'X', 'puntos' => 1])->assertStatus(403);
         $this->putJson("/api/products/{$product->id}", ['nombre' => 'X'])->assertStatus(403);
         $this->patchJson("/api/products/{$product->id}/status", ['estado' => false])->assertOk();
         $this->assertFalse($product->fresh()->estado);
@@ -121,7 +122,7 @@ class ProductFlowTest extends TestCase
         $names = collect($response->json('data.data') ?? $response->json('data'))->pluck('nombre')->all();
 
         $this->assertSame(['Activo'], $names);
-        $this->postJson('/api/products', ['nombre' => 'X', 'precio' => 1, 'puntos' => 1])->assertStatus(403);
+        $this->postJson('/api/products', ['nombre' => 'X', 'puntos' => 1])->assertStatus(403);
         $this->patchJson("/api/products/{$inactive->id}/status", ['estado' => true])->assertStatus(403);
     }
 

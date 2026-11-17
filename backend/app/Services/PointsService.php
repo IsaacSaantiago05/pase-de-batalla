@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Level;
 use App\Models\PointMovement;
-use App\Models\PointRule;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -52,39 +51,6 @@ class PointsService
             ->where('negocio_id', $businessId)
             ->orderByDesc('id')
             ->paginate($perPage);
-    }
-
-    public function awardPointsByRule(User $actor, int $targetUserId, int $pointRuleId): PointMovement
-    {
-        return DB::transaction(function () use ($actor, $targetUserId, $pointRuleId) {
-            $targetUser = User::query()->lockForUpdate()->findOrFail($targetUserId);
-            $rule = PointRule::query()->lockForUpdate()->findOrFail($pointRuleId);
-
-            if (! $targetUser->hasRole('CLIENTE')) {
-                throw new RuntimeException('Solo se pueden asignar puntos a clientes.');
-            }
-
-            if (! $rule->estado) {
-                throw new RuntimeException('La regla de puntos no está activa.');
-            }
-
-            if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $rule->negocio_id) {
-                throw new RuntimeException('No puedes utilizar reglas de otro negocio.');
-            }
-
-            $movement = PointMovement::query()->create([
-                'usuario_id' => $targetUser->id,
-                'negocio_id' => $rule->negocio_id,
-                'qr_id' => null,
-                'cantidad' => $rule->puntos,
-                'tipo' => 'GANANCIA',
-                'fecha' => now(),
-            ]);
-
-            $this->syncUserLevel($targetUser);
-
-            return $movement;
-        });
     }
 
     /**

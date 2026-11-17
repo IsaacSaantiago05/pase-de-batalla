@@ -2,153 +2,93 @@
 
 namespace App\Services;
 
-use App\Models\Business;
 use App\Models\PointMovement;
 use App\Models\QrCode;
-use App\Models\Redemption;
-use App\Models\Sale;
-use App\Models\SaleItem;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 class StatisticsService
 {
     /**
-     * Resumen del periodo para un negocio, o de toda la plataforma si $businessId es null.
+     * QR generados hoy, en los ultimos 7 dias y en los ultimos 30, para un negocio
+     * o para toda la plataforma si $businessId es null. Los clientes activos solo
+     * se incluyen cuando se piden (administrador general).
      */
-    public function summary(?int $businessId, int $days): array
+    public function summary(?int $businessId, bool $includeClients): array
     {
-        $from = now()->subDays($days - 1)->startOfDay();
-        $scope = fn (Builder $query, string $column = 'negocio_id') => $businessId === null
-            ? $query
-            : $query->where($column, $businessId);
-
-        $sales = $scope(Sale::query())->where('created_at', '>=', $from);
-        $movements = $scope(PointMovement::query())->where('fecha', '>=', $from);
-        $qr = $scope(QrCode::query())->where('created_at', '>=', $from);
-        $redemptions = Redemption::query()
-            ->where('fecha', '>=', $from)
-            ->when($businessId !== null, fn ($query) => $query->whereHas('reward', fn ($reward) => $reward->where('negocio_id', $businessId)));
-
-        $qrByStatus = (clone $qr)->selectRaw('estado, COUNT(*) AS total')->groupBy('estado')->pluck('total', 'estado');
-        // Un QR solo pasa a EXPIRADO cuando alguien intenta usarlo; los ACTIVO vencidos tambien cuentan como expirados.
-        $staleActive = (clone $qr)->where('estado', 'ACTIVO')->where('fecha_expiracion', '<=', now())->count();
+        $periods = $this->periods();
 
         $data = [
-            'periodo_dias' => $days,
-            'desde' => $from->toDateString(),
             'negocio_id' => $businessId,
-            'resumen' => [
-                'ventas' => (clone $sales)->count(),
-                'ingresos' => round((float) (clone $sales)->sum('total'), 2),
-                'puntos_otorgados' => (int) (clone $movements)->where('tipo', 'GANANCIA')->sum('cantidad'),
-                'puntos_canjeados' => abs((int) (clone $movements)->where('tipo', 'CANJE')->sum('cantidad')),
-                'canjes' => (clone $redemptions)->where('estado', '!=', 'CANCELADO')->count(),
-                'clientes_activos' => (clone $movements)->where('tipo', 'GANANCIA')->distinct()->count('usuario_id'),
-                'qr' => [
-                    'generados' => (int) $qrByStatus->sum(),
-                    'utilizados' => (int) ($qrByStatus['UTILIZADO'] ?? 0),
-                    'expirados' => (int) ($qrByStatus['EXPIRADO'] ?? 0) + $staleActive,
-                    'cancelados' => (int) ($qrByStatus['CANCELADO'] ?? 0),
-                    'activos' => (int) ($qrByStatus['ACTIVO'] ?? 0) - $staleActive,
-                ],
-            ],
-            'por_dia' => $this->dailySeries($businessId, $from, $days),
-            'top_productos' => $this->topProducts($businessId, $from),
+            'zona_horaria' => config('app.local_timezone'),
+            'qr' => [],
         ];
 
-        if ($businessId === null) {
-            $data['resumen']['clientes_registrados'] = User::query()
+        foreach ($periods as $name => $from) {
+            $data['qr'][$name] = $this->qrSummary($businessId, $from);
+        }
+
+        if ($includeClients) {
+            $data['clientes_activos'] = [];
+            foreach ($periods as $name => $from) {
+                $data['clientes_activos'][$name] = $this->activeClients($businessId, $from);
+            }
+
+            $data['clientes_registrados'] = User::query()
                 ->whereHas('role', fn ($role) => $role->where('nombre', 'CLIENTE'))
                 ->count();
-            $data['por_negocio'] = $this->perBusiness($from);
         }
 
         return $data;
     }
 
-    private function dailySeries(?int $businessId, Carbon $from, int $days): array
+    /**
+     * Inicio de cada periodo. El dia se corta a medianoche en la zona horaria local
+     * (no en UTC) y se convierte a la zona de la aplicacion para comparar con la base de datos.
+     *
+     * @return array<string, Carbon>
+     */
+    private function periods(): array
     {
-        $sales = Sale::query()
-            ->where('created_at', '>=', $from)
-            ->when($businessId !== null, fn ($query) => $query->where('negocio_id', $businessId))
-            ->selectRaw('DATE(created_at) AS dia, COUNT(*) AS ventas, SUM(total) AS ingresos')
-            ->groupBy('dia')
-            ->get()
-            ->keyBy(fn ($row) => (string) $row->dia);
+        $today = now(config('app.local_timezone'))->startOfDay();
+        $appTimezone = config('app.timezone');
 
-        $points = PointMovement::query()
-            ->where('fecha', '>=', $from)
-            ->where('tipo', 'GANANCIA')
-            ->when($businessId !== null, fn ($query) => $query->where('negocio_id', $businessId))
-            ->selectRaw('DATE(fecha) AS dia, SUM(cantidad) AS puntos')
-            ->groupBy('dia')
-            ->pluck('puntos', 'dia');
-
-        // Se rellenan los dias sin actividad con cero para que la serie no tenga huecos.
-        $series = [];
-        for ($offset = 0; $offset < $days; $offset++) {
-            $day = $from->copy()->addDays($offset)->toDateString();
-            $series[] = [
-                'dia' => $day,
-                'ventas' => (int) ($sales[$day]->ventas ?? 0),
-                'ingresos' => round((float) ($sales[$day]->ingresos ?? 0), 2),
-                'puntos_otorgados' => (int) ($points[$day] ?? 0),
-            ];
-        }
-
-        return $series;
+        return [
+            'hoy' => $today->copy()->setTimezone($appTimezone),
+            'semana' => $today->copy()->subDays(6)->setTimezone($appTimezone),
+            'mes' => $today->copy()->subDays(29)->setTimezone($appTimezone),
+        ];
     }
 
-    private function topProducts(?int $businessId, Carbon $from): array
+    private function qrSummary(?int $businessId, Carbon $from): array
     {
-        return SaleItem::query()
-            ->join('ventas', 'ventas.id', '=', 'venta_items.venta_id')
-            ->where('ventas.created_at', '>=', $from)
-            ->when($businessId !== null, fn ($query) => $query->where('ventas.negocio_id', $businessId))
-            ->groupBy('venta_items.nombre')
-            ->selectRaw('venta_items.nombre, SUM(venta_items.cantidad) AS unidades, SUM(venta_items.subtotal) AS ingresos, SUM(venta_items.puntos_subtotal) AS puntos')
-            ->orderByDesc('unidades')
-            ->limit(5)
-            ->get()
-            ->map(fn ($row) => [
-                'nombre' => $row->nombre,
-                'unidades' => (int) $row->unidades,
-                'ingresos' => round((float) $row->ingresos, 2),
-                'puntos' => (int) $row->puntos,
-            ])
-            ->all();
+        $query = QrCode::query()
+            ->where('fecha_creacion', '>=', $from)
+            ->when($businessId !== null, fn ($builder) => $builder->where('negocio_id', $businessId));
+
+        $byStatus = (clone $query)->selectRaw('estado, COUNT(*) AS cantidad')->groupBy('estado')->pluck('cantidad', 'estado');
+        // Un QR solo pasa a EXPIRADO cuando alguien intenta usarlo; los ACTIVO ya vencidos tambien cuentan como expirados.
+        $staleActive = (clone $query)->where('estado', 'ACTIVO')->where('fecha_expiracion', '<=', now())->count();
+
+        return [
+            'generados' => (int) $byStatus->sum(),
+            'utilizados' => (int) ($byStatus['UTILIZADO'] ?? 0),
+            'expirados' => (int) ($byStatus['EXPIRADO'] ?? 0) + $staleActive,
+            'cancelados' => (int) ($byStatus['CANCELADO'] ?? 0),
+            'activos' => (int) ($byStatus['ACTIVO'] ?? 0) - $staleActive,
+        ];
     }
 
-    private function perBusiness(Carbon $from): array
+    /**
+     * Clientes distintos que ganaron puntos desde $from.
+     */
+    private function activeClients(?int $businessId, Carbon $from): int
     {
-        $sales = Sale::query()
-            ->where('created_at', '>=', $from)
-            ->selectRaw('negocio_id, COUNT(*) AS ventas, SUM(total) AS ingresos')
-            ->groupBy('negocio_id')
-            ->get()
-            ->keyBy('negocio_id');
-
-        $points = PointMovement::query()
+        return PointMovement::query()
             ->where('fecha', '>=', $from)
             ->where('tipo', 'GANANCIA')
-            ->whereNotNull('negocio_id')
-            ->selectRaw('negocio_id, SUM(cantidad) AS puntos')
-            ->groupBy('negocio_id')
-            ->pluck('puntos', 'negocio_id');
-
-        return Business::query()
-            ->orderBy('nombre')
-            ->get(['id', 'nombre', 'estado'])
-            ->map(fn (Business $business) => [
-                'negocio_id' => $business->id,
-                'nombre' => $business->nombre,
-                'activo' => (bool) $business->estado,
-                'ventas' => (int) ($sales[$business->id]->ventas ?? 0),
-                'ingresos' => round((float) ($sales[$business->id]->ingresos ?? 0), 2),
-                'puntos_otorgados' => (int) ($points[$business->id] ?? 0),
-            ])
-            ->all();
+            ->when($businessId !== null, fn ($builder) => $builder->where('negocio_id', $businessId))
+            ->distinct()
+            ->count('usuario_id');
     }
 }

@@ -14,12 +14,10 @@ class Sale extends Model
     protected $fillable = [
         'negocio_id',
         'creado_por',
-        'total',
         'puntos_total',
     ];
 
     protected $casts = [
-        'total' => 'decimal:2',
         'puntos_total' => 'integer',
     ];
 

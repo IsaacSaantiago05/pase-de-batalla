@@ -4,6 +4,7 @@ import { ProtectedAdminRoute } from './components/ProtectedAdminRoute'
 import { AdministratorsPage } from './pages/AdministratorsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { BusinessClientsPage } from './pages/BusinessClientsPage'
+import { BusinessesPage } from './pages/BusinessesPage'
 import { BusinessPointsPage } from './pages/BusinessPointsPage'
 import { PointAdjustmentsPage } from './pages/PointAdjustmentsPage'
 import { LoginPage } from './pages/LoginPage'
@@ -12,8 +13,8 @@ import { QrManagementPage } from './pages/QrManagementPage'
 import { RedemptionsAdminPage } from './pages/RedemptionsAdminPage'
 import { RewardsAdminPage } from './pages/RewardsAdminPage'
 import { SalesAdminPage } from './pages/SalesAdminPage'
-import { ShellPage } from './pages/ShellPage'
 import { StatisticsPage } from './pages/StatisticsPage'
+import { ShellPage } from './pages/ShellPage'
 
 function App() {
   return (
@@ -34,11 +35,10 @@ function App() {
           <Route path="/redemptions" element={<RedemptionsAdminPage />} />
           <Route path="/history" element={<ShellPage title="Historial" />} />
           <Route path="/users" element={<ShellPage title="Usuarios" />} />
-          <Route path="/businesses" element={<ShellPage title="Negocios" />} />
+          <Route path="/businesses" element={<BusinessesPage />} />
           <Route path="/administrators" element={<AdministratorsPage />} />
           <Route path="/levels" element={<ShellPage title="Niveles" />} />
           <Route path="/island-elements" element={<ShellPage title="Elementos de Isla" />} />
-          <Route path="/point-rules" element={<ShellPage title="Reglas de Puntos" />} />
           <Route path="/statistics" element={<StatisticsPage />} />
         </Route>
 

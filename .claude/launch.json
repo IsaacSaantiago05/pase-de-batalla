@@ -1,0 +1,36 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend-api",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d C:\\Users\\Admin\\Documents\\GitHub\\pase-de-batalla\\backend\\public && set \"DEMO=1\"&& php -d auto_prepend_file=C:\\Users\\Admin\\AppData\\Local\\Temp\\claude\\8a87a157bedb0dca\\3b08052b-1efd-4699-8671-d4cba149fb50\\scratchpad\\demo_env.php -S localhost:8000 -t . ..\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php"
+      ],
+      "port": 8000,
+      "autoPort": false,
+      "url": "http://localhost:8000"
+    },
+    {
+      "name": "user-app",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d C:\\Users\\Admin\\Documents\\GitHub\\pase-de-batalla\\apps\\user-app && set \"BROWSER=none\"&& npm run dev -- --port 5173 --strictPort"
+      ],
+      "port": 5173,
+      "autoPort": false
+    },
+    {
+      "name": "admin-app",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d C:\\Users\\Admin\\Documents\\GitHub\\pase-de-batalla\\apps\\admin-app && set \"BROWSER=none\"&& npm run dev -- --port 5174 --strictPort"
+      ],
+      "port": 5174,
+      "autoPort": false
+    }
+  ]
+}

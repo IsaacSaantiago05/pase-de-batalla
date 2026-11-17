@@ -14,9 +14,16 @@ class BusinessController extends Controller
 {
     use ApiResponse;
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $businesses = Business::query()->paginate(20);
+        $query = Business::query()->orderBy('nombre');
+
+        // El administrador de negocio solo ve el suyo.
+        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO')) {
+            $query->whereKey($request->user()->negocio_id);
+        }
+
+        $businesses = $query->paginate(20);
 
         return $this->success('Negocios listados correctamente.', BusinessResource::collection($businesses));
     }
@@ -47,6 +54,11 @@ class BusinessController extends Controller
             return $this->error('No tienes permiso para editar este negocio.', null, 403);
         }
 
+        // Activar o desactivar un negocio es exclusivo del administrador general.
+        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && array_key_exists('estado', $request->validated())) {
+            return $this->error('Solo el administrador general puede activar o desactivar negocios.', null, 403);
+        }
+
         $business->update($request->validated());
 
         return $this->success('Negocio actualizado correctamente.', new BusinessResource($business->fresh()));
@@ -57,10 +69,6 @@ class BusinessController extends Controller
         $validated = $request->validate([
             'estado' => ['required', 'boolean'],
         ]);
-
-        if ($request->user()->hasRole('ADMINISTRADOR_NEGOCIO') && $request->user()->negocio_id !== $business->id) {
-            return $this->error('No tienes permiso para modificar este negocio.', null, 403);
-        }
 
         $business->update(['estado' => $validated['estado']]);
 

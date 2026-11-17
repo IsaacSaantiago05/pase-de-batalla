@@ -7,7 +7,6 @@ use App\Http\Controllers\BusinessClientController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\IslandController;
-use App\Http\Controllers\PointRuleController;
 use App\Http\Controllers\PointsController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -57,14 +56,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/{business}', [BusinessController::class, 'show']);
         Route::post('/', [BusinessController::class, 'store'])->middleware('role:ADMINISTRADOR_GENERAL');
         Route::put('/{business}', [BusinessController::class, 'update']);
-        Route::patch('/{business}/status', [BusinessController::class, 'updateStatus']);
+        Route::patch('/{business}/status', [BusinessController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_GENERAL');
     });
 
     Route::prefix('points')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
         Route::get('/balance', [PointsController::class, 'balance']);
         Route::get('/history', [PointsController::class, 'history']);
         Route::get('/business-history', [PointsController::class, 'businessHistory'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
-        Route::post('/award', [PointsController::class, 'award'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
     });
 
     Route::prefix('battle-pass')->middleware('role:CLIENTE')->group(function (): void {
@@ -112,13 +110,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [RedemptionController::class, 'store'])->middleware(['role:CLIENTE', 'throttle:redemption-create']);
         Route::get('/business', [RedemptionController::class, 'businessHistory'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::patch('/{redemption}/status', [RedemptionController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
-    });
-
-    Route::prefix('point-rules')->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
-        Route::get('/', [PointRuleController::class, 'index']);
-        Route::post('/', [PointRuleController::class, 'store'])->middleware('role:ADMINISTRADOR_GENERAL');
-        Route::put('/{pointRule}', [PointRuleController::class, 'update']);
-        Route::patch('/{pointRule}/status', [PointRuleController::class, 'updateStatus']);
     });
 
     Route::prefix('admin')->middleware('role:ADMINISTRADOR_GENERAL')->group(function (): void {
