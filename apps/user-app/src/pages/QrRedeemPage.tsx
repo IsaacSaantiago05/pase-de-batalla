@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
-import { Button, Icon, Notice, ScreenHeader, formatPoints } from '@shared/ui'
+import { Button, GlowButton, Icon, Notice, ScreenHeader, formatPoints } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiPost } from '../lib/api'
 
@@ -18,11 +18,12 @@ type RedeemResult = {
   nivel_id: number | null
 }
 
+// Esquinas del visor, metidas un poco hacia dentro para que sigan la curva del marco.
 const CORNERS = [
-  { top: 0, left: 0, borderTop: '3px solid #f59e0b', borderLeft: '3px solid #f59e0b', borderRadius: '12px 0 0 0' },
-  { top: 0, right: 0, borderTop: '3px solid #f59e0b', borderRight: '3px solid #f59e0b', borderRadius: '0 12px 0 0' },
-  { bottom: 0, left: 0, borderBottom: '3px solid #f59e0b', borderLeft: '3px solid #f59e0b', borderRadius: '0 0 0 12px' },
-  { bottom: 0, right: 0, borderBottom: '3px solid #f59e0b', borderRight: '3px solid #f59e0b', borderRadius: '0 0 12px 0' },
+  { top: 10, left: 10, borderTop: '3px solid #f59e0b', borderLeft: '3px solid #f59e0b', borderRadius: '14px 0 0 0' },
+  { top: 10, right: 10, borderTop: '3px solid #f59e0b', borderRight: '3px solid #f59e0b', borderRadius: '0 14px 0 0' },
+  { bottom: 10, left: 10, borderBottom: '3px solid #f59e0b', borderLeft: '3px solid #f59e0b', borderRadius: '0 0 0 14px' },
+  { bottom: 10, right: 10, borderBottom: '3px solid #f59e0b', borderRight: '3px solid #f59e0b', borderRadius: '0 0 14px 0' },
 ]
 
 const divider = <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
@@ -212,7 +213,7 @@ export function QrRedeemPage() {
           <div className="absolute inset-0 [&_video]:h-full! [&_video]:w-full! [&_video]:object-cover" id={scannerElementId} />
 
           {!isScanning && (
-            <button className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/50" onClick={() => void startScanner()} type="button">
+            <button className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center text-white/50" onClick={() => void startScanner()} type="button">
               <Icon className="text-5xl" name="camera" />
               <span className="font-display text-sm font-bold tracking-widest">{redeeming ? 'VALIDANDO...' : 'TOCA PARA ACTIVAR LA CÁMARA'}</span>
             </button>
@@ -230,10 +231,10 @@ export function QrRedeemPage() {
           )}
         </div>
 
-        <div className="text-center">
+        <div className="w-full max-w-sm text-center">
           <p className="font-display text-lg font-bold tracking-wide text-white">{isScanning ? 'Escaneando...' : 'Listo para escanear'}</p>
-          <p className="mt-1 max-w-xs text-sm leading-relaxed text-white/50">Escanea el código QR proporcionado por el negocio.</p>
-          <p className="mt-2 text-xs text-white/30">Los códigos QR solo pueden utilizarse una vez y tienen fecha de expiración.</p>
+          <p className="mx-auto mt-1 max-w-xs text-balance text-sm leading-relaxed text-white/50">Escanea el código QR proporcionado por el negocio.</p>
+          <p className="mx-auto mt-2 max-w-xs text-balance text-xs text-white/30">Los códigos QR solo pueden utilizarse una vez y tienen fecha de expiración.</p>
         </div>
 
         <div className="flex w-full max-w-sm flex-col gap-3">
@@ -243,17 +244,17 @@ export function QrRedeemPage() {
               DETENER CÁMARA
             </Button>
           ) : (
-            <Button className="w-full tracking-widest" disabled={redeeming} onClick={() => void startScanner()}>
+            <GlowButton arrow className="w-full tracking-widest" disabled={redeeming} onClick={() => void startScanner()}>
               ACTIVAR CÁMARA
-            </Button>
+            </GlowButton>
           )}
 
           {/* Respaldo cuando la camara no esta disponible: el negocio puede dictar el codigo. */}
-          <form className="flex gap-2" onSubmit={onSubmit}>
-            <input className="pb-input" onChange={(e) => setToken(e.target.value)} placeholder="¿Sin cámara? Escribe el código" value={token} />
-            <Button disabled={redeeming || !token.trim()} size="sm" type="submit" variant="green">
+          <form className="mt-1 flex items-stretch gap-2" onSubmit={onSubmit}>
+            <input className="pb-input min-w-0 flex-1" onChange={(e) => setToken(e.target.value)} placeholder="¿Sin cámara? Escribe el código" value={token} />
+            <GlowButton compact disabled={redeeming || !token.trim()} tone="green" type="submit">
               CANJEAR
-            </Button>
+            </GlowButton>
           </form>
         </div>
       </div>

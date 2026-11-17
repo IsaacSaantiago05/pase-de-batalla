@@ -1,5 +1,6 @@
 // Componentes visuales del diseño de Figma, comunes a user-app y admin-app.
-import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from 'react'
+import { useRef } from 'react'
+import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, PointerEvent, ReactNode } from 'react'
 import { Icon } from './icons'
 import type { IconName } from './icons'
 
@@ -45,6 +46,42 @@ const buttonSizes = {
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant
   size?: keyof typeof buttonSizes
+}
+
+// Boton principal con brillo: relleno claro arriba, halo de color alrededor y texto oscuro.
+const glowTones = {
+  gold: {
+    background: 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 55%, #e38a06 100%)',
+    color: '#1c1003',
+    boxShadow: '0 0 0 1px rgba(253,230,138,0.55) inset, 0 1px 0 rgba(255,255,255,0.55) inset, 0 0 28px rgba(245,158,11,0.45), 0 10px 32px rgba(245,158,11,0.3)',
+  },
+  green: {
+    background: 'linear-gradient(180deg, #6ee7b7 0%, #10b981 55%, #059669 100%)',
+    color: '#022c1d',
+    boxShadow: '0 0 0 1px rgba(167,243,208,0.55) inset, 0 1px 0 rgba(255,255,255,0.5) inset, 0 0 24px rgba(16,185,129,0.45), 0 8px 26px rgba(16,185,129,0.3)',
+  },
+} satisfies Record<string, CSSProperties>
+
+type GlowButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  tone?: keyof typeof glowTones
+  // Muestra la flecha a la derecha del texto.
+  arrow?: boolean
+  // Version baja para ir junto a un campo de texto.
+  compact?: boolean
+}
+
+export function GlowButton({ tone = 'gold', arrow = false, compact = false, className = '', type = 'button', style, children, ...props }: GlowButtonProps) {
+  return (
+    <button
+      className={`inline-flex items-center justify-center gap-2 rounded-[20px] font-display font-bold tracking-wider transition-all hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:hover:brightness-100 disabled:active:scale-100 ${compact ? 'min-h-12 px-5 text-sm' : 'min-h-[60px] px-8 text-lg'} ${className}`}
+      style={{ ...glowTones[tone], ...style }}
+      type={type}
+      {...props}
+    >
+      {children}
+      {arrow && <Icon className="text-[1.1em]" color="currentColor" name="arrowRight" />}
+    </button>
+  )
 }
 
 export function Button({ variant = 'gold', size = 'md', className = '', type = 'button', style, ...props }: ButtonProps) {
@@ -274,51 +311,82 @@ export function LoadingState({ text = 'Cargando...' }: { text?: string }) {
   return <p className="py-8 text-center text-sm font-display font-semibold tracking-widest uppercase text-white/40">{text}</p>
 }
 
-// Isla flotante decorativa del diseño (terreno, casa, arboles, mascota).
-export function IslandView({ level = 1, size = 'lg', animate = true }: { level?: number; size?: 'sm' | 'md' | 'lg'; animate?: boolean }) {
+// Imagen de la isla (apps/user-app/public/island). Recortada y en WebP a partir de IslaNv1.PNG.
+const ISLAND_IMAGE = '/island/isla-nv1.webp'
+
+// Nubes suaves del cielo: posicion vertical, ancho, duracion y retraso de la deriva.
+const SKY_CLOUDS = [
+  { top: '10%', width: 120, duration: 38, delay: -6, opacity: 0.85 },
+  { top: '26%', width: 80, duration: 30, delay: -20, opacity: 0.6 },
+  { top: '6%', width: 64, duration: 46, delay: -32, opacity: 0.5 },
+]
+
+// Isla flotante del diseño. `level` queda para cuando se agreguen elementos por nivel.
+export function IslandView({ size = 'lg', animate = true }: { level?: number; size?: 'sm' | 'md' | 'lg'; animate?: boolean }) {
   const h = size === 'lg' ? 260 : size === 'md' ? 200 : 160
-  const scale = size === 'lg' ? 1 : size === 'md' ? 0.78 : 0.62
-  const shadow = (blur: number) => ({ filter: `drop-shadow(0 ${blur / 2}px ${blur}px rgba(0,0,0,0.45))` })
+  const tiltRef = useRef<HTMLDivElement>(null)
+
+  // Inclinacion leve hacia el dedo o el mouse para dar sensacion de 3D.
+  function onPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!animate || !tiltRef.current) return
+    const box = event.currentTarget.getBoundingClientRect()
+    const x = (event.clientX - box.left) / box.width - 0.5
+    const y = (event.clientY - box.top) / box.height - 0.5
+    tiltRef.current.style.transform = `rotateX(${(-y * 10).toFixed(2)}deg) rotateY(${(x * 14).toFixed(2)}deg)`
+  }
+
+  function onPointerLeave() {
+    if (tiltRef.current) tiltRef.current.style.transform = ''
+  }
 
   return (
-    <div aria-hidden="true" className={`relative flex items-center justify-center overflow-hidden rounded-3xl ${animate ? 'anim-float' : ''}`} style={{ height: h }}>
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 90% 70% at 50% 60%, #1e3a5f 0%, #0a1628 70%, #040710 100%)' }} />
+    <div
+      aria-hidden="true"
+      // isolate: el z-index interno no compite con el encabezado fijo de la pagina.
+      className="relative isolate flex items-center justify-center overflow-hidden rounded-3xl"
+      onPointerLeave={onPointerLeave}
+      onPointerMove={onPointerMove}
+      style={{ height: h, background: 'linear-gradient(180deg, #5b9fe6 0%, #8cc4f2 45%, #cfe6f7 78%, #f6dcc8 100%)' }}
+    >
+      {/* Brillo del sol. */}
+      <div className="absolute" style={{ top: '-30%', right: '-10%', width: '70%', height: '90%', background: 'radial-gradient(circle, rgba(255,247,214,0.85) 0%, rgba(255,247,214,0) 65%)' }} />
 
-      {Array.from({ length: 12 }, (_, i) => (
+      {SKY_CLOUDS.map((cloud, i) => (
         <div
-          className="absolute rounded-full bg-white"
+          className={`absolute ${animate ? 'anim-cloud' : ''}`}
           key={i}
           style={{
-            width: i % 3 === 0 ? 2 : 1,
-            height: i % 3 === 0 ? 2 : 1,
-            top: `${8 + ((i * 7) % 40)}%`,
-            left: `${5 + ((i * 17) % 90)}%`,
-            opacity: 0.3 + (i % 4) * 0.15,
+            top: cloud.top,
+            // Posicion fija si no hay animacion (o el sistema pide reducir movimiento).
+            left: `${10 + i * 30}%`,
+            width: cloud.width,
+            height: cloud.width * 0.32,
+            opacity: cloud.opacity,
+            background: 'white',
+            borderRadius: 999,
+            filter: 'blur(6px)',
+            animationDuration: `${cloud.duration}s`,
+            animationDelay: `${cloud.delay}s`,
           }}
         />
       ))}
 
-      <Icon className="absolute text-3xl opacity-40" name="cloud" style={{ top: '12%', left: '4%' }} />
-      <Icon className="absolute text-2xl opacity-25" name="cloud" style={{ top: '18%', right: '6%' }} />
+      {/* Sombra en el "suelo" que se encoge cuando la isla sube. */}
+      <div
+        className={`absolute ${animate ? 'anim-island-shadow' : ''}`}
+        style={{ bottom: '6%', width: '46%', height: '7%', background: 'rgba(30,58,95,0.35)', borderRadius: '50%', filter: 'blur(8px)' }}
+      />
 
-      <div className="relative z-10 flex flex-col items-center" style={{ transform: `scale(${scale})` }}>
-        <div className="relative" style={{ width: 240, height: 100 }}>
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 55%, #15803d 100%)', borderRadius: '120px 120px 0 0' }} />
-          <div className="absolute" style={{ width: 18, height: 55, background: 'linear-gradient(180deg, #d97706, #92400e)', left: 111, top: 45, borderRadius: 4 }} />
-          <Icon className="absolute text-[44px]" name="house" style={{ left: 96, top: -28, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' }} />
-          <Icon className="absolute text-4xl" name="tree" style={{ left: 8, top: 4, ...shadow(6) }} />
-          <Icon className="absolute text-2xl" name="pine" style={{ left: 28, top: 42, ...shadow(4) }} />
-          <Icon className="absolute text-3xl" name="tree" style={{ right: 10, top: 8, ...shadow(6) }} />
-          <Icon className="absolute text-xl" name="flower" style={{ right: 32, top: 48, ...shadow(4) }} />
-          {level >= 1 && <Icon className="absolute text-2xl" name="dog" style={{ left: 65, top: 52 }} />}
-          {level >= 12 && <Icon className="absolute text-xl" name="fountain" style={{ right: 50, top: 46 }} />}
-          <Icon className="absolute text-base" name="rock" style={{ left: 50, top: 70 }} />
-          {level >= 20 && <Icon className="absolute text-2xl" name="castle" style={{ right: 5, top: 50 }} />}
+      <div className="relative z-10 h-[86%]" style={{ perspective: 700 }}>
+        <div className="h-full transition-transform duration-300 ease-out" ref={tiltRef} style={{ transformStyle: 'preserve-3d' }}>
+          <img
+            alt=""
+            className={`h-full w-auto select-none ${animate ? 'anim-island' : ''}`}
+            draggable={false}
+            src={ISLAND_IMAGE}
+            style={{ filter: 'drop-shadow(0 18px 18px rgba(15,23,42,0.35))' }}
+          />
         </div>
-
-        <div style={{ width: 240, height: 70, background: 'linear-gradient(180deg, #92400e 0%, #78350f 50%, #431407 100%)', borderRadius: '0 0 100px 100px', boxShadow: '0 24px 48px rgba(0,0,0,0.7)' }} />
-        <div className="absolute" style={{ width: 200, height: 20, background: 'linear-gradient(180deg, #a16207, #78350f)', borderRadius: '0 0 60px 60px', bottom: 30 }} />
-        <div className="mt-2" style={{ width: 160, height: 18, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', filter: 'blur(10px)' }} />
       </div>
     </div>
   )

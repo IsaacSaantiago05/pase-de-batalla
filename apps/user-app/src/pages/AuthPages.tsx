@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { BackButton, Button, Icon, InputField, Notice } from '@shared/ui'
+import { BackButton, Button, GlowButton, Icon, InputField, Notice } from '@shared/ui'
 import type { IconName } from '@shared/ui'
 import { useGoBack } from '../components/AppLayout'
 import { apiPost } from '../lib/api'
@@ -71,9 +71,9 @@ export function LoginPage() {
         {error && <Notice tone="error">{error}</Notice>}
 
         <div className="flex flex-col gap-3">
-          <Button className="w-full tracking-widest" disabled={sending} type="submit">
+          <GlowButton arrow={!sending} className="w-full tracking-widest" disabled={sending} type="submit">
             {sending ? 'ENTRANDO...' : 'INICIAR SESIÓN'}
-          </Button>
+          </GlowButton>
           <Button className="w-full" onClick={() => navigate('/register')} variant="ghost">
             Crear cuenta nueva
           </Button>
@@ -137,9 +137,9 @@ export function RegisterPage() {
 
         {error && <Notice tone="error">{error}</Notice>}
 
-        <Button className="w-full tracking-widest" disabled={sending} type="submit">
+        <GlowButton arrow={!sending} className="w-full tracking-widest" disabled={sending} type="submit">
           {sending ? 'CREANDO...' : 'CREAR CUENTA'}
-        </Button>
+        </GlowButton>
 
         <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
           Ya tengo una cuenta

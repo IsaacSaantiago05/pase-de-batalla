@@ -1,5 +1,5 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { Button, Icon, IslandView } from '@shared/ui'
+import { GlowButton, Icon, IslandView } from '@shared/ui'
 import { getSession } from '../lib/auth'
 
 export function SplashPage() {
@@ -60,9 +60,9 @@ export function SplashPage() {
       </div>
 
       <div className="flex w-full max-w-sm flex-col items-center gap-4">
-        <Button className="w-full tracking-widest" onClick={() => navigate('/register')} size="lg">
+        <GlowButton arrow className="w-full tracking-widest" onClick={() => navigate('/register')}>
           COMENZAR
-        </Button>
+        </GlowButton>
         <button className="text-sm font-semibold text-white/50 transition-colors hover:text-white/80" onClick={() => navigate('/login')} type="button">
           Ya tengo una cuenta
         </button>
