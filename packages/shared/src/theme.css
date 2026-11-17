@@ -1,0 +1,149 @@
+/*
+ * Tema visual del diseño de Figma (Pase de Batalla), comun a user-app y admin-app.
+ * Cada app lo importa despues de "tailwindcss" en su index.css.
+ */
+
+@theme {
+  --font-display: 'Rajdhani', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+  --font-mono-game: 'JetBrains Mono', monospace;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #080c18;
+  color: #f9fafb;
+  font-family: 'Nunito', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.3);
+  border-radius: 2px;
+}
+
+/* Los select nativos heredan el tema oscuro. */
+select,
+option {
+  color-scheme: dark;
+}
+
+@keyframes pb-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pb-pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+  50% { box-shadow: 0 0 0 14px rgba(245, 158, 11, 0); }
+}
+
+@keyframes pb-fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pb-scale-in {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pb-scan-line {
+  0% { top: 8%; }
+  100% { top: 88%; }
+}
+
+.anim-float { animation: pb-float 3.5s ease-in-out infinite; }
+.anim-pulse-gold { animation: pb-pulse-gold 2s ease-in-out infinite; }
+.anim-fade-up { animation: pb-fade-up 0.3s ease-out both; }
+.anim-scale-in { animation: pb-scale-in 0.35s ease-out both; }
+.anim-scan-line { animation: pb-scan-line 1.6s ease-in-out infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-float,
+  .anim-pulse-gold,
+  .anim-fade-up,
+  .anim-scale-in,
+  .anim-scan-line {
+    animation: none;
+  }
+}
+
+/* Superficies repetidas del diseño. */
+.pb-card {
+  background: linear-gradient(135deg, #1a2235 0%, #111827 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pb-soft {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pb-text-gold {
+  background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pb-text-purple {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pb-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  outline: none;
+  font-family: 'Nunito', sans-serif;
+  transition: border-color 0.15s;
+}
+.pb-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+.pb-input:focus {
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+/* Tablas del panel de administracion con el mismo estilo de las tarjetas. */
+.pb-table {
+  width: 100%;
+  min-width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+}
+.pb-table th {
+  padding: 0.625rem 0.75rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.pb-table td {
+  padding: 0.625rem 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}

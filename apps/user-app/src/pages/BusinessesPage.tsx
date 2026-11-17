@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { EmptyState, Icon, Notice, ScreenHeader, SectionTitle } from '@shared/ui'
+import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, listData } from '../lib/api'
 
 type Business = {
@@ -8,22 +9,14 @@ type Business = {
   descripcion: string | null
   direccion: string | null
   telefono: string | null
-  productos_activos: number
 }
 
-type Product = {
-  id: number
-  nombre: string
-  descripcion: string | null
-  precio: string
-  puntos: number
-}
+// Colores de acento del diseño, asignados por negocio para distinguir las tarjetas.
+const ACCENTS = ['#f59e0b', '#6366f1', '#10b981', '#a855f7', '#60a5fa', '#f472b6']
 
 export function BusinessesPage() {
+  const goBack = useGoBack()
   const [businesses, setBusinesses] = useState<Business[]>([])
-  const [selected, setSelected] = useState<Business | null>(null)
-  const [products, setProducts] = useState<Product[]>([])
-  const [loadingProducts, setLoadingProducts] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -32,76 +25,40 @@ export function BusinessesPage() {
       .catch((err) => setError(err instanceof Error ? err.message : 'No fue posible cargar negocios'))
   }, [])
 
-  async function openBusiness(business: Business) {
-    setSelected(business)
-    setProducts([])
-    setError('')
-    setLoadingProducts(true)
-
-    try {
-      const response = await apiGet<Product[]>(`/products?negocio_id=${business.id}`)
-      setProducts(listData(response.data))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible cargar productos')
-    } finally {
-      setLoadingProducts(false)
-    }
-  }
-
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold">Negocios participantes</h1>
-          <Link className="rounded-md border px-3 py-1 text-sm" to="/home">
-            Volver
-          </Link>
-        </div>
-        <p className="mb-4 text-sm text-slate-600">Compra en cualquiera de estos negocios y escanea el QR de tu compra para ganar puntos.</p>
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+    <Page>
+      <ScreenHeader onBack={goBack} title="NEGOCIOS" />
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {businesses.map((business) => (
-            <button
-              className={`rounded-lg border p-4 text-left hover:border-slate-400 ${selected?.id === business.id ? 'border-slate-900' : 'border-slate-200'}`}
-              key={business.id}
-              onClick={() => {
-                void openBusiness(business)
-              }}
-              type="button"
-            >
-              <h2 className="text-lg font-semibold text-slate-900">{business.nombre}</h2>
-              <p className="mt-1 text-sm text-slate-600">{business.descripcion ?? 'Sin descripcion'}</p>
-              {business.direccion && <p className="mt-2 text-xs text-slate-500">{business.direccion}</p>}
-              {business.telefono && <p className="text-xs text-slate-500">Tel. {business.telefono}</p>}
-              <p className="mt-2 text-xs font-medium text-emerald-700">{business.productos_activos} productos con puntos</p>
-            </button>
-          ))}
-          {businesses.length === 0 && !error && <p className="text-sm text-slate-500">Aun no hay negocios participantes.</p>}
+      <div className="px-5 pb-6">
+        <SectionTitle className="mb-3 text-white/40">{businesses.length} negocios participantes</SectionTitle>
+        {error && <Notice tone="error">{error}</Notice>}
+        <div className="grid gap-3 md:grid-cols-2">
+          {businesses.map((business) => {
+            const color = ACCENTS[business.id % ACCENTS.length]
+
+            return (
+              <div className="pb-card flex items-center gap-4 rounded-2xl p-4" key={business.id} style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
+                  <Icon color={color} name="business" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-base font-bold text-white">{business.nombre}</p>
+                  <p className="text-xs text-white/40">{business.descripcion ?? 'Negocio participante'}</p>
+                  {business.direccion && <p className="mt-1 text-xs text-white/40"><Icon className="mr-1" name="location" />
+                      {business.direccion}</p>}
+                  {business.telefono && (
+                    <p className="mt-1 text-xs font-semibold" style={{ color }}>
+                      <Icon className="mr-1" name="phone" />
+                      {business.telefono}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
+        {businesses.length === 0 && !error && <EmptyState icon="business" title="Aún no hay negocios participantes" />}
       </div>
-
-      {selected && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-xl font-semibold">Productos de {selected.nombre}</h2>
-          {loadingProducts && <p className="text-sm text-slate-500">Cargando...</p>}
-          {!loadingProducts && products.length === 0 && <p className="text-sm text-slate-500">Este negocio aun no tiene productos.</p>}
-          <ul className="divide-y">
-            {products.map((product) => (
-              <li className="flex items-center justify-between gap-3 py-3" key={product.id}>
-                <div>
-                  <p className="font-medium">{product.nombre}</p>
-                  {product.descripcion && <p className="text-xs text-slate-500">{product.descripcion}</p>}
-                </div>
-                <div className="text-right text-sm">
-                  <p>${product.precio}</p>
-                  <p className="font-semibold text-emerald-700">+{product.puntos} pts</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+    </Page>
   )
 }
