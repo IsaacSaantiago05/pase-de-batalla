@@ -65,6 +65,25 @@ option {
   100% { top: 88%; }
 }
 
+/* Isla: flota y se balancea un poco en 3D; la sombra acompaña el movimiento. */
+@keyframes pb-island {
+  0%, 100% { transform: translateY(0) rotateX(0deg) rotateZ(0deg); }
+  50% { transform: translateY(-9px) rotateX(3deg) rotateZ(-1deg); }
+}
+
+@keyframes pb-island-shadow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.85); opacity: 0.7; }
+}
+
+@keyframes pb-cloud {
+  from { left: -30%; }
+  to { left: 110%; }
+}
+
+.anim-island { animation: pb-island 5s ease-in-out infinite; }
+.anim-island-shadow { animation: pb-island-shadow 5s ease-in-out infinite; }
+.anim-cloud { animation: pb-cloud linear infinite; }
 .anim-float { animation: pb-float 3.5s ease-in-out infinite; }
 .anim-pulse-gold { animation: pb-pulse-gold 2s ease-in-out infinite; }
 .anim-fade-up { animation: pb-fade-up 0.3s ease-out both; }
@@ -73,6 +92,9 @@ option {
 
 @media (prefers-reduced-motion: reduce) {
   .anim-float,
+  .anim-island,
+  .anim-island-shadow,
+  .anim-cloud,
   .anim-pulse-gold,
   .anim-fade-up,
   .anim-scale-in,
@@ -110,7 +132,8 @@ option {
   width: 100%;
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
-  font-size: 0.875rem;
+  /* 16px: con menos, Safari en iPhone acerca la pantalla al tocar el campo. */
+  font-size: 1rem;
   color: #fff;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -119,10 +142,14 @@ option {
   transition: border-color 0.15s;
 }
 .pb-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.45);
 }
 .pb-input:focus {
   border-color: rgba(245, 158, 11, 0.5);
+}
+.pb-input-error,
+.pb-input-error:focus {
+  border-color: rgba(248, 113, 113, 0.7);
 }
 
 /* Tablas del panel de administracion con el mismo estilo de las tarjetas. */
