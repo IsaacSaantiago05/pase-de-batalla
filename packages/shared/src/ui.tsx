@@ -48,39 +48,38 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: keyof typeof buttonSizes
 }
 
-// Boton principal con brillo: relleno claro arriba, halo de color alrededor y texto oscuro.
+// Fondo de las pantallas con GlowButton: negro arriba que baja a un ambar oscuro del color del proyecto.
+export const GLOW_SCREEN_BACKGROUND = 'linear-gradient(180deg, #000000 0%, #05060a 35%, #1a1204 75%, #2b1d06 100%)'
+
+// Boton principal con brillo: relleno claro arriba, halo de color alrededor y texto blanco.
+// El blanco solo no contrasta con el dorado claro: lleva un contorno oscuro del mismo tono para leerse bien.
 const glowTones = {
   gold: {
-    background: 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 55%, #e38a06 100%)',
-    color: '#1c1003',
-    boxShadow: '0 0 0 1px rgba(253,230,138,0.55) inset, 0 1px 0 rgba(255,255,255,0.55) inset, 0 0 28px rgba(245,158,11,0.45), 0 10px 32px rgba(245,158,11,0.3)',
+    background: 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 45%, #d97706 100%)',
+    textShadow: '0 1px 1px #7c2d12, 0 0 1px #7c2d12, 0 0 6px rgba(124,45,18,0.55)',
+    boxShadow: '0 0 0 1px rgba(253,230,138,0.5) inset, 0 1px 0 rgba(255,255,255,0.5) inset, 0 0 28px rgba(245,158,11,0.45), 0 10px 32px rgba(245,158,11,0.3)',
   },
   green: {
-    background: 'linear-gradient(180deg, #6ee7b7 0%, #10b981 55%, #059669 100%)',
-    color: '#022c1d',
-    boxShadow: '0 0 0 1px rgba(167,243,208,0.55) inset, 0 1px 0 rgba(255,255,255,0.5) inset, 0 0 24px rgba(16,185,129,0.45), 0 8px 26px rgba(16,185,129,0.3)',
+    background: 'linear-gradient(180deg, #34d399 0%, #10b981 45%, #059669 100%)',
+    textShadow: '0 1px 1px #064e3b, 0 0 1px #064e3b, 0 0 6px rgba(6,78,59,0.55)',
+    boxShadow: '0 0 0 1px rgba(167,243,208,0.5) inset, 0 1px 0 rgba(255,255,255,0.45) inset, 0 0 24px rgba(16,185,129,0.45), 0 8px 26px rgba(16,185,129,0.3)',
   },
 } satisfies Record<string, CSSProperties>
 
 type GlowButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   tone?: keyof typeof glowTones
-  // Muestra la flecha a la derecha del texto.
-  arrow?: boolean
   // Version baja para ir junto a un campo de texto.
   compact?: boolean
 }
 
-export function GlowButton({ tone = 'gold', arrow = false, compact = false, className = '', type = 'button', style, children, ...props }: GlowButtonProps) {
+export function GlowButton({ tone = 'gold', compact = false, className = '', type = 'button', style, ...props }: GlowButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-[20px] font-display font-bold tracking-wider transition-all hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:hover:brightness-100 disabled:active:scale-100 ${compact ? 'min-h-12 px-5 text-sm' : 'min-h-[60px] px-8 text-lg'} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-[20px] font-display font-bold tracking-wider text-white transition-all hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:hover:brightness-100 disabled:active:scale-100 ${compact ? 'min-h-12 px-5 text-sm' : 'min-h-[60px] px-8 text-lg'} ${className}`}
       style={{ ...glowTones[tone], ...style }}
       type={type}
       {...props}
-    >
-      {children}
-      {arrow && <Icon className="text-[1.1em]" color="currentColor" name="arrowRight" />}
-    </button>
+    />
   )
 }
 
@@ -226,17 +225,31 @@ export function StatusChip({ status, label }: { status: string; label?: string }
   )
 }
 
-type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string }
+// `error` muestra el mensaje debajo del campo, lo marca en rojo y lo enlaza para lectores de pantalla.
+type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }
 
-export function InputField({ label, id, className = '', ...props }: InputFieldProps) {
+export function InputField({ label, id, error, className = '', ...props }: InputFieldProps) {
   const inputId = id ?? `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+  const errorId = `${inputId}-error`
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label className="text-xs font-display font-semibold tracking-widest uppercase text-white/50" htmlFor={inputId}>
+      <label className="text-xs font-display font-semibold tracking-widest uppercase text-white/60" htmlFor={inputId}>
         {label}
       </label>
-      <input className="pb-input" id={inputId} {...props} />
+      <input
+        aria-describedby={error ? errorId : undefined}
+        aria-invalid={error ? true : undefined}
+        className={`pb-input ${error ? 'pb-input-error' : ''}`}
+        id={inputId}
+        {...props}
+      />
+      {error && (
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-red-400" id={errorId}>
+          <Icon color="currentColor" name="warning" />
+          {error}
+        </p>
+      )}
     </div>
   )
 }

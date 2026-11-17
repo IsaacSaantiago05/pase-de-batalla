@@ -132,7 +132,8 @@ option {
   width: 100%;
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
-  font-size: 0.875rem;
+  /* 16px: con menos, Safari en iPhone acerca la pantalla al tocar el campo. */
+  font-size: 1rem;
   color: #fff;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -141,10 +142,14 @@ option {
   transition: border-color 0.15s;
 }
 .pb-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.45);
 }
 .pb-input:focus {
   border-color: rgba(245, 158, 11, 0.5);
+}
+.pb-input-error,
+.pb-input-error:focus {
+  border-color: rgba(248, 113, 113, 0.7);
 }
 
 /* Tablas del panel de administracion con el mismo estilo de las tarjetas. */

@@ -244,7 +244,7 @@ export function QrRedeemPage() {
               DETENER CÁMARA
             </Button>
           ) : (
-            <GlowButton arrow className="w-full tracking-widest" disabled={redeeming} onClick={() => void startScanner()}>
+            <GlowButton className="w-full tracking-widest" disabled={redeeming} onClick={() => void startScanner()}>
               ACTIVAR CÁMARA
             </GlowButton>
           )}

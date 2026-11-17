@@ -6,6 +6,19 @@ export type ApiEnvelope<T> = {
   data: T
 }
 
+// Error de la API. En validaciones (422) trae el primer mensaje de cada campo en `fields`.
+export class ApiError extends Error {
+  status: number
+  fields: Record<string, string>
+
+  constructor(message: string, status: number, errors?: Record<string, string[]>) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.fields = Object.fromEntries(Object.entries(errors ?? {}).map(([field, messages]) => [field, messages[0] ?? '']))
+  }
+}
+
 export type ApiClient = {
   apiGet<T>(path: string): Promise<ApiEnvelope<T>>
   apiPost<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>>
@@ -36,7 +49,8 @@ export function createApiClient(baseUrl: string, getToken: () => string | null |
     }
 
     if (!response.ok || body === null) {
-      throw new Error(body?.message ?? `Error de servidor (${response.status})`)
+      const errors = (body as { errors?: Record<string, string[]> } | null)?.errors
+      throw new ApiError(body?.message ?? `Error de servidor (${response.status})`, response.status, errors)
     }
 
     return body

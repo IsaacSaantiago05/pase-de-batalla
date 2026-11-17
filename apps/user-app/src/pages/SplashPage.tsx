@@ -1,5 +1,5 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { GlowButton, Icon, IslandView } from '@shared/ui'
+import { GLOW_SCREEN_BACKGROUND, GlowButton, Icon, IslandView } from '@shared/ui'
 import { getSession } from '../lib/auth'
 
 export function SplashPage() {
@@ -12,7 +12,7 @@ export function SplashPage() {
   return (
     <div
       className="relative flex flex-1 flex-col items-center justify-between overflow-hidden px-6 py-10"
-      style={{ background: 'linear-gradient(180deg, #040d1e 0%, #0a1628 40%, #080c18 100%)' }}
+      style={{ background: GLOW_SCREEN_BACKGROUND }}
     >
       <div
         className="pointer-events-none absolute"
@@ -55,15 +55,15 @@ export function SplashPage() {
 
         <div className="text-center">
           <p className="font-display text-2xl font-bold tracking-wide text-white">Convierte tus compras en progreso</p>
-          <p className="mt-2 text-sm leading-relaxed text-white/50">Gana puntos, sube de nivel y construye tu propia isla.</p>
+          <p className="mt-2 text-sm leading-relaxed text-white/60">Gana puntos, sube de nivel y construye tu propia isla.</p>
         </div>
       </div>
 
       <div className="flex w-full max-w-sm flex-col items-center gap-4">
-        <GlowButton arrow className="w-full tracking-widest" onClick={() => navigate('/register')}>
+        <GlowButton className="w-full tracking-widest" onClick={() => navigate('/register')}>
           COMENZAR
         </GlowButton>
-        <button className="text-sm font-semibold text-white/50 transition-colors hover:text-white/80" onClick={() => navigate('/login')} type="button">
+        <button className="text-sm font-semibold text-white/60 transition-colors hover:text-white/80" onClick={() => navigate('/login')} type="button">
           Ya tengo una cuenta
         </button>
       </div>
