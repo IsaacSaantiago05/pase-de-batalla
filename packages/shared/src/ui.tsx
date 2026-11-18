@@ -1,5 +1,5 @@
 // Componentes visuales del diseño de Figma, comunes a user-app y admin-app.
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, PointerEvent, ReactNode } from 'react'
 import { Icon } from './icons'
 import type { IconName } from './icons'
@@ -48,8 +48,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: keyof typeof buttonSizes
 }
 
-// Fondo de las pantallas con GlowButton: negro arriba que baja a un ambar oscuro del color del proyecto.
-export const GLOW_SCREEN_BACKGROUND = 'linear-gradient(180deg, #000000 0%, #05060a 35%, #1a1204 75%, #2b1d06 100%)'
+// Fondo de las pantallas de acceso: el azul de la app arriba que baja a un ambar oscuro del color del proyecto.
+export const GLOW_SCREEN_BACKGROUND = 'linear-gradient(180deg, #080c18 0%, #080c18 35%, #1a1408 75%, #2b1d06 100%)'
 
 // Boton principal con brillo: relleno claro arriba, halo de color alrededor y texto blanco.
 // El blanco solo no contrasta con el dorado claro: lleva un contorno oscuro del mismo tono para leerse bien.
@@ -169,7 +169,7 @@ export function BackButton({ onBack }: { onBack: () => void }) {
   return (
     <button
       aria-label="Volver"
-      className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all active:scale-90"
+      className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center transition-all active:scale-90"
       onClick={onBack}
       style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
       type="button"
@@ -184,9 +184,9 @@ export function BackButton({ onBack }: { onBack: () => void }) {
 export function ScreenHeader({ title, onBack, right }: { title: string; onBack?: () => void; right?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-      {onBack ? <BackButton onBack={onBack} /> : <div className="w-10" />}
+      {onBack ? <BackButton onBack={onBack} /> : <div className="w-11" />}
       <h1 className="font-display font-bold text-xl tracking-wider text-white text-center truncate">{title}</h1>
-      <div className="w-10 flex justify-end">{right}</div>
+      <div className="w-11 flex justify-end">{right}</div>
     </div>
   )
 }
@@ -228,22 +228,45 @@ export function StatusChip({ status, label }: { status: string; label?: string }
 // `error` muestra el mensaje debajo del campo, lo marca en rojo y lo enlaza para lectores de pantalla.
 type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }
 
-export function InputField({ label, id, error, className = '', ...props }: InputFieldProps) {
+export function InputField({ label, id, error, className = '', type, style, ...props }: InputFieldProps) {
   const inputId = id ?? `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
   const errorId = `${inputId}-error`
+  const isPassword = type === 'password'
+  const [visible, setVisible] = useState(false)
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <label className="text-xs font-display font-semibold tracking-widest uppercase text-white/60" htmlFor={inputId}>
         {label}
       </label>
-      <input
-        aria-describedby={error ? errorId : undefined}
-        aria-invalid={error ? true : undefined}
-        className={`pb-input ${error ? 'pb-input-error' : ''}`}
-        id={inputId}
-        {...props}
-      />
+      <div className="relative">
+        <input
+          aria-describedby={error ? errorId : undefined}
+          aria-invalid={error ? true : undefined}
+          className={`pb-input ${error ? 'pb-input-error' : ''}`}
+          id={inputId}
+          style={isPassword ? { paddingRight: 52, ...style } : style}
+          type={isPassword && visible ? 'text' : type}
+          {...props}
+        />
+        {/* Ojo para ver lo que se escribio: evita errores sin pedir confirmar la contraseña. */}
+        {isPassword && (
+          <button
+            aria-controls={inputId}
+            aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-pressed={visible}
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/60 transition-colors hover:text-white"
+            onClick={() => setVisible((v) => !v)}
+            type="button"
+          >
+            <svg aria-hidden="true" fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="20">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+              <circle cx="12" cy="12" r="3" />
+              {visible && <path d="M3 3l18 18" />}
+            </svg>
+          </button>
+        )}
+      </div>
       {error && (
         <p className="flex items-center gap-1.5 text-xs font-semibold text-red-400" id={errorId}>
           <Icon color="currentColor" name="warning" />

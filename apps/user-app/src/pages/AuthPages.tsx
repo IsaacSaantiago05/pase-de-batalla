@@ -114,7 +114,7 @@ export function LoginPage() {
             type="password"
             value={password}
           />
-          <Link className="text-right text-sm font-semibold" style={{ color: '#f59e0b' }} to="/forgot-password">
+          <Link className="inline-flex min-h-11 items-center self-end text-sm font-semibold" style={{ color: '#f59e0b' }} to="/forgot-password">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
@@ -139,11 +139,10 @@ export function RegisterPage() {
   const [nombre, setNombre] = useState('')
   const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
-  const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [sending, setSending] = useState(false)
-  const fieldOrder = ['nombre', 'correo', 'password', 'passwordConfirmation']
+  const fieldOrder = ['nombre', 'correo', 'password']
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -155,8 +154,6 @@ export function RegisterPage() {
     if (!correo.trim()) errors.correo = 'Escribe tu correo.'
     else if (!EMAIL_PATTERN.test(correo.trim())) errors.correo = 'Escribe un correo válido.'
     if (password.length < 8) errors.password = 'Debe tener mínimo 8 caracteres.'
-    if (!passwordConfirmation) errors.passwordConfirmation = 'Repite tu contraseña.'
-    else if (passwordConfirmation !== password) errors.passwordConfirmation = 'Las contraseñas no coinciden.'
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
       focusFirstError(errors, fieldOrder)
@@ -170,7 +167,8 @@ export function RegisterPage() {
         nombre: nombre.trim(),
         correo: correo.trim(),
         password,
-        password_confirmation: passwordConfirmation,
+        // Ya no se pide repetirla (el ojo permite revisarla); el backend la sigue exigiendo.
+        password_confirmation: password,
       })
       setSession({ token: response.data.token, role: response.data.user.rol })
       navigate('/home')
@@ -179,8 +177,7 @@ export function RegisterPage() {
       if (err instanceof ApiError && Object.keys(err.fields).length > 0) {
         const serverErrors: FieldErrors = {}
         for (const [field, message] of Object.entries(err.fields)) {
-          const isMismatch = field === 'password' && /confirmation/i.test(message)
-          serverErrors[isMismatch ? 'passwordConfirmation' : field] = toSpanish(message)
+          serverErrors[field] = toSpanish(message)
         }
         setFieldErrors(serverErrors)
         focusFirstError(serverErrors, fieldOrder)
@@ -225,16 +222,6 @@ export function RegisterPage() {
             type="password"
             value={password}
           />
-          <InputField
-            autoComplete="new-password"
-            error={fieldErrors.passwordConfirmation}
-            id="auth-passwordConfirmation"
-            label="Confirmar contraseña"
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            placeholder="Repite tu contraseña"
-            type="password"
-            value={passwordConfirmation}
-          />
         </div>
 
         <div className="rounded-xl p-3 text-xs leading-relaxed text-white/60" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -248,7 +235,7 @@ export function RegisterPage() {
           {sending ? 'CREANDO...' : 'CREAR CUENTA'}
         </GlowButton>
 
-        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+        <Link className="inline-flex min-h-11 items-center justify-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
           Ya tengo una cuenta
         </Link>
       </form>
@@ -280,10 +267,10 @@ export function ForgotPasswordPage() {
         <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
         {error && <Notice tone="error">{error}</Notice>}
         {message && <Notice tone="success">{message}</Notice>}
-        <Button className="w-full tracking-widest" type="submit">
+        <GlowButton className="w-full tracking-widest" type="submit">
           ENVIAR
-        </Button>
-        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+        </GlowButton>
+        <Link className="inline-flex min-h-11 items-center justify-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
           Volver a iniciar sesión
         </Link>
       </form>
@@ -297,7 +284,6 @@ export function ResetPasswordPage() {
   const [token, setToken] = useState(searchParams.get('token') ?? '')
   const [correo, setCorreo] = useState(searchParams.get('correo') ?? '')
   const [password, setPassword] = useState('')
-  const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -311,7 +297,7 @@ export function ResetPasswordPage() {
         token,
         correo,
         password,
-        password_confirmation: passwordConfirmation,
+        password_confirmation: password,
       })
 
       setMessage(response.message)
@@ -328,21 +314,13 @@ export function ResetPasswordPage() {
           <InputField label="Token" onChange={(e) => setToken(e.target.value)} value={token} />
           <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
           <InputField autoComplete="new-password" label="Nueva contraseña" onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" type="password" value={password} />
-          <InputField
-            autoComplete="new-password"
-            label="Confirmar contraseña"
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            placeholder="Repite tu contraseña"
-            type="password"
-            value={passwordConfirmation}
-          />
         </div>
         {error && <Notice tone="error">{error}</Notice>}
         {message && <Notice tone="success">{message}</Notice>}
-        <Button className="w-full tracking-widest" type="submit">
+        <GlowButton className="w-full tracking-widest" type="submit">
           GUARDAR CONTRASEÑA
-        </Button>
-        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+        </GlowButton>
+        <Link className="inline-flex min-h-11 items-center justify-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
           Volver a iniciar sesión
         </Link>
       </form>
