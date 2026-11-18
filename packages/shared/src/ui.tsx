@@ -70,12 +70,16 @@ type GlowButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   tone?: keyof typeof glowTones
   // Version baja para ir junto a un campo de texto.
   compact?: boolean
+  // Mismo tamaño que Button size="sm", para formularios dentro de tarjetas.
+  small?: boolean
 }
 
-export function GlowButton({ tone = 'gold', compact = false, className = '', type = 'button', style, ...props }: GlowButtonProps) {
+export function GlowButton({ tone = 'gold', compact = false, small = false, className = '', type = 'button', style, ...props }: GlowButtonProps) {
+  const sizeClass = small ? 'rounded-xl py-2 px-4 text-sm' : compact ? 'rounded-[20px] min-h-12 px-5 text-sm' : 'rounded-[20px] min-h-[60px] px-8 text-lg'
+
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-[20px] font-display font-bold tracking-wider text-white transition-all hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:hover:brightness-100 disabled:active:scale-100 ${compact ? 'min-h-12 px-5 text-sm' : 'min-h-[60px] px-8 text-lg'} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 font-display font-bold tracking-wider text-white transition-all hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:hover:brightness-100 disabled:active:scale-100 ${sizeClass} ${className}`}
       style={{ ...glowTones[tone], ...style }}
       type={type}
       {...props}

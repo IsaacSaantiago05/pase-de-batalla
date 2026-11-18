@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, ChevronRight, Icon, InputField, Notice, ScreenHeader, formatDate, formatPoints } from '@shared/ui'
+import { ChevronRight, GlowButton, Icon, InputField, Notice, ScreenHeader, formatDate, formatPoints } from '@shared/ui'
 import type { IconName } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { PasswordRequirements } from '../components/PasswordRequirements'
@@ -189,9 +189,9 @@ export function ProfilePage() {
                   <form className="pb-card mt-2 flex flex-col gap-4 rounded-2xl p-4" onSubmit={saveData}>
                     <InputField label="Nombre" onChange={(e) => setNombre(e.target.value)} value={nombre} />
                     <InputField label="Correo" onChange={(e) => setCorreo(e.target.value)} type="email" value={correo} />
-                    <Button className="w-full tracking-widest" size="sm" type="submit" variant="green">
+                    <GlowButton className="w-full tracking-widest" small tone="green" type="submit">
                       GUARDAR DATOS
-                    </Button>
+                    </GlowButton>
                   </form>
                 )}
 
@@ -221,9 +221,9 @@ export function ProfilePage() {
                       type="password"
                       value={passwordConfirmation}
                     />
-                    <Button className="w-full tracking-widest" size="sm" type="submit" variant="green">
+                    <GlowButton className="w-full tracking-widest" small tone="green" type="submit">
                       CAMBIAR CONTRASEÑA
-                    </Button>
+                    </GlowButton>
                   </form>
                 )}
               </div>
