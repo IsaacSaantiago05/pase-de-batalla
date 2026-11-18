@@ -226,13 +226,20 @@ export function StatusChip({ status, label }: { status: string; label?: string }
 }
 
 // `error` muestra el mensaje debajo del campo, lo marca en rojo y lo enlaza para lectores de pantalla.
-type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }
+// `valid` pone una palomita verde dentro del campo cuando lo escrito ya es correcto.
+// `hint` va debajo del campo (por ejemplo, los requisitos de la contraseña) y tambien se enlaza al campo.
+type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; valid?: boolean; hint?: ReactNode }
 
-export function InputField({ label, id, error, className = '', type, style, ...props }: InputFieldProps) {
+export function InputField({ label, id, error, valid = false, hint, className = '', type, style, ...props }: InputFieldProps) {
   const inputId = id ?? `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
   const errorId = `${inputId}-error`
+  const hintId = `${inputId}-hint`
   const isPassword = type === 'password'
   const [visible, setVisible] = useState(false)
+  const showValid = valid && !error
+  const describedBy = [error ? errorId : '', hint ? hintId : ''].filter(Boolean).join(' ') || undefined
+  // Espacio a la derecha para el ojo (48px) y la palomita (32px) sin que el texto quede debajo.
+  const paddingRight = (isPassword ? 48 : 12) + (showValid ? 32 : 0)
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
@@ -241,14 +248,19 @@ export function InputField({ label, id, error, className = '', type, style, ...p
       </label>
       <div className="relative">
         <input
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={describedBy}
           aria-invalid={error ? true : undefined}
-          className={`pb-input ${error ? 'pb-input-error' : ''}`}
+          className={`pb-input ${error ? 'pb-input-error' : showValid ? 'pb-input-valid' : ''}`}
           id={inputId}
-          style={isPassword ? { paddingRight: 52, ...style } : style}
+          style={isPassword || showValid ? { paddingRight, ...style } : style}
           type={isPassword && visible ? 'text' : type}
           {...props}
         />
+        {showValid && (
+          <span className={`pointer-events-none absolute inset-y-0 flex items-center text-lg ${isPassword ? 'right-12' : 'right-3.5'}`}>
+            <Icon color="#10b981" label="Correcto" name="success" />
+          </span>
+        )}
         {/* Ojo para ver lo que se escribio: evita errores sin pedir confirmar la contraseña. */}
         {isPassword && (
           <button
@@ -273,6 +285,7 @@ export function InputField({ label, id, error, className = '', type, style, ...p
           {error}
         </p>
       )}
+      {hint && <div id={hintId}>{hint}</div>}
     </div>
   )
 }
