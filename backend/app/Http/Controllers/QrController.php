@@ -6,6 +6,7 @@ use App\Http\Requests\Points\GenerateQrRequest;
 use App\Http\Requests\Points\RedeemQrRequest;
 use App\Http\Resources\Points\PointMovementResource;
 use App\Http\Resources\Points\QrCodeResource;
+use App\Models\QrCode;
 use App\Services\PointsService;
 use App\Services\QrService;
 use App\Support\ApiResponse;
@@ -30,7 +31,19 @@ class QrController extends Controller
         $actor = $request->user();
         $businessId = $request->filled('negocio_id') ? (int) $request->query('negocio_id') : null;
 
-        $codes = $this->qrService->listForActor($actor, $businessId);
+        // ?estado=ACTIVO,UTILIZADO deja fuera los que nadie canjeo (expirados y cancelados).
+        $statuses = collect(explode(',', (string) $request->query('estado', '')))
+            ->map(fn (string $status) => strtoupper(trim($status)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (array_diff($statuses, QrCode::STATUSES) !== []) {
+            return $this->error('El estado indicado no es válido. Usa ACTIVO, UTILIZADO, EXPIRADO o CANCELADO.', null, 422);
+        }
+
+        $codes = $this->qrService->listForActor($actor, $businessId, $statuses);
 
         return $this->success('Códigos QR obtenidos correctamente.', QrCodeResource::collection($codes));
     }

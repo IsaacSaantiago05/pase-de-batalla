@@ -1,32 +1,52 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { apiGet, apiPatch, apiPost } from '../lib/api'
+import { apiGet, apiPatch, apiPost, apiPut } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
 
 type Product = {
   id: number
   negocio_id: number
+  negocio_nombre?: string | null
   nombre: string
   descripcion: string | null
   puntos: number
   estado: boolean
+  // Fecha en que se eliminara por llevar 7 dias inactivo; null si esta activo.
+  se_elimina_en?: string | null
 }
 
 type ProductListPayload = Product[] | { data: Product[] }
 
+type Draft = { id: number; nombre: string; puntos: string }
+
+const smallButton = 'rounded-md border border-white/10 px-3 py-1 text-xs font-medium text-white/70 hover:bg-white/5 disabled:opacity-40'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function deletionNotice(date: string) {
+  const days = Math.ceil((new Date(date).getTime() - Date.now()) / DAY_MS)
+
+  return days <= 1 ? 'Se elimina en menos de 1 día' : `Se elimina en ${days} días`
+}
+
+// El negocio crea sus productos y los activa o desactiva; nombre y puntos solo los corrige el administrador general.
 export function ProductsAdminPage() {
-  const canCreate = getAdminSession()?.role === 'ADMINISTRADOR_NEGOCIO'
+  const role = getAdminSession()?.role
+  const canCreate = role === 'ADMINISTRADOR_NEGOCIO'
+  const canEdit = role === 'ADMINISTRADOR_GENERAL'
   const [rows, setRows] = useState<Product[]>([])
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [puntos, setPuntos] = useState('')
+  const [draft, setDraft] = useState<Draft | null>(null)
+  const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
   const loadProducts = async () => {
     try {
-      const response = await apiGet<ProductListPayload>('/products')
+      const response = await apiGet<ProductListPayload>('/products?per_page=100')
       const payload = response.data
       setRows(Array.isArray(payload) ? payload : (payload.data ?? []))
     } catch (err) {
@@ -45,11 +65,11 @@ export function ProductsAdminPage() {
 
     try {
       await apiPost('/products', {
-        nombre,
+        nombre: nombre.trim(),
         descripcion: descripcion.trim() || null,
         puntos: Number(puntos),
       })
-      setMessage('Producto creado correctamente.')
+      setMessage('Producto creado correctamente. Ya aparece como botón en Códigos QR.')
       setNombre('')
       setDescripcion('')
       setPuntos('')
@@ -59,12 +79,46 @@ export function ProductsAdminPage() {
     }
   }
 
+  async function saveDraft() {
+    if (!draft) return
+    setMessage('')
+    setError('')
+
+    const points = Number(draft.puntos)
+    if (draft.nombre.trim() === '') {
+      setError('El nombre del producto es obligatorio.')
+      return
+    }
+    if (!Number.isInteger(points) || points < 1) {
+      setError('Los puntos deben ser un número entero mayor a 0.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      await apiPut(`/products/${draft.id}`, { nombre: draft.nombre.trim(), puntos: points })
+      setMessage('Producto actualizado correctamente.')
+      setDraft(null)
+      await loadProducts()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No fue posible actualizar el producto')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function toggleStatus(row: Product) {
     setMessage('')
     setError('')
 
     try {
       await apiPatch(`/products/${row.id}/status`, { estado: !row.estado })
+      setMessage(
+        row.estado
+          ? `${row.nombre} quedó inactivo: ya no genera QR y se eliminará en 7 días si no se reactiva.`
+          : `${row.nombre} quedó activo.`,
+      )
       await loadProducts()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible actualizar estado')
@@ -94,9 +148,14 @@ export function ProductsAdminPage() {
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
             />
+            <p className="mt-3 text-xs text-white/40">
+              Cada producto activo aparece como botón en Códigos QR. Un producto inactivo se elimina solo a los 7 días. Si hay un error en el nombre o los puntos, pide la corrección al administrador general.
+            </p>
           </>
         ) : (
-          <p className="text-sm text-white/60">El administrador general puede ver y activar o desactivar productos; solo cada negocio los crea.</p>
+          <p className="text-sm text-white/60">
+            Cada negocio crea sus productos. Aquí puedes corregir el nombre y los puntos, o activarlos y desactivarlos. Un producto inactivo se elimina solo a los 7 días.
+          </p>
         )}
         {message && <p className="mt-3 text-sm text-emerald-400">{message}</p>}
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
@@ -108,36 +167,81 @@ export function ProductsAdminPage() {
           <table className="pb-table">
             <thead>
               <tr>
-                <th className="p-2">Negocio</th>
+                {canEdit && <th className="p-2">Negocio</th>}
                 <th className="p-2">Nombre</th>
                 <th className="p-2">Puntos</th>
                 <th className="p-2">Estado</th>
-                <th className="p-2">Accion</th>
+                <th className="p-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td className="p-2">{row.negocio_id}</td>
-                  <td className="p-2">{row.nombre}</td>
-                  <td className="p-2">{row.puntos}</td>
-                  <td className="p-2">{row.estado ? 'ACTIVO' : 'INACTIVO'}</td>
-                  <td className="p-2">
-                    <button
-                      className="rounded-md border border-white/10 px-3 py-1 text-xs font-medium text-white/70 hover:bg-white/5"
-                      onClick={() => {
-                        void toggleStatus(row)
-                      }}
-                      type="button"
-                    >
-                      {row.estado ? 'Desactivar' : 'Activar'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {rows.map((row) => {
+                const editing = draft?.id === row.id
+
+                return (
+                  <tr key={row.id}>
+                    {canEdit && <td className="p-2">{row.negocio_nombre ?? `#${row.negocio_id}`}</td>}
+                    <td className="p-2">
+                      {editing ? (
+                        <input
+                          aria-label="Nombre del producto"
+                          className="pb-input min-w-40"
+                          maxLength={150}
+                          onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
+                          value={draft.nombre}
+                        />
+                      ) : (
+                        row.nombre
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {editing ? (
+                        <input
+                          aria-label="Puntos que otorga"
+                          className="pb-input w-24"
+                          inputMode="numeric"
+                          onChange={(e) => setDraft({ ...draft, puntos: e.target.value })}
+                          value={draft.puntos}
+                        />
+                      ) : (
+                        row.puntos
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {row.estado ? 'ACTIVO' : 'INACTIVO'}
+                      {!row.estado && row.se_elimina_en && <span className="block text-xs text-amber-400">{deletionNotice(row.se_elimina_en)}</span>}
+                    </td>
+                    <td className="p-2">
+                      <div className="flex flex-wrap gap-2">
+                        {editing ? (
+                          <>
+                            <button className={`${smallButton} border-emerald-500/40 text-emerald-400`} disabled={saving} onClick={() => void saveDraft()} type="button">
+                              {saving ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            <button className={smallButton} disabled={saving} onClick={() => setDraft(null)} type="button">
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {canEdit && (
+                              <button className={smallButton} onClick={() => setDraft({ id: row.id, nombre: row.nombre, puntos: String(row.puntos) })} type="button">
+                                Editar
+                              </button>
+                            )}
+                            <button className={smallButton} onClick={() => void toggleStatus(row)} type="button">
+                              {row.estado ? 'Desactivar' : 'Activar'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
               {rows.length === 0 && (
                 <tr>
-                  <td className="p-2 text-white/40" colSpan={5}>Sin productos todavia.</td>
+                  <td className="p-2 text-white/40" colSpan={canEdit ? 5 : 4}>Sin productos todavia.</td>
                 </tr>
               )}
             </tbody>

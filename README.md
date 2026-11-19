@@ -115,10 +115,14 @@ Los puntos se otorgan con el QR de una venta, con un QR generado por cantidad de
 
 Productos (catalogo por negocio, con puntos fijos; la plataforma no maneja precios ni dinero):
 
-- GET /api/products (cliente: solo activos; admin de negocio: los suyos; admin general: todos, filtro `negocio_id`)
+- GET /api/products (cliente: solo activos; admin de negocio: los suyos; admin general: todos, filtro `negocio_id`). Acepta `activos=1` (solo activos) y `per_page` (1 a 100). Cada producto incluye `negocio_nombre`.
 - POST /api/products (solo ADMINISTRADOR_NEGOCIO, se crea en su negocio)
-- PUT /api/products/{product} (solo ADMINISTRADOR_NEGOCIO, solo de su negocio)
-- PATCH /api/products/{product}/status (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL)
+- PUT /api/products/{product} (solo ADMINISTRADOR_GENERAL: corrige nombre, descripcion, puntos o estado)
+- PATCH /api/products/{product}/status (ADMINISTRADOR_NEGOCIO sobre sus propios productos, o ADMINISTRADOR_GENERAL)
+
+El administrador de negocio crea sus productos y los activa o desactiva, pero no puede cambiarles el nombre ni los puntos: esas correcciones las hace el administrador general.
+
+Un producto inactivo no genera QR y se elimina solo a los 7 dias de haberse desactivado (`desactivado_en`; el campo `se_elimina_en` indica la fecha). Reactivarlo cancela el plazo. Cumplido el plazo deja de listarse y responde 404; el borrado fisico lo hace `php artisan model:prune`, programado a diario (requiere `php artisan schedule:work` o cron). Las ventas conservan su copia del nombre y los puntos.
 
 Ventas (cada venta genera un QR de un solo uso con la suma de puntos de sus productos):
 
@@ -147,12 +151,14 @@ Estadisticas (ADMINISTRADOR_NEGOCIO: su negocio; ADMINISTRADOR_GENERAL: toda la 
 
 QR:
 
-- GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL). Cada codigo incluye `negocio_nombre` y `productos` (los productos de la venta que lo origino; lista vacia si se genero por cantidad de puntos). Acepta `estado` con uno o varios estados separados por coma (`ACTIVO`, `UTILIZADO`, `EXPIRADO`, `CANCELADO`); se filtra por el estado real, asi que un ACTIVO ya vencido cuenta como EXPIRADO. El panel pide por defecto `estado=ACTIVO,UTILIZADO`.
 - GET /api/qr/{qrCode} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - GET /api/qr/{qrCode}/image (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - PATCH /api/qr/{qrCode}/cancel (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL; solo QR en estado ACTIVO)
 - POST /api/qr/redeem (solo CLIENTE)
+
+Los QR que nadie canjeo (expirados o cancelados) se eliminan solos a los 30 dias de generados, junto con la venta que los origino; los canjeados se conservan como historial. Lo hace `php artisan model:prune`, programado a diario (requiere `php artisan schedule:work` o cron). Son 30 dias para que las estadisticas del mes sigan contando todos los QR generados.
 
 Recompensas:
 

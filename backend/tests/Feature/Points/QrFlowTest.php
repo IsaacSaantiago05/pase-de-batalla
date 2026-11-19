@@ -6,8 +6,10 @@ use App\Models\Business;
 use App\Models\Level;
 use App\Models\QrCode;
 use App\Models\Role;
+use App\Models\Sale;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -373,5 +375,109 @@ class QrFlowTest extends TestCase
         $response = $this->getJson('/api/qr/'.$qrCode->id.'/image');
 
         $response->assertStatus(403);
+    }
+
+    public function test_qr_list_can_be_filtered_by_real_status(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-19 12:00:00'));
+        Sanctum::actingAs($this->makeBusinessAdmin('admin.filtro@example.com'));
+
+        $active = $this->makeQr('ACTIVO', now(), now()->addSeconds(30));
+        // Guardado como ACTIVO pero ya vencido: en realidad esta expirado.
+        $stale = $this->makeQr('ACTIVO', now()->subMinutes(5), now()->subMinutes(4));
+        $expired = $this->makeQr('EXPIRADO', now()->subHour(), now()->subMinutes(59));
+        $cancelled = $this->makeQr('CANCELADO', now()->subHour(), now()->subMinutes(59));
+        $used = $this->makeQr('UTILIZADO', now()->subHour(), now()->subMinutes(59));
+
+        $ids = fn (string $url) => collect($this->getJson($url)->assertOk()->json('data'))->pluck('id')->sort()->values()->all();
+
+        // Lo que el panel muestra por defecto: sin los que nadie canjeo.
+        $this->assertSame([$active->id, $used->id], $ids('/api/qr?estado=ACTIVO,UTILIZADO'));
+        $this->assertSame([$stale->id, $expired->id, $cancelled->id], $ids('/api/qr?estado=expirado,cancelado'));
+        $this->assertSame([$cancelled->id], $ids('/api/qr?estado=CANCELADO'));
+        $this->assertCount(5, $ids('/api/qr'));
+
+        $this->getJson('/api/qr?estado=OTRO')->assertStatus(422)->assertJsonPath('success', false);
+    }
+
+    public function test_unused_qr_codes_are_deleted_after_thirty_days_and_redeemed_ones_are_kept(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-19 12:00:00'));
+        $admin = $this->makeBusinessAdmin('admin.limpieza@example.com');
+
+        $unusedSale = $this->makeSale($admin);
+        $redeemedSale = $this->makeSale($admin);
+        $old = now()->subDays(31);
+
+        $oldExpired = $this->makeQr('EXPIRADO', $old, $old->copy()->addSeconds(30), $unusedSale->id);
+        $oldStale = $this->makeQr('ACTIVO', $old, $old->copy()->addSeconds(30));
+        $oldCancelled = $this->makeQr('CANCELADO', $old, $old->copy()->addSeconds(30));
+        $oldUsed = $this->makeQr('UTILIZADO', $old, $old->copy()->addSeconds(30), $redeemedSale->id);
+        // Dentro de los 30 dias: todavia cuenta para las estadisticas del mes.
+        $recentExpired = $this->makeQr('EXPIRADO', now()->subDays(29), now()->subDays(29)->addSeconds(30));
+        $active = $this->makeQr('ACTIVO', now(), now()->addSeconds(30));
+
+        $this->artisan('model:prune', ['--model' => [QrCode::class]])->assertSuccessful();
+
+        foreach ([$oldExpired, $oldStale, $oldCancelled] as $deleted) {
+            $this->assertDatabaseMissing('codigos_qr', ['id' => $deleted->id]);
+        }
+        foreach ([$oldUsed, $recentExpired, $active] as $kept) {
+            $this->assertDatabaseHas('codigos_qr', ['id' => $kept->id]);
+        }
+
+        // La venta de un QR nunca canjeado se va con el; la del canjeado se conserva.
+        $this->assertDatabaseMissing('ventas', ['id' => $unusedSale->id]);
+        $this->assertDatabaseMissing('venta_items', ['venta_id' => $unusedSale->id]);
+        $this->assertDatabaseHas('ventas', ['id' => $redeemedSale->id]);
+        $this->assertDatabaseHas('venta_items', ['venta_id' => $redeemedSale->id]);
+        $this->assertSame($redeemedSale->id, $oldUsed->fresh()->venta_id);
+    }
+
+    private function makeBusinessAdmin(string $email): User
+    {
+        return User::query()->create([
+            'nombre' => 'Admin A',
+            'correo' => $email,
+            'password' => 'Password123',
+            'rol_id' => $this->adminNegocioRole->id,
+            'negocio_id' => $this->businessA->id,
+            'estado' => true,
+            'fecha_registro' => now(),
+        ]);
+    }
+
+    private function makeQr(string $status, Carbon $createdAt, Carbon $expiresAt, ?int $saleId = null): QrCode
+    {
+        static $counter = 0;
+
+        return QrCode::query()->create([
+            'negocio_id' => $this->businessA->id,
+            'venta_id' => $saleId,
+            'token' => 'TOKEN-QR-LISTADO-'.(++$counter),
+            'puntos' => 10,
+            'estado' => $status,
+            'fecha_creacion' => $createdAt,
+            'fecha_expiracion' => $expiresAt,
+        ]);
+    }
+
+    private function makeSale(User $admin): Sale
+    {
+        $sale = Sale::query()->create([
+            'negocio_id' => $this->businessA->id,
+            'creado_por' => $admin->id,
+            'puntos_total' => 10,
+        ]);
+
+        $sale->items()->create([
+            'producto_id' => null,
+            'nombre' => 'Cafe',
+            'puntos_unitarios' => 10,
+            'cantidad' => 1,
+            'puntos_subtotal' => 10,
+        ]);
+
+        return $sale;
     }
 }

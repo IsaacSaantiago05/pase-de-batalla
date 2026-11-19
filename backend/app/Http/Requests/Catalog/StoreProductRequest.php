@@ -20,4 +20,16 @@ class StoreProductRequest extends FormRequest
             'estado' => ['nullable', 'boolean'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'nombre.required' => 'El nombre del producto es obligatorio.',
+            'nombre.max' => 'El nombre no puede tener más de 150 caracteres.',
+            'puntos.required' => 'Indica cuántos puntos otorga el producto.',
+            'puntos.integer' => 'Los puntos deben ser un número entero.',
+            'puntos.min' => 'El producto debe otorgar al menos 1 punto.',
+            'puntos.max' => 'El producto no puede otorgar más de 100,000 puntos.',
+        ];
+    }
 }

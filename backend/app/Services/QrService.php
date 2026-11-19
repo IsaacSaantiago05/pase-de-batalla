@@ -25,9 +25,16 @@ class QrService
     {
     }
 
-    public function listForActor(User $actor, ?int $businessId, int $perPage = 20): LengthAwarePaginator
+    /**
+     * @param  array<int, string>  $statuses  Estados reales a incluir; vacio = todos.
+     */
+    public function listForActor(User $actor, ?int $businessId, array $statuses = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = QrCode::query()->orderByDesc('id');
+        $query = QrCode::query()->with(['business:id,nombre', 'sale.items'])->orderByDesc('id');
+
+        if ($statuses !== []) {
+            $query->withRealStatus($statuses);
+        }
 
         if ($actor->hasRole('ADMINISTRADOR_NEGOCIO')) {
             $query->where('negocio_id', $actor->negocio_id);

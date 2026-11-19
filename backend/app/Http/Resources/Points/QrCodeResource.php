@@ -12,7 +12,16 @@ class QrCodeResource extends JsonResource
         return [
             'id' => $this->id,
             'negocio_id' => $this->negocio_id,
+            'negocio_nombre' => $this->whenLoaded('business', fn () => $this->business?->nombre),
             'venta_id' => $this->venta_id,
+            // Productos que originaron el QR; lista vacia si se genero por cantidad de puntos.
+            'productos' => $this->when(
+                $this->resource->relationLoaded('sale'),
+                fn () => $this->sale?->items->map(fn ($item) => [
+                    'nombre' => $item->nombre,
+                    'cantidad' => $item->cantidad,
+                ])->values() ?? [],
+            ),
             'token' => $this->token,
             'puntos' => $this->puntos,
             'estado' => $this->estado,

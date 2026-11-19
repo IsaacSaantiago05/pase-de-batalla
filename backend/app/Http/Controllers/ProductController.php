@@ -18,7 +18,8 @@ class ProductController extends Controller
     {
         $actor = $request->user();
 
-        $query = Product::query()->orderByDesc('id');
+        // Los productos con 7 dias inactivos ya no se listan (ver Product::scopeWithoutExpired).
+        $query = Product::query()->withoutExpired()->with('business:id,nombre')->orderByDesc('id');
 
         if ($actor->hasRole('CLIENTE')) {
             $query->where('estado', true)
@@ -32,7 +33,14 @@ class ProductController extends Controller
             $query->where('negocio_id', $request->integer('negocio_id'));
         }
 
-        return $this->success('Productos obtenidos correctamente.', ProductResource::collection($query->paginate(20)));
+        // ?activos=1 deja solo los productos activos (los botones de generar QR).
+        if ($request->boolean('activos')) {
+            $query->where('estado', true);
+        }
+
+        $perPage = min(max($request->integer('per_page', 20), 1), 100);
+
+        return $this->success('Productos obtenidos correctamente.', ProductResource::collection($query->paginate($perPage)));
     }
 
     public function store(StoreProductRequest $request): JsonResponse
@@ -56,17 +64,20 @@ class ProductController extends Controller
         return $this->success('Producto creado correctamente.', new ProductResource($product), 201);
     }
 
+    /**
+     * Corregir el nombre o los puntos es exclusivo del administrador general; la ruta ya restringe el rol.
+     */
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
-        if ($request->user()->negocio_id !== $product->negocio_id) {
-            return $this->error('No puedes editar productos de otro negocio.', null, 403);
-        }
-
         $product->update($request->validated());
 
         return $this->success('Producto actualizado correctamente.', new ProductResource($product->fresh()));
     }
 
+    /**
+     * Activar o desactivar: el administrador general, o el de negocio sobre sus propios productos.
+     * Un producto inactivo no genera QR y se elimina solo a los 7 dias.
+     */
     public function updateStatus(Request $request, Product $product): JsonResponse
     {
         $actor = $request->user();

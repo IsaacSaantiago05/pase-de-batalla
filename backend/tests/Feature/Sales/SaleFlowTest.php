@@ -162,6 +162,49 @@ class SaleFlowTest extends TestCase
         $this->assertSame($this->businessA->id, $sales[0]['negocio_id']);
     }
 
+    public function test_qr_list_shows_business_and_products_of_each_code(): void
+    {
+        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 10);
+        Sanctum::actingAs($this->adminA);
+
+        // Un QR de un producto (el boton del panel registra una venta de 1 pieza) y otro por cantidad de puntos.
+        $this->postJson('/api/sales', ['items' => [['producto_id' => $cupcake->id, 'cantidad' => 1]]])
+            ->assertCreated()
+            ->assertJsonPath('data.qr.puntos', 10);
+        $this->postJson('/api/qr/generate', ['puntos' => 40])->assertCreated();
+
+        $codes = $this->getJson('/api/qr')->assertOk()->json('data');
+
+        $this->assertCount(2, $codes);
+        // El mas reciente primero.
+        $this->assertSame(40, $codes[0]['puntos']);
+        $this->assertSame([], $codes[0]['productos']);
+        $this->assertSame(10, $codes[1]['puntos']);
+        $this->assertSame([['nombre' => 'Cupcake', 'cantidad' => 1]], $codes[1]['productos']);
+        $this->assertSame('Negocio A', $codes[1]['negocio_nombre']);
+    }
+
+    public function test_product_qr_uses_points_corrected_by_general_admin(): void
+    {
+        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 10);
+
+        Sanctum::actingAs($this->makeUser($this->adminGeneralRole, 'g@example.com'));
+        $this->putJson("/api/products/{$cupcake->id}", ['puntos' => 25])->assertOk();
+
+        Sanctum::actingAs($this->adminA);
+        $this->postJson('/api/sales', ['items' => [['producto_id' => $cupcake->id, 'cantidad' => 1]]])
+            ->assertCreated()
+            ->assertJsonPath('data.puntos_total', 25)
+            ->assertJsonPath('data.qr.puntos', 25);
+
+        // Si el administrador general lo desactiva, ya no genera QR.
+        Sanctum::actingAs($this->makeUser($this->adminGeneralRole, 'g2@example.com'));
+        $this->patchJson("/api/products/{$cupcake->id}/status", ['estado' => false])->assertOk();
+
+        Sanctum::actingAs($this->adminA);
+        $this->postJson('/api/sales', ['items' => [['producto_id' => $cupcake->id, 'cantidad' => 1]]])->assertStatus(422);
+    }
+
     public function test_only_business_admin_can_register_sales(): void
     {
         $product = $this->makeProduct($this->businessA, 'Cupcake', 10);
