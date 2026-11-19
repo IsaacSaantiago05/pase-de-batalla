@@ -111,7 +111,7 @@ Puntos:
 - GET /api/points/history (cada movimiento incluye `negocio_nombre`)
 - GET /api/points/business-history
 
-Los puntos se otorgan con el QR de una venta, con un QR generado por cantidad de puntos o con un ajuste manual del administrador general.
+Los puntos se otorgan con el QR de un producto (venta), o bien con un QR por cantidad de puntos o un ajuste manual, que son exclusivos del administrador general. El administrador de negocio no puede decidir cuantos puntos da un QR.
 
 Productos (catalogo por negocio, con puntos fijos; la plataforma no maneja precios ni dinero):
 
@@ -154,7 +154,7 @@ QR:
 - GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL). Cada codigo incluye `negocio_nombre` y `productos` (los productos de la venta que lo origino; lista vacia si se genero por cantidad de puntos). Acepta `estado` con uno o varios estados separados por coma (`ACTIVO`, `UTILIZADO`, `EXPIRADO`, `CANCELADO`); se filtra por el estado real, asi que un ACTIVO ya vencido cuenta como EXPIRADO. El panel pide por defecto `estado=ACTIVO,UTILIZADO`.
 - GET /api/qr/{qrCode} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - GET /api/qr/{qrCode}/image (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
-- POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- POST /api/qr/generate (solo ADMINISTRADOR_GENERAL). Cuerpo: `{"negocio_id": 1, "puntos": 40}`; ambos obligatorios, puntos de 1 a 100000. El administrador de negocio genera sus QR desde sus productos con POST /api/sales.
 - PATCH /api/qr/{qrCode}/cancel (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL; solo QR en estado ACTIVO)
 - POST /api/qr/redeem (solo CLIENTE)
 

@@ -167,12 +167,15 @@ class SaleFlowTest extends TestCase
         $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 10);
         Sanctum::actingAs($this->adminA);
 
-        // Un QR de un producto (el boton del panel registra una venta de 1 pieza) y otro por cantidad de puntos.
+        // Un QR de un producto (el boton del panel registra una venta de 1 pieza)...
         $this->postJson('/api/sales', ['items' => [['producto_id' => $cupcake->id, 'cantidad' => 1]]])
             ->assertCreated()
             ->assertJsonPath('data.qr.puntos', 10);
-        $this->postJson('/api/qr/generate', ['puntos' => 40])->assertCreated();
+        // ...y otro por cantidad de puntos, que solo puede generar el administrador general.
+        Sanctum::actingAs($this->makeUser($this->adminGeneralRole, 'g.qr@example.com'));
+        $this->postJson('/api/qr/generate', ['negocio_id' => $this->businessA->id, 'puntos' => 40])->assertCreated();
 
+        Sanctum::actingAs($this->adminA);
         $codes = $this->getJson('/api/qr')->assertOk()->json('data');
 
         $this->assertCount(2, $codes);
