@@ -8,6 +8,7 @@ import { getAdminSession } from '../lib/auth'
 type Reward = {
   id: number
   negocio_id: number
+  negocio_nombre?: string | null
   nombre: string
   descripcion: string | null
   puntos_requeridos: number
@@ -146,7 +147,7 @@ export function RewardsAdminPage() {
                 {isGeneral && (
                   <>
                     <span>·</span>
-                    <span>Negocio #{row.negocio_id}</span>
+                    <span>{row.negocio_nombre ?? `Negocio #${row.negocio_id}`}</span>
                   </>
                 )}
               </div>

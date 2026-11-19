@@ -40,6 +40,7 @@ class PointsService
     public function getUserHistory(User $user, int $perPage = 20): LengthAwarePaginator
     {
         return PointMovement::query()
+            ->with('business:id,nombre')
             ->where('usuario_id', $user->id)
             ->orderByDesc('id')
             ->paginate($perPage);
@@ -48,6 +49,7 @@ class PointsService
     public function getBusinessHistory(int $businessId, int $perPage = 20): LengthAwarePaginator
     {
         return PointMovement::query()
+            ->with('business:id,nombre')
             ->where('negocio_id', $businessId)
             ->orderByDesc('id')
             ->paginate($perPage);

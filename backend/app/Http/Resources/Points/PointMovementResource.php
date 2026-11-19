@@ -13,6 +13,7 @@ class PointMovementResource extends JsonResource
             'id' => $this->id,
             'usuario_id' => $this->usuario_id,
             'negocio_id' => $this->negocio_id,
+            'negocio_nombre' => $this->whenLoaded('business', fn () => $this->business?->nombre),
             'qr_id' => $this->qr_id,
             'venta_id' => $this->venta_id,
             'otorgado_por' => $this->otorgado_por,

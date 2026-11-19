@@ -12,6 +12,7 @@ class RewardResource extends JsonResource
         return [
             'id' => $this->id,
             'negocio_id' => $this->negocio_id,
+            'negocio_nombre' => $this->whenLoaded('business', fn () => $this->business?->nombre),
             'nombre' => $this->nombre,
             'descripcion' => $this->descripcion,
             'puntos_requeridos' => $this->puntos_requeridos,

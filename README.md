@@ -108,7 +108,7 @@ Administradores (solo ADMINISTRADOR_GENERAL):
 Puntos:
 
 - GET /api/points/balance
-- GET /api/points/history
+- GET /api/points/history (cada movimiento incluye `negocio_nombre`)
 - GET /api/points/business-history
 
 Los puntos se otorgan con el QR de una venta, con un QR generado por cantidad de puntos o con un ajuste manual del administrador general.
@@ -162,7 +162,7 @@ Los QR que nadie canjeo (expirados o cancelados) se eliminan solos a los 30 dias
 
 Recompensas:
 
-- GET /api/rewards (CLIENTE: solo activas con stock / ADMIN: gestion por negocio)
+- GET /api/rewards (CLIENTE: solo activas con stock / ADMIN: gestion por negocio). Cada recompensa incluye `negocio_nombre`.
 - POST /api/rewards (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - PUT /api/rewards/{reward} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - PATCH /api/rewards/{reward}/status (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
