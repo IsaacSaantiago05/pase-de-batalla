@@ -62,9 +62,15 @@ class AdministratorController extends Controller
         }
 
         $data = $request->validated();
+        $resetsPassword = ! empty($data['password']);
 
-        if (empty($data['password'])) {
+        if (! $resetsPassword) {
             unset($data['password']);
+        }
+
+        // La contrasena propia se cambia desde el perfil, que exige la actual: asi un token robado no basta.
+        if ($resetsPassword && $administrator->is($request->user())) {
+            return $this->error('Para cambiar tu propia contraseña usa "Mi cuenta" e indica tu contraseña actual.', null, 422);
         }
 
         if ($administrator->hasRole('ADMINISTRADOR_GENERAL')) {
@@ -72,6 +78,11 @@ class AdministratorController extends Controller
         }
 
         $administrator->update($data);
+
+        if ($resetsPassword) {
+            // Al restablecer la contrasena se cierran las sesiones abiertas de esa cuenta.
+            $administrator->tokens()->delete();
+        }
 
         return $this->success('Administrador actualizado correctamente.', new UserResource($administrator->fresh()->load(['role', 'business'])));
     }

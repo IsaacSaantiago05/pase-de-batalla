@@ -102,7 +102,7 @@ Administradores (solo ADMINISTRADOR_GENERAL):
 - GET /api/admin/administrators
 - POST /api/admin/administrators
 - GET /api/admin/administrators/{administrator}
-- PUT /api/admin/administrators/{administrator}
+- PUT /api/admin/administrators/{administrator}. Si se envia `password` (con `password_confirmation`, minimo 8 caracteres) se restablece la contrasena de esa cuenta y se cierran sus sesiones abiertas. La propia no se puede cambiar por aqui: va por PUT /api/profile, que exige `password_actual`.
 - PATCH /api/admin/administrators/{administrator}/status
 
 Puntos:

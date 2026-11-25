@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Button, EmptyState, FieldLabel, Icon, InputField, Notice, SectionTitle, StatusChip } from '@shared/ui'
+import { Link } from 'react-router-dom'
+import { Button, ChipButton, EmptyState, FieldLabel, Icon, InputField, Notice, SectionTitle, StatusChip } from '@shared/ui'
 import { AdminPage } from '../components/AdminLayout'
-import { apiGet, apiPost, listData } from '../lib/api'
+import { apiGet, apiPost, apiPut, listData } from '../lib/api'
 
 type AdminItem = {
   id: number
@@ -28,6 +29,8 @@ type BusinessList = {
 
 const purpleBackground = 'linear-gradient(180deg, #0d0018 0%, #080c18 100%)'
 
+const MIN_PASSWORD_LENGTH = 8
+
 export function AdministratorsPage() {
   const [items, setItems] = useState<AdminItem[]>([])
   const [businesses, setBusinesses] = useState<Business[]>([])
@@ -35,6 +38,14 @@ export function AdministratorsPage() {
   const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
   const [negocioId, setNegocioId] = useState('')
+  // Cuenta propia: su contraseña se cambia en Mi cuenta, no aqui.
+  const [myId, setMyId] = useState<number | null>(null)
+  // Restablecimiento en curso: a que cuenta y con que contraseña nueva.
+  const [reset, setReset] = useState<{ id: number; password: string } | null>(null)
+  const [savingReset, setSavingReset] = useState(false)
+  // El resultado se muestra en la misma tarjeta de la cuenta, no arriba de la pantalla.
+  const [resetError, setResetError] = useState('')
+  const [resetDoneId, setResetDoneId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -54,6 +65,7 @@ export function AdministratorsPage() {
 
   useEffect(() => {
     void loadData()
+    apiGet<{ id: number }>('/auth/me').then((response) => setMyId(response.data.id)).catch(() => setMyId(null))
   }, [])
 
   async function onSubmit(event: FormEvent) {
@@ -78,6 +90,28 @@ export function AdministratorsPage() {
       await loadData()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible crear administrador')
+    }
+  }
+
+  async function resetPassword(item: AdminItem) {
+    if (!reset) return
+    setResetError('')
+
+    if (reset.password.length < MIN_PASSWORD_LENGTH) {
+      setResetError(`La contraseña nueva debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`)
+      return
+    }
+
+    setSavingReset(true)
+
+    try {
+      await apiPut(`/admin/administrators/${item.id}`, { password: reset.password, password_confirmation: reset.password })
+      setReset(null)
+      setResetDoneId(item.id)
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'No fue posible restablecer la contraseña')
+    } finally {
+      setSavingReset(false)
     }
   }
 
@@ -114,20 +148,72 @@ export function AdministratorsPage() {
       <SectionTitle className="text-white/40">Administradores registrados ({items.length})</SectionTitle>
       <div className="grid gap-3 md:grid-cols-2">
         {items.map((item) => (
-          <div className="pb-card flex items-start gap-3 rounded-2xl p-4" key={item.id} style={{ opacity: item.estado ? 1 : 0.6 }}>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Icon name="shield" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="truncate font-display text-sm font-bold text-white">{item.nombre}</p>
-                <StatusChip status={item.estado ? 'ACTIVO' : 'INACTIVO'} />
+          <div className="pb-card flex flex-col gap-3 rounded-2xl p-4" key={item.id} style={{ opacity: item.estado ? 1 : 0.6 }}>
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <Icon name="shield" />
               </div>
-              <p className="mt-0.5 truncate text-xs text-white/40">{item.correo}</p>
-              <p className="mt-1.5 text-xs text-white/50">
-                {item.rol === 'ADMINISTRADOR_GENERAL' ? 'Administrador general' : `Negocio: ${businessName(item.negocio_id)}`}
-              </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-display text-sm font-bold text-white">{item.nombre}</p>
+                  <StatusChip status={item.estado ? 'ACTIVO' : 'INACTIVO'} />
+                </div>
+                <p className="mt-0.5 truncate text-xs text-white/40">{item.correo}</p>
+                <p className="mt-1.5 text-xs text-white/50">
+                  {item.rol === 'ADMINISTRADOR_GENERAL' ? 'Administrador general' : `Negocio: ${businessName(item.negocio_id)}`}
+                </p>
+              </div>
             </div>
+
+            {item.id === myId ? (
+              <p className="text-xs text-white/40">
+                Esta es tu cuenta. Cambia tu contraseña en{' '}
+                <Link className="font-semibold text-purple-400 underline" to="/account">
+                  Mi cuenta
+                </Link>
+                .
+              </p>
+            ) : reset?.id === item.id ? (
+              <div className="flex flex-col gap-2">
+                <InputField
+                  autoComplete="new-password"
+                  error={resetError || undefined}
+                  id={`reset-password-${item.id}`}
+                  label="Contraseña nueva"
+                  onChange={(e) => setReset({ id: item.id, password: e.target.value })}
+                  type="password"
+                  value={reset.password}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <ChipButton disabled={savingReset} onClick={() => void resetPassword(item)} tone="green">
+                    {savingReset ? 'Guardando...' : 'Guardar contraseña'}
+                  </ChipButton>
+                  <ChipButton disabled={savingReset} onClick={() => setReset(null)}>
+                    Cancelar
+                  </ChipButton>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {resetDoneId === item.id && (
+                  <p className="text-xs font-semibold text-emerald-400" role="status">
+                    Contraseña restablecida y sesiones cerradas. Entrégale la nueva y pídele que la cambie en "Mi cuenta".
+                  </p>
+                )}
+                <div>
+                  <ChipButton
+                    onClick={() => {
+                      setResetError('')
+                      setResetDoneId(null)
+                      setReset({ id: item.id, password: '' })
+                    }}
+                    tone="purple"
+                  >
+                    Restablecer contraseña
+                  </ChipButton>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

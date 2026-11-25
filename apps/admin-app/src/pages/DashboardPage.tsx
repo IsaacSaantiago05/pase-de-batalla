@@ -21,6 +21,7 @@ const BUSINESS_MENU: MenuItem[] = [
   { to: '/qr', icon: 'qr', label: 'Códigos QR' },
   { to: '/products', icon: 'product', label: 'Productos' },
   { to: '/statistics', icon: 'stats', label: 'Estadísticas' },
+  { to: '/account', icon: 'key', label: 'Mi cuenta' },
 ]
 
 const PLATFORM_MENU: MenuItem[] = [
