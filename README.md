@@ -94,24 +94,35 @@ Negocios:
 - GET /api/businesses
 - GET /api/businesses/{business}
 - POST /api/businesses (solo ADMINISTRADOR_GENERAL)
-- PUT /api/businesses/{business}
+- PUT /api/businesses/{business}. El ADMINISTRADOR_NEGOCIO puede editar el suyo (asi cambia `descripcion`, `direccion` y `telefono` desde "Mi negocio"), pero no su `estado`. `descripcion` admite hasta 500 caracteres y `telefono` solo numeros, espacios y los signos + - ( ) . Un campo vacio borra el dato.
 - PATCH /api/businesses/{business}/status
+
+Perfil publico del negocio (el ADMINISTRADOR_NEGOCIO edita solo el suyo; el ADMINISTRADOR_GENERAL, el de cualquiera):
+
+- POST /api/businesses/{business}/cover: foto de portada. Se envia como `multipart/form-data` en el campo `imagen` (JPG, PNG o WebP, maximo 2 MB).
+- DELETE /api/businesses/{business}/cover
+- POST /api/businesses/{business}/logo: foto de perfil, mismo formato que la portada.
+- DELETE /api/businesses/{business}/logo
+- PUT /api/businesses/{business}/links: reemplaza la lista de enlaces. Recibe `enlaces`, un arreglo de hasta 8 elementos `{ nombre, url }`; solo se aceptan direcciones http o https. Una lista vacia los borra.
+- GET /api/media/{carpeta}/{archivo}: entrega la imagen (`negocios` para las de los negocios, `usuarios` para las fotos de perfil, `recompensas` para las fotos de los articulos). Es publica (sin token) para poder usarse en etiquetas `<img>`; el nombre de cada archivo es aleatorio.
+
+Las respuestas de negocios traen `logo_url`, `portada_url` y `enlaces`. Las imagenes se guardan en `storage/app/public/negocios` y se sirven por la ruta de arriba, asi que no hace falta ejecutar `php artisan storage:link`. El limite de 2 MB coincide con el `upload_max_filesize` que trae PHP por defecto; el panel reduce las fotos antes de subirlas.
 
 Administradores (solo ADMINISTRADOR_GENERAL):
 
 - GET /api/admin/administrators
 - POST /api/admin/administrators
 - GET /api/admin/administrators/{administrator}
-- PUT /api/admin/administrators/{administrator}
+- PUT /api/admin/administrators/{administrator}. Si se envia `password` (con `password_confirmation`, minimo 8 caracteres) se restablece la contrasena de esa cuenta y se cierran sus sesiones abiertas. La propia no se puede cambiar por aqui: va por PUT /api/profile, que exige `password_actual`.
 - PATCH /api/admin/administrators/{administrator}/status
 
 Puntos:
 
 - GET /api/points/balance
-- GET /api/points/history
+- GET /api/points/history (cada movimiento incluye `negocio_nombre`)
 - GET /api/points/business-history
 
-Los puntos se otorgan con el QR de una venta, con un QR generado por cantidad de puntos o con un ajuste manual del administrador general.
+Los puntos se otorgan con el QR de un producto (venta), o bien con un QR por cantidad de puntos o un ajuste manual, que son exclusivos del administrador general. El administrador de negocio no puede decidir cuantos puntos da un QR.
 
 Productos (catalogo por negocio, con puntos fijos; la plataforma no maneja precios ni dinero):
 
@@ -133,8 +144,13 @@ Al canjear el QR de una venta, el movimiento de puntos guarda `venta_id` y `otor
 
 Directorio y perfil (cualquier usuario autenticado):
 
-- GET /api/directory/businesses (negocios activos con datos publicos y `productos_activos`)
+- GET /api/directory/businesses (negocios activos con datos publicos, `logo_url`, `portada_url`, `enlaces` y `productos_activos`)
+- GET /api/directory/businesses/{business} (perfil publico de un negocio activo: portada, foto de perfil, contacto y enlaces)
 - PUT /api/profile (nombre, correo; para cambiar `password` se exige `password_actual` y se cierran las demas sesiones)
+- POST /api/profile/photo: sube o cambia la foto de perfil propia. Se envia como `multipart/form-data` en el campo `imagen` (JPG, PNG o WebP, maximo 2 MB).
+- DELETE /api/profile/photo: quita la foto de perfil propia.
+
+`foto_url` solo aparece en el perfil de su dueño (GET /api/auth/me y las respuestas de /api/profile); los listados de usuarios que ven los administradores no la incluyen. Las fotos se guardan en `storage/app/public/usuarios`.
 
 Clientes del negocio:
 
@@ -154,7 +170,7 @@ QR:
 - GET /api/qr (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL). Cada codigo incluye `negocio_nombre` y `productos` (los productos de la venta que lo origino; lista vacia si se genero por cantidad de puntos). Acepta `estado` con uno o varios estados separados por coma (`ACTIVO`, `UTILIZADO`, `EXPIRADO`, `CANCELADO`); se filtra por el estado real, asi que un ACTIVO ya vencido cuenta como EXPIRADO. El panel pide por defecto `estado=ACTIVO,UTILIZADO`.
 - GET /api/qr/{qrCode} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - GET /api/qr/{qrCode}/image (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
-- POST /api/qr/generate (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- POST /api/qr/generate (solo ADMINISTRADOR_GENERAL). Cuerpo: `{"negocio_id": 1, "puntos": 40}`; ambos obligatorios, puntos de 1 a 100000. El administrador de negocio genera sus QR desde sus productos con POST /api/sales.
 - PATCH /api/qr/{qrCode}/cancel (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL; solo QR en estado ACTIVO)
 - POST /api/qr/redeem (solo CLIENTE)
 
@@ -162,10 +178,14 @@ Los QR que nadie canjeo (expirados o cancelados) se eliminan solos a los 30 dias
 
 Recompensas:
 
-- GET /api/rewards (CLIENTE: solo activas con stock / ADMIN: gestion por negocio)
+- GET /api/rewards (CLIENTE: solo activas con stock / ADMIN: gestion por negocio). Cada recompensa incluye `negocio_nombre`.
 - POST /api/rewards (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
-- PUT /api/rewards/{reward} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- PUT /api/rewards/{reward} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL). Con `cantidad_disponible` (entero de 0 a 100000) el negocio repone o corrige las existencias de sus recompensas.
 - PATCH /api/rewards/{reward}/status (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- POST /api/rewards/{reward}/photo: sube o cambia la foto del articulo. Se envia como `multipart/form-data` en el campo `imagen` (JPG, PNG o WebP, maximo 2 MB). El negocio solo en sus recompensas; el administrador general en cualquiera.
+- DELETE /api/rewards/{reward}/photo: quita la foto del articulo.
+
+Cada recompensa trae `foto_url` (null si no tiene foto). Existencias: cada canje descuenta 1 y un canje cancelado la devuelve. Al llegar a 0 la recompensa queda agotada: deja de aparecer en el listado de los clientes y no se puede canjear hasta que el negocio reponga la cantidad.
 
 Canjes:
 
@@ -203,6 +223,7 @@ Rutas funcionales iniciales:
 - /redemptions
 - /history
 - /businesses
+- /businesses/:id (perfil del negocio: portada, foto de perfil y enlaces)
 - /profile
 
 Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos, historial, battle pass e isla.
@@ -221,7 +242,7 @@ Rutas funcionales iniciales:
 
 - /login
 - /dashboard
-- /business
+- /business ("Mi negocio": portada, foto de perfil, descripcion, direccion, telefono y enlaces; el administrador general elige el negocio)
 - /qr
 - /points
 - /rewards

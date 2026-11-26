@@ -31,6 +31,7 @@ export type Movement = {
   cantidad: number
   tipo: string
   negocio_id: number | null
+  negocio_nombre?: string | null
   fecha: string
 }
 
@@ -63,5 +64,7 @@ const MOVEMENT_LABEL: Record<string, string> = {
 
 export function movementLabel(movement: Movement) {
   const label = MOVEMENT_LABEL[movement.tipo] ?? movement.tipo
-  return movement.negocio_id ? `${label} · Negocio #${movement.negocio_id}` : label
+  if (!movement.negocio_id) return label
+
+  return `${label} · ${movement.negocio_nombre ?? `Negocio #${movement.negocio_id}`}`
 }

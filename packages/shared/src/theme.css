@@ -40,6 +40,110 @@ option {
   color-scheme: dark;
 }
 
+/* La lista desplegable necesita un fondo opaco: con el fondo translucido del campo, el navegador la pinta blanca y el texto blanco no se lee. */
+select option,
+select optgroup {
+  background-color: #111827;
+  color: #fff;
+}
+
+/* Lista desplegable con el estilo del tema y animacion al abrir y cerrar.
+   Solo en navegadores con select personalizable; en los demas queda la lista nativa de arriba. */
+@supports (appearance: base-select) {
+  select,
+  select::picker(select) {
+    appearance: base-select;
+  }
+
+  select {
+    cursor: pointer;
+  }
+  select:open {
+    border-color: rgba(245, 158, 11, 0.5);
+  }
+
+  /* La flecha apunta hacia arriba mientras la lista esta abierta. */
+  select::picker-icon {
+    color: rgba(255, 255, 255, 0.6);
+    transition: color 0.2s ease;
+  }
+  select:open::picker-icon {
+    rotate: 180deg;
+    color: #f59e0b;
+  }
+
+  /* La lista aparece y desaparece con un desvanecido.
+     El estado abierto se escribe como select:open::picker(select): la forma
+     ::picker(select):popover-open funciona en desarrollo, pero la compilacion de
+     produccion la descarta y la lista quedaria invisible. */
+  select::picker(select) {
+    margin-block: 6px;
+    padding: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    background-color: #111827;
+    color: #fff;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    transition:
+      opacity 0.18s ease-out,
+      transform 0.18s ease-out,
+      overlay 0.18s allow-discrete,
+      display 0.18s allow-discrete;
+  }
+  select:open::picker(select) {
+    opacity: 1;
+  }
+  @starting-style {
+    select:open::picker(select) {
+      opacity: 0;
+    }
+  }
+
+  /* El deslizamiento y el giro de la flecha solo si el sistema no pide reducir el movimiento. */
+  @media (prefers-reduced-motion: no-preference) {
+    select::picker-icon {
+      transition: rotate 0.2s ease, color 0.2s ease;
+    }
+    select::picker(select) {
+      transform: translateY(-8px) scale(0.98);
+      transform-origin: top center;
+    }
+    select:open::picker(select) {
+      transform: none;
+    }
+    @starting-style {
+      select:open::picker(select) {
+        transform: translateY(-8px) scale(0.98);
+      }
+    }
+  }
+
+  select option {
+    padding: 0.55em 0.75em;
+    border-radius: 0.5rem;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+  }
+  select option:hover,
+  select option:focus-visible {
+    background-color: rgba(245, 158, 11, 0.14);
+    color: #fff;
+    outline: none;
+  }
+  select option:checked {
+    color: #fcd34d;
+    font-weight: 700;
+  }
+  /* La marca de la opcion elegida va al final de la fila. */
+  select option::checkmark {
+    order: 1;
+    margin-inline-start: auto;
+    color: #f59e0b;
+  }
+}
+
 @keyframes pb-float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }

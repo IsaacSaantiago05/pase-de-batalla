@@ -8,7 +8,7 @@ import { apiGet, listData } from '../lib/api'
 import { levelInfo, movementLabel } from '../lib/progress'
 import type { BattlePassProgress, Movement } from '../lib/progress'
 
-type Me = { nombre: string }
+type Me = { nombre: string; foto_url: string | null }
 type Balance = { saldo_global: number }
 
 const ACTIONS: { to: string; icon: IconName; label: string; color: string; style: CSSProperties }[] = [
@@ -49,10 +49,11 @@ export function HomePage() {
       >
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl"
+            className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full text-2xl"
             style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d1424)', border: '2px solid rgba(245,158,11,0.4)' }}
           >
-            <Icon name="avatar" />
+            {/* Foto de perfil del usuario; sin foto queda el icono. */}
+            {me?.foto_url ? <img alt="" className="h-full w-full object-cover" src={me.foto_url} /> : <Icon name="avatar" />}
           </div>
           <div className="min-w-0">
             <p className="truncate font-display text-base font-bold uppercase tracking-widest text-white">{me?.nombre ?? 'Jugador'}</p>

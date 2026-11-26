@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Rewards\StoreRewardRequest;
 use App\Http\Requests\Rewards\UpdateRewardRequest;
+use App\Http\Requests\UploadImageRequest;
 use App\Http\Resources\RewardResource;
 use App\Models\Reward;
 use App\Support\ApiResponse;
+use App\Support\MediaStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -90,6 +92,46 @@ class RewardController extends Controller
         ]);
 
         return $this->success('Estado de recompensa actualizado correctamente.', new RewardResource($reward->fresh()->load('business')));
+    }
+
+    /**
+     * Sube o cambia la foto del articulo de la recompensa.
+     */
+    public function updatePhoto(UploadImageRequest $request, Reward $reward): JsonResponse
+    {
+        if ($this->isForeign($request, $reward)) {
+            return $this->error('No puedes modificar recompensas de otro negocio.', null, 403);
+        }
+
+        $previous = $reward->foto;
+
+        // `foto` no es asignable en masa: solo cambia por aqui, con una imagen ya validada.
+        $reward->forceFill(['foto' => MediaStorage::store($request->file('imagen'), MediaStorage::REWARDS)])->save();
+
+        // La foto anterior ya no se usa: se borra para no acumular archivos.
+        MediaStorage::delete($previous);
+
+        return $this->success('Foto de la recompensa actualizada correctamente.', new RewardResource($reward->fresh()->load('business')));
+    }
+
+    public function deletePhoto(Request $request, Reward $reward): JsonResponse
+    {
+        if ($this->isForeign($request, $reward)) {
+            return $this->error('No puedes modificar recompensas de otro negocio.', null, 403);
+        }
+
+        $previous = $reward->foto;
+        $reward->forceFill(['foto' => null])->save();
+        MediaStorage::delete($previous);
+
+        return $this->success('Foto de la recompensa eliminada correctamente.', new RewardResource($reward->fresh()->load('business')));
+    }
+
+    private function isForeign(Request $request, Reward $reward): bool
+    {
+        $actor = $request->user();
+
+        return $actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $reward->negocio_id;
     }
 
     private function resolveBusinessId(Request $request, int|string|null $requestedBusinessId): int

@@ -11,6 +11,7 @@ type Reward = {
   negocio_nombre?: string | null
   nombre: string
   descripcion: string | null
+  foto_url: string | null
   puntos_requeridos: number
   cantidad_disponible: number
   estado: boolean
@@ -70,8 +71,13 @@ export function RewardsPage() {
             const exhausted = reward.cantidad_disponible <= 0
             const content = (
               <>
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <Icon color={exhausted ? '#6b7280' : undefined} name="reward" />
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-3xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  {/* Foto del articulo; sin foto queda el icono de regalo. */}
+                  {reward.foto_url ? (
+                    <img alt="" className="h-full w-full object-cover" loading="lazy" src={reward.foto_url} style={{ filter: exhausted ? 'grayscale(1)' : undefined }} />
+                  ) : (
+                    <Icon color={exhausted ? '#6b7280' : undefined} name="reward" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-base font-bold text-white">{reward.nombre}</p>

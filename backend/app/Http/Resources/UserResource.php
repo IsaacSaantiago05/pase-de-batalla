@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\MediaStorage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,6 +14,8 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'nombre' => $this->nombre,
             'correo' => $this->correo,
+            // La foto de perfil solo se entrega a su dueño: no sale en los listados que ven los administradores.
+            'foto_url' => $this->when((bool) $request->user()?->is($this->resource), fn () => MediaStorage::url($this->foto)),
             'estado' => $this->estado,
             'fecha_registro' => $this->fecha_registro,
             'rol' => $this->role?->nombre,

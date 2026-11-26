@@ -8,11 +8,13 @@ import { apiGet, apiPut, listData } from '../lib/api'
 import { clearSession } from '../lib/auth'
 import { levelInfo } from '../lib/progress'
 import type { BattlePassProgress } from '../lib/progress'
+import { ProfilePhoto } from '../components/ProfilePhoto'
 
 type Profile = {
   id: number
   nombre: string
   correo: string
+  foto_url: string | null
   fecha_registro: string | null
 }
 
@@ -106,12 +108,10 @@ export function ProfilePage() {
       <div className="pb-6">
         <div className="mb-5 px-5">
           <div className="flex flex-col items-center gap-3 rounded-3xl p-6" style={{ background: 'linear-gradient(135deg, #0d1424, #1a2235)', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <div
-              className="flex h-20 w-20 items-center justify-center rounded-full text-4xl"
-              style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d1424)', border: '3px solid rgba(245,158,11,0.4)', boxShadow: '0 0 24px rgba(245,158,11,0.15)' }}
-            >
-              <Icon name="avatar" />
-            </div>
+            <ProfilePhoto
+              fotoUrl={profile?.foto_url ?? null}
+              onChange={(foto_url) => setProfile((current) => (current ? { ...current, foto_url } : current))}
+            />
             <div className="text-center">
               <p className="font-display text-2xl font-bold uppercase tracking-widest text-white">{profile?.nombre ?? '-'}</p>
               <span

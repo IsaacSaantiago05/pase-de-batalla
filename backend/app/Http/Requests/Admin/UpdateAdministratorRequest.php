@@ -23,4 +23,14 @@ class UpdateAdministratorRequest extends FormRequest
             'estado' => ['sometimes', 'boolean'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'correo.email' => 'El correo no es válido.',
+            'correo.unique' => 'Ya existe una cuenta con ese correo.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+        ];
+    }
 }

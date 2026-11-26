@@ -164,6 +164,7 @@ export function QrManagementPage() {
     }
   }
 
+  // QR por cantidad libre de puntos: solo el administrador general (la API tambien lo restringe).
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setMessage('')
@@ -174,7 +175,7 @@ export function QrManagementPage() {
       setError('Escribe cuántos puntos dará el QR (número entero mayor a 0).')
       return
     }
-    if (isGeneral && !negocioId) {
+    if (!negocioId) {
       setError('Elige el negocio para el que se genera el QR.')
       return
     }
@@ -182,9 +183,7 @@ export function QrManagementPage() {
     setBusy('free')
 
     try {
-      // El administrador de negocio no envia negocio: el servidor usa el suyo.
-      const payload = isGeneral ? { puntos: points, negocio_id: Number(negocioId) } : { puntos: points }
-      const response = await apiPost<QrCode>('/qr/generate', payload)
+      const response = await apiPost<QrCode>('/qr/generate', { puntos: points, negocio_id: Number(negocioId) })
 
       setMessage(`QR generado: ${response.data.puntos} puntos.`)
       await showQr(response.data, FREE_POINTS)
@@ -239,12 +238,11 @@ export function QrManagementPage() {
                 y aparecerán aquí como botones.
               </p>
             )}
-            <SectionTitle className="mt-1 text-white/40">Otra cantidad de puntos</SectionTitle>
           </div>
         )}
 
-        <form className={`grid gap-3 md:items-end ${isGeneral ? 'md:grid-cols-[1fr_1fr_auto]' : 'md:grid-cols-[1fr_auto]'}`} onSubmit={onSubmit}>
-          {isGeneral && (
+        {isGeneral && (
+          <form className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end" onSubmit={onSubmit}>
             <div>
               <FieldLabel htmlFor="qr-business">Negocio</FieldLabel>
               <select className="pb-input" id="qr-business" onChange={(e) => setNegocioId(e.target.value)} value={negocioId}>
@@ -256,12 +254,12 @@ export function QrManagementPage() {
                 ))}
               </select>
             </div>
-          )}
-          <InputField inputMode="numeric" label="Puntos" onChange={(e) => setPuntos(e.target.value)} placeholder="Puntos" value={puntos} />
-          <Button className="tracking-widest" disabled={busy !== null} type="submit">
-            {busy === 'free' ? 'GENERANDO...' : 'GENERAR'}
-          </Button>
-        </form>
+            <InputField inputMode="numeric" label="Puntos" onChange={(e) => setPuntos(e.target.value)} placeholder="Puntos" value={puntos} />
+            <Button className="tracking-widest" disabled={busy !== null} type="submit">
+              {busy === 'free' ? 'GENERANDO...' : 'GENERAR'}
+            </Button>
+          </form>
+        )}
         {message && <Notice tone="success">{message}</Notice>}
         {error && <Notice tone="error">{error}</Notice>}
       </div>

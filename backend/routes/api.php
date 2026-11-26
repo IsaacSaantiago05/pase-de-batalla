@@ -5,8 +5,10 @@ use App\Http\Controllers\AdministratorController;
 use App\Http\Controllers\BattlePassController;
 use App\Http\Controllers\BusinessClientController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\BusinessProfileController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\IslandController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PointsController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\RewardController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\UserController;
+use App\Support\MediaStorage;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -25,6 +28,10 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-reset-password');
 });
 
+// Imagenes de los negocios (portada y foto de perfil) y fotos de perfil de los usuarios.
+// Sin sesion: una etiqueta <img> no envia el token. El nombre de cada archivo es aleatorio.
+Route::get('/media/{path}', MediaController::class)->where('path', MediaStorage::PATH_PATTERN);
+
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('auth')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
@@ -33,7 +40,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
         Route::put('/profile', [ProfileController::class, 'update']);
+        Route::post('/profile/photo', [ProfileController::class, 'updatePhoto']);
+        Route::delete('/profile/photo', [ProfileController::class, 'deletePhoto']);
         Route::get('/directory/businesses', [DirectoryController::class, 'businesses']);
+        Route::get('/directory/businesses/{business}', [DirectoryController::class, 'business']);
     });
 
     Route::get('/business-clients', [BusinessClientController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
@@ -57,6 +67,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [BusinessController::class, 'store'])->middleware('role:ADMINISTRADOR_GENERAL');
         Route::put('/{business}', [BusinessController::class, 'update']);
         Route::patch('/{business}/status', [BusinessController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_GENERAL');
+
+        // Perfil publico: el negocio edita el suyo y el administrador general el de cualquiera.
+        Route::post('/{business}/cover', [BusinessProfileController::class, 'updateCover']);
+        Route::delete('/{business}/cover', [BusinessProfileController::class, 'deleteCover']);
+        Route::post('/{business}/logo', [BusinessProfileController::class, 'updateLogo']);
+        Route::delete('/{business}/logo', [BusinessProfileController::class, 'deleteLogo']);
+        Route::put('/{business}/links', [BusinessProfileController::class, 'updateLinks']);
     });
 
     Route::prefix('points')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
@@ -82,7 +99,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/{qrCode}', [QrController::class, 'show'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::get('/{qrCode}/image', [QrController::class, 'image'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::patch('/{qrCode}/cancel', [QrController::class, 'cancel'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
-        Route::post('/generate', [QrController::class, 'generate'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        // QR por cantidad libre de puntos: solo el administrador general. El negocio genera QR desde sus productos (POST /sales).
+        Route::post('/generate', [QrController::class, 'generate'])->middleware('role:ADMINISTRADOR_GENERAL');
         Route::post('/redeem', [QrController::class, 'redeem'])->middleware(['role:CLIENTE', 'throttle:qr-redeem']);
     });
 
@@ -91,6 +109,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [RewardController::class, 'store'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::put('/{reward}', [RewardController::class, 'update'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::patch('/{reward}/status', [RewardController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        // Foto del articulo: el negocio la pone en sus recompensas y el administrador general en cualquiera.
+        Route::post('/{reward}/photo', [RewardController::class, 'updatePhoto'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        Route::delete('/{reward}/photo', [RewardController::class, 'deletePhoto'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
     });
 
     Route::prefix('products')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {

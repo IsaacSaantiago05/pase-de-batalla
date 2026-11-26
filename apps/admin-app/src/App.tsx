@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from './components/AdminLayout'
 import { ProtectedAdminRoute } from './components/ProtectedAdminRoute'
+import { AccountPage } from './pages/AccountPage'
 import { AdministratorsPage } from './pages/AdministratorsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { BusinessClientsPage } from './pages/BusinessClientsPage'
@@ -14,6 +15,7 @@ import { RedemptionsAdminPage } from './pages/RedemptionsAdminPage'
 import { RewardsAdminPage } from './pages/RewardsAdminPage'
 import { SalesAdminPage } from './pages/SalesAdminPage'
 import { StatisticsPage } from './pages/StatisticsPage'
+import { MyBusinessPage } from './pages/MyBusinessPage'
 import { ShellPage } from './pages/ShellPage'
 
 function App() {
@@ -24,7 +26,7 @@ function App() {
 
         <Route element={<ProtectedAdminRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/business" element={<ShellPage title="Mi Negocio" />} />
+          <Route path="/business" element={<MyBusinessPage />} />
           <Route path="/products" element={<ProductsAdminPage />} />
           <Route path="/sales" element={<SalesAdminPage />} />
           <Route path="/clients" element={<BusinessClientsPage />} />
@@ -37,6 +39,7 @@ function App() {
           <Route path="/users" element={<ShellPage title="Usuarios" />} />
           <Route path="/businesses" element={<BusinessesPage />} />
           <Route path="/administrators" element={<AdministratorsPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="/levels" element={<ShellPage title="Niveles" />} />
           <Route path="/island-elements" element={<ShellPage title="Elementos de Isla" />} />
           <Route path="/statistics" element={<StatisticsPage />} />

@@ -59,25 +59,31 @@ class QrFlowTest extends TestCase
         ]);
     }
 
-    public function test_admin_negocio_generates_qr_for_own_business(): void
+    public function test_business_admin_cannot_generate_qr_with_free_points(): void
     {
-        $adminNegocio = User::query()->create([
-            'nombre' => 'Admin A',
-            'correo' => 'admin.qr.a@example.com',
+        Sanctum::actingAs($this->makeBusinessAdmin('admin.qr.a@example.com'));
+
+        // Ni para su propio negocio: el negocio solo genera QR desde sus productos.
+        $this->postJson('/api/qr/generate', ['puntos' => 40])->assertStatus(403);
+        $this->postJson('/api/qr/generate', ['negocio_id' => $this->businessA->id, 'puntos' => 99999])->assertStatus(403);
+
+        $this->assertDatabaseCount('codigos_qr', 0);
+    }
+
+    public function test_general_admin_generates_qr_with_free_points_for_a_business(): void
+    {
+        $general = User::query()->create([
+            'nombre' => 'Admin General',
+            'correo' => 'general.qr@example.com',
             'password' => 'Password123',
-            'rol_id' => $this->adminNegocioRole->id,
-            'negocio_id' => $this->businessA->id,
+            'rol_id' => $this->adminGeneralRole->id,
             'estado' => true,
             'fecha_registro' => now(),
         ]);
 
-        Sanctum::actingAs($adminNegocio);
+        Sanctum::actingAs($general);
 
-        $response = $this->postJson('/api/qr/generate', [
-            'puntos' => 40,
-        ]);
-
-        $response
+        $this->postJson('/api/qr/generate', ['negocio_id' => $this->businessA->id, 'puntos' => 40])
             ->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.negocio_id', $this->businessA->id)
@@ -85,23 +91,33 @@ class QrFlowTest extends TestCase
             ->assertJsonPath('data.estado', 'ACTIVO');
 
         $this->assertDatabaseCount('codigos_qr', 1);
+
+        // Sin negocio, o con puntos fuera de rango, no se genera.
+        $this->postJson('/api/qr/generate', ['puntos' => 40])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.negocio_id.0', 'Debes indicar un negocio para generar el código QR.');
+        $this->postJson('/api/qr/generate', ['negocio_id' => $this->businessA->id, 'puntos' => 0])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('puntos');
+
+        $this->assertDatabaseCount('codigos_qr', 1);
     }
 
     public function test_generated_qr_has_automatic_short_expiration(): void
     {
-        $adminNegocio = User::query()->create([
-            'nombre' => 'Admin Exp Auto',
-            'correo' => 'admin.qr.exp.auto@example.com',
+        $general = User::query()->create([
+            'nombre' => 'Admin General',
+            'correo' => 'general.qr.exp.auto@example.com',
             'password' => 'Password123',
-            'rol_id' => $this->adminNegocioRole->id,
-            'negocio_id' => $this->businessA->id,
+            'rol_id' => $this->adminGeneralRole->id,
             'estado' => true,
             'fecha_registro' => now(),
         ]);
 
-        Sanctum::actingAs($adminNegocio);
+        Sanctum::actingAs($general);
 
         $response = $this->postJson('/api/qr/generate', [
+            'negocio_id' => $this->businessA->id,
             'puntos' => 25,
         ]);
 
@@ -113,30 +129,6 @@ class QrFlowTest extends TestCase
         $this->assertNotNull($qrCode->fecha_expiracion);
         $this->assertTrue($qrCode->fecha_expiracion->greaterThan(now()));
         $this->assertTrue($qrCode->fecha_expiracion->lessThanOrEqualTo(now()->addMinute()));
-    }
-
-    public function test_admin_negocio_cannot_generate_qr_for_other_business(): void
-    {
-        $adminNegocio = User::query()->create([
-            'nombre' => 'Admin A2',
-            'correo' => 'admin.qr.a2@example.com',
-            'password' => 'Password123',
-            'rol_id' => $this->adminNegocioRole->id,
-            'negocio_id' => $this->businessA->id,
-            'estado' => true,
-            'fecha_registro' => now(),
-        ]);
-
-        Sanctum::actingAs($adminNegocio);
-
-        $response = $this->postJson('/api/qr/generate', [
-            'negocio_id' => $this->businessB->id,
-            'puntos' => 30,
-        ]);
-
-        $response
-            ->assertStatus(422)
-            ->assertJsonPath('success', false);
     }
 
     public function test_client_redeems_qr_once_and_cannot_redeem_twice(): void

@@ -263,6 +263,27 @@ class RedemptionFlowTest extends TestCase
         $this->assertEquals($levelTwo->id, $client->fresh()->nivel_id);
     }
 
+    public function test_rewards_and_points_history_include_the_business_name(): void
+    {
+        $client = $this->createClient('cliente.nombres@example.com');
+        $this->grantPoints($client, 150, $this->businessB->id);
+        $this->createReward($this->businessA->id, 100, 5);
+        $this->createReward($this->businessB->id, 50, 5);
+
+        Sanctum::actingAs($client);
+
+        $rewards = collect($this->getJson('/api/rewards')->assertOk()->json('data'));
+        $this->assertSame('Negocio A', $rewards->firstWhere('puntos_requeridos', 100)['negocio_nombre']);
+        $this->assertSame('Negocio B', $rewards->firstWhere('puntos_requeridos', 50)['negocio_nombre']);
+
+        // Al canjear, el movimiento tambien dice de que negocio fue.
+        $this->postJson('/api/redemptions', ['recompensa_id' => $rewards->firstWhere('puntos_requeridos', 100)['id']])->assertCreated();
+
+        $history = collect($this->getJson('/api/points/history')->assertOk()->json('data'));
+        $this->assertSame('Negocio B', $history->firstWhere('tipo', 'GANANCIA')['negocio_nombre']);
+        $this->assertSame('Negocio A', $history->firstWhere('tipo', 'CANJE')['negocio_nombre']);
+    }
+
     private function createClient(string $correo): User
     {
         return User::query()->create([
