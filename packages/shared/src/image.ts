@@ -12,6 +12,8 @@ export type ImagePreset = {
 
 export const COVER_PRESET: ImagePreset = { maxWidth: 1600, maxHeight: 1200, format: 'jpeg' }
 export const AVATAR_PRESET: ImagePreset = { maxWidth: 512, maxHeight: 512, square: true, format: 'auto' }
+// Foto del articulo de una recompensa: conserva su proporcion; se ve en miniatura y en grande.
+export const REWARD_PRESET: ImagePreset = { maxWidth: 1200, maxHeight: 1200, format: 'auto' }
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 export const IMAGE_ACCEPT = ACCEPTED_TYPES.join(',')

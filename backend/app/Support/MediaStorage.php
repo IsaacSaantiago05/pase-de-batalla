@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
- * Imagenes que suben los negocios (portada y foto de perfil) y los usuarios (foto de perfil).
+ * Imagenes que suben los negocios (portada y foto de perfil), los usuarios (foto de perfil)
+ * y las recompensas (foto del articulo).
  * Se guardan en el disco publico y se sirven por GET /api/media/..., asi no hace falta `storage:link`.
  */
 class MediaStorage
@@ -19,8 +20,10 @@ class MediaStorage
 
     public const USERS = 'usuarios';
 
+    public const REWARDS = 'recompensas';
+
     // Unico formato de ruta que se guarda, se sirve y se borra: <carpeta>/<nombre aleatorio>.<extension>.
-    public const PATH_PATTERN = '(?:negocios|usuarios)/[A-Za-z0-9]+\.(?:jpg|jpeg|png|webp)';
+    public const PATH_PATTERN = '(?:negocios|usuarios|recompensas)/[A-Za-z0-9]+\.(?:jpg|jpeg|png|webp)';
 
     public const MAX_KILOBYTES = 2048;
 

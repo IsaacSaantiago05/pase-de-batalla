@@ -104,7 +104,7 @@ Perfil publico del negocio (el ADMINISTRADOR_NEGOCIO edita solo el suyo; el ADMI
 - POST /api/businesses/{business}/logo: foto de perfil, mismo formato que la portada.
 - DELETE /api/businesses/{business}/logo
 - PUT /api/businesses/{business}/links: reemplaza la lista de enlaces. Recibe `enlaces`, un arreglo de hasta 8 elementos `{ nombre, url }`; solo se aceptan direcciones http o https. Una lista vacia los borra.
-- GET /api/media/{carpeta}/{archivo}: entrega la imagen (`negocios` para las de los negocios, `usuarios` para las fotos de perfil). Es publica (sin token) para poder usarse en etiquetas `<img>`; el nombre de cada archivo es aleatorio.
+- GET /api/media/{carpeta}/{archivo}: entrega la imagen (`negocios` para las de los negocios, `usuarios` para las fotos de perfil, `recompensas` para las fotos de los articulos). Es publica (sin token) para poder usarse en etiquetas `<img>`; el nombre de cada archivo es aleatorio.
 
 Las respuestas de negocios traen `logo_url`, `portada_url` y `enlaces`. Las imagenes se guardan en `storage/app/public/negocios` y se sirven por la ruta de arriba, asi que no hace falta ejecutar `php artisan storage:link`. El limite de 2 MB coincide con el `upload_max_filesize` que trae PHP por defecto; el panel reduce las fotos antes de subirlas.
 
@@ -180,8 +180,12 @@ Recompensas:
 
 - GET /api/rewards (CLIENTE: solo activas con stock / ADMIN: gestion por negocio). Cada recompensa incluye `negocio_nombre`.
 - POST /api/rewards (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
-- PUT /api/rewards/{reward} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- PUT /api/rewards/{reward} (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL). Con `cantidad_disponible` (entero de 0 a 100000) el negocio repone o corrige las existencias de sus recompensas.
 - PATCH /api/rewards/{reward}/status (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
+- POST /api/rewards/{reward}/photo: sube o cambia la foto del articulo. Se envia como `multipart/form-data` en el campo `imagen` (JPG, PNG o WebP, maximo 2 MB). El negocio solo en sus recompensas; el administrador general en cualquiera.
+- DELETE /api/rewards/{reward}/photo: quita la foto del articulo.
+
+Cada recompensa trae `foto_url` (null si no tiene foto). Existencias: cada canje descuenta 1 y un canje cancelado la devuelve. Al llegar a 0 la recompensa queda agotada: deja de aparecer en el listado de los clientes y no se puede canjear hasta que el negocio reponga la cantidad.
 
 Canjes:
 

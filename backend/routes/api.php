@@ -109,6 +109,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [RewardController::class, 'store'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::put('/{reward}', [RewardController::class, 'update'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::patch('/{reward}/status', [RewardController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        // Foto del articulo: el negocio la pone en sus recompensas y el administrador general en cualquiera.
+        Route::post('/{reward}/photo', [RewardController::class, 'updatePhoto'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+        Route::delete('/{reward}/photo', [RewardController::class, 'deletePhoto'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
     });
 
     Route::prefix('products')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {

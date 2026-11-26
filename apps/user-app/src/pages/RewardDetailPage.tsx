@@ -10,6 +10,7 @@ type Reward = {
   negocio_nombre?: string | null
   nombre: string
   descripcion: string | null
+  foto_url?: string | null
   puntos_requeridos: number
   cantidad_disponible: number
   estado: boolean
@@ -113,7 +114,11 @@ export function RewardDetailPage() {
     return (
       <Page background="linear-gradient(180deg, #080c18 0%, #040d1e 100%)" className="items-center justify-center gap-6 px-6 py-10">
         <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center anim-scale-in">
-          <Icon className="text-7xl" name="reward" />
+          {reward.foto_url ? (
+            <img alt="" className="h-28 w-28 rounded-3xl object-cover" src={reward.foto_url} style={{ border: '1px solid rgba(255,255,255,0.1)' }} />
+          ) : (
+            <Icon className="text-7xl" name="reward" />
+          )}
           <div>
             <p className="font-display text-2xl font-bold tracking-wide text-white">{reward.nombre}</p>
             <p className="mt-1 text-sm text-white/50">{reward.negocio_nombre ?? `Negocio #${reward.negocio_id}`}</p>
@@ -150,9 +155,16 @@ export function RewardDetailPage() {
 
         {reward && (
           <>
-            <div className="flex items-center justify-center rounded-3xl" style={{ height: 180, background: 'linear-gradient(135deg, #1a2235, #0d1424)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <Icon className="text-8xl" name="reward" style={{ filter: 'drop-shadow(0 0 24px rgba(168,85,247,0.35))' }} />
-            </div>
+            {reward.foto_url ? (
+              // Foto del articulo, a lo ancho.
+              <div className="overflow-hidden rounded-3xl" style={{ background: '#0d1424', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <img alt={`Foto de ${reward.nombre}`} className="max-h-80 w-full object-cover" src={reward.foto_url} style={{ aspectRatio: '4 / 3' }} />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center rounded-3xl" style={{ height: 180, background: 'linear-gradient(135deg, #1a2235, #0d1424)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Icon className="text-8xl" name="reward" style={{ filter: 'drop-shadow(0 0 24px rgba(168,85,247,0.35))' }} />
+              </div>
+            )}
 
             <div>
               <h2 className="font-display text-2xl font-bold text-white">{reward.nombre}</h2>
