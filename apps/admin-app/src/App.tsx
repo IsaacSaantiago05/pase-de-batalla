@@ -15,6 +15,7 @@ import { RedemptionsAdminPage } from './pages/RedemptionsAdminPage'
 import { RewardsAdminPage } from './pages/RewardsAdminPage'
 import { SalesAdminPage } from './pages/SalesAdminPage'
 import { StatisticsPage } from './pages/StatisticsPage'
+import { MyBusinessPage } from './pages/MyBusinessPage'
 import { ShellPage } from './pages/ShellPage'
 
 function App() {
@@ -25,7 +26,7 @@ function App() {
 
         <Route element={<ProtectedAdminRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/business" element={<ShellPage title="Mi Negocio" />} />
+          <Route path="/business" element={<MyBusinessPage />} />
           <Route path="/products" element={<ProductsAdminPage />} />
           <Route path="/sales" element={<SalesAdminPage />} />
           <Route path="/clients" element={<BusinessClientsPage />} />

@@ -19,6 +19,8 @@ class Business extends Model
         'telefono',
         'correo',
         'logo',
+        'portada',
+        'enlaces',
         'estado',
         'fecha_registro',
     ];
@@ -26,6 +28,7 @@ class Business extends Model
     protected $casts = [
         'estado' => 'boolean',
         'fecha_registro' => 'datetime',
+        'enlaces' => 'array',
     ];
 
     public function administrators(): HasMany

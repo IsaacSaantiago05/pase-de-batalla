@@ -15,6 +15,7 @@ const QrRedeemPage = lazy(() => import('./pages/QrRedeemPage').then((module) => 
 const RewardsPage = lazy(() => import('./pages/RewardsPages').then((module) => ({ default: module.RewardsPage })))
 const RedemptionsPage = lazy(() => import('./pages/RewardsPages').then((module) => ({ default: module.RedemptionsPage })))
 const BusinessesPage = lazy(() => import('./pages/BusinessesPage').then((module) => ({ default: module.BusinessesPage })))
+const BusinessProfilePage = lazy(() => import('./pages/BusinessProfilePage').then((module) => ({ default: module.BusinessProfilePage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
 const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })))
 const RewardDetailPage = lazy(() => import('./pages/RewardDetailPage').then((module) => ({ default: module.RewardDetailPage })))
@@ -34,6 +35,7 @@ const PROTECTED = [
   { path: '/redemptions', element: <RedemptionsPage /> },
   { path: '/history', element: <HistoryPage /> },
   { path: '/businesses', element: <BusinessesPage /> },
+  { path: '/businesses/:id', element: <BusinessProfilePage /> },
   { path: '/profile', element: <ProfilePage /> },
 ]
 

@@ -6,7 +6,7 @@ import { apiGet, listData } from '../lib/api'
 import { clearAdminSession, getAdminSession } from '../lib/auth'
 
 type Me = { nombre: string }
-type Business = { id: number; nombre: string }
+type Business = { id: number; nombre: string; logo_url: string | null }
 type Summary = {
   qr: { hoy: { generados: number; utilizados: number } }
   // Solo llega para el administrador general.
@@ -23,6 +23,10 @@ const BUSINESS_MENU: MenuItem[] = [
   { to: '/statistics', icon: 'stats', label: 'Estadísticas' },
   { to: '/account', icon: 'key', label: 'Mi cuenta' },
 ]
+
+// Perfil publico (portada, foto de perfil y enlaces): el negocio edita el suyo y el administrador general el de cualquiera.
+const MY_BUSINESS: MenuItem = { to: '/business', icon: 'business', label: 'Mi negocio' }
+const BUSINESS_PROFILES: MenuItem = { to: '/business', icon: 'palette', label: 'Perfiles de negocio' }
 
 const PLATFORM_MENU: MenuItem[] = [
   { to: '/businesses', icon: 'business', label: 'Negocios' },
@@ -99,9 +103,19 @@ export function DashboardPage() {
         ) : (
           <>
             <div className="mb-1 flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-                <Icon name="business" />
-              </div>
+              {/* Foto de perfil del negocio (la de "Mi negocio"); sin foto queda el icono. */}
+              {business?.logo_url ? (
+                <img
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                  src={business.logo_url}
+                  style={{ background: '#111827', border: '1px solid rgba(245,158,11,0.3)' }}
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
+                  <Icon name="business" />
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="font-display text-xs uppercase tracking-widest text-white/40">Negocio</p>
                 <p className="truncate font-display text-lg font-bold tracking-wide text-white">{business?.nombre ?? me?.nombre ?? '-'}</p>
@@ -166,7 +180,7 @@ export function DashboardPage() {
 
         <div className="flex flex-col gap-3">
           <SectionTitle className="text-white/40">Gestión</SectionTitle>
-          <MenuList items={isGeneral ? [...PLATFORM_MENU, ...BUSINESS_MENU] : BUSINESS_MENU} />
+          <MenuList items={isGeneral ? [...PLATFORM_MENU, BUSINESS_PROFILES, ...BUSINESS_MENU] : [MY_BUSINESS, ...BUSINESS_MENU]} />
         </div>
       </div>
     </div>

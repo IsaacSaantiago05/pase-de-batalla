@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\BusinessMedia;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,7 +17,9 @@ class BusinessResource extends JsonResource
             'direccion' => $this->direccion,
             'telefono' => $this->telefono,
             'correo' => $this->correo,
-            'logo' => $this->logo,
+            'logo_url' => BusinessMedia::url($this->logo),
+            'portada_url' => BusinessMedia::url($this->portada),
+            'enlaces' => $this->enlaces ?? [],
             'estado' => $this->estado,
             'fecha_registro' => $this->fecha_registro,
             'created_at' => $this->created_at,

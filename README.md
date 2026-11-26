@@ -94,8 +94,19 @@ Negocios:
 - GET /api/businesses
 - GET /api/businesses/{business}
 - POST /api/businesses (solo ADMINISTRADOR_GENERAL)
-- PUT /api/businesses/{business}
+- PUT /api/businesses/{business}. El ADMINISTRADOR_NEGOCIO puede editar el suyo (asi cambia `descripcion`, `direccion` y `telefono` desde "Mi negocio"), pero no su `estado`. `descripcion` admite hasta 500 caracteres y `telefono` solo numeros, espacios y los signos + - ( ) . Un campo vacio borra el dato.
 - PATCH /api/businesses/{business}/status
+
+Perfil publico del negocio (el ADMINISTRADOR_NEGOCIO edita solo el suyo; el ADMINISTRADOR_GENERAL, el de cualquiera):
+
+- POST /api/businesses/{business}/cover: foto de portada. Se envia como `multipart/form-data` en el campo `imagen` (JPG, PNG o WebP, maximo 2 MB).
+- DELETE /api/businesses/{business}/cover
+- POST /api/businesses/{business}/logo: foto de perfil, mismo formato que la portada.
+- DELETE /api/businesses/{business}/logo
+- PUT /api/businesses/{business}/links: reemplaza la lista de enlaces. Recibe `enlaces`, un arreglo de hasta 8 elementos `{ nombre, url }`; solo se aceptan direcciones http o https. Una lista vacia los borra.
+- GET /api/media/negocios/{archivo}: entrega la imagen. Es publica (sin token) para poder usarse en etiquetas `<img>`.
+
+Las respuestas de negocios traen `logo_url`, `portada_url` y `enlaces`. Las imagenes se guardan en `storage/app/public/negocios` y se sirven por la ruta de arriba, asi que no hace falta ejecutar `php artisan storage:link`. El limite de 2 MB coincide con el `upload_max_filesize` que trae PHP por defecto; el panel reduce las fotos antes de subirlas.
 
 Administradores (solo ADMINISTRADOR_GENERAL):
 
@@ -133,7 +144,8 @@ Al canjear el QR de una venta, el movimiento de puntos guarda `venta_id` y `otor
 
 Directorio y perfil (cualquier usuario autenticado):
 
-- GET /api/directory/businesses (negocios activos con datos publicos y `productos_activos`)
+- GET /api/directory/businesses (negocios activos con datos publicos, `logo_url`, `portada_url`, `enlaces` y `productos_activos`)
+- GET /api/directory/businesses/{business} (perfil publico de un negocio activo: portada, foto de perfil, contacto y enlaces)
 - PUT /api/profile (nombre, correo; para cambiar `password` se exige `password_actual` y se cierran las demas sesiones)
 
 Clientes del negocio:
@@ -203,6 +215,7 @@ Rutas funcionales iniciales:
 - /redemptions
 - /history
 - /businesses
+- /businesses/:id (perfil del negocio: portada, foto de perfil y enlaces)
 - /profile
 
 Incluye proteccion de rutas por sesion y consumo real de API para auth, puntos, historial, battle pass e isla.
@@ -221,7 +234,7 @@ Rutas funcionales iniciales:
 
 - /login
 - /dashboard
-- /business
+- /business ("Mi negocio": portada, foto de perfil, descripcion, direccion, telefono y enlaces; el administrador general elige el negocio)
 - /qr
 - /points
 - /rewards

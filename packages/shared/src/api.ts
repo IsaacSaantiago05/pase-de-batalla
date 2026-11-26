@@ -24,6 +24,9 @@ export type ApiClient = {
   apiPost<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>>
   apiPut<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>>
   apiPatch<T>(path: string, payload: unknown): Promise<ApiEnvelope<T>>
+  apiDelete<T>(path: string): Promise<ApiEnvelope<T>>
+  // Envio de archivos (multipart/form-data), por ejemplo una imagen.
+  apiUpload<T>(path: string, form: FormData): Promise<ApiEnvelope<T>>
 }
 
 export function createApiClient(baseUrl: string, getToken: () => string | null | undefined): ApiClient {
@@ -33,7 +36,8 @@ export function createApiClient(baseUrl: string, getToken: () => string | null |
     const response = await fetch(`${baseUrl}${path}`, {
       ...init,
       headers: {
-        'Content-Type': 'application/json',
+        // Con FormData el navegador pone el Content-Type con su separador; fijarlo aqui romperia la subida.
+        ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
         Accept: 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(init?.headers ?? {}),
@@ -64,6 +68,8 @@ export function createApiClient(baseUrl: string, getToken: () => string | null |
     apiPost: withBody('POST'),
     apiPut: withBody('PUT'),
     apiPatch: withBody('PATCH'),
+    apiDelete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+    apiUpload: <T>(path: string, form: FormData) => request<T>(path, { method: 'POST', body: form }),
   }
 }
 

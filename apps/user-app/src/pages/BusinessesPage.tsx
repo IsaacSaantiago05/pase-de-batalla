@@ -1,26 +1,18 @@
 import { useEffect, useState } from 'react'
-import { EmptyState, Icon, Notice, ScreenHeader, SectionTitle } from '@shared/ui'
+import { Link } from 'react-router-dom'
+import { BusinessAvatar, businessAccent } from '@shared/business-profile'
+import type { BusinessProfile } from '@shared/business-profile'
+import { ChevronRight, EmptyState, Icon, Notice, ScreenHeader, SectionTitle } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
 import { apiGet, listData } from '../lib/api'
 
-type Business = {
-  id: number
-  nombre: string
-  descripcion: string | null
-  direccion: string | null
-  telefono: string | null
-}
-
-// Colores de acento del diseño, asignados por negocio para distinguir las tarjetas.
-const ACCENTS = ['#f59e0b', '#6366f1', '#10b981', '#a855f7', '#60a5fa', '#f472b6']
-
 export function BusinessesPage() {
   const goBack = useGoBack()
-  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [businesses, setBusinesses] = useState<BusinessProfile[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
-    apiGet<Business[]>('/directory/businesses')
+    apiGet<BusinessProfile[]>('/directory/businesses')
       .then((response) => setBusinesses(listData(response.data)))
       .catch((err) => setError(err instanceof Error ? err.message : 'No fue posible cargar negocios'))
   }, [])
@@ -34,13 +26,17 @@ export function BusinessesPage() {
         {error && <Notice tone="error">{error}</Notice>}
         <div className="grid gap-3 md:grid-cols-2">
           {businesses.map((business) => {
-            const color = ACCENTS[business.id % ACCENTS.length]
+            const color = businessAccent(business.id)
 
             return (
-              <div className="pb-card flex items-center gap-4 rounded-2xl p-4" key={business.id} style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
-                  <Icon color={color} name="business" />
-                </div>
+              // Cada tarjeta abre el perfil del negocio (portada, foto de perfil y enlaces).
+              <Link
+                className="pb-card flex items-center gap-4 rounded-2xl p-4 transition-all active:scale-[0.98]"
+                key={business.id}
+                style={{ borderColor: 'rgba(255,255,255,0.07)' }}
+                to={`/businesses/${business.id}`}
+              >
+                <BusinessAvatar accent={color} logoUrl={business.logo_url} />
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-base font-bold text-white">{business.nombre}</p>
                   <p className="text-xs text-white/40">{business.descripcion ?? 'Negocio participante'}</p>
@@ -53,7 +49,8 @@ export function BusinessesPage() {
                     </p>
                   )}
                 </div>
-              </div>
+                <ChevronRight size={16} />
+              </Link>
             )
           })}
         </div>

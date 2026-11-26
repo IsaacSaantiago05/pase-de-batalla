@@ -5,8 +5,10 @@ use App\Http\Controllers\AdministratorController;
 use App\Http\Controllers\BattlePassController;
 use App\Http\Controllers\BusinessClientController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\BusinessProfileController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\IslandController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PointsController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\RewardController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\UserController;
+use App\Support\BusinessMedia;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -24,6 +27,9 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth-forgot-password');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-reset-password');
 });
+
+// Imagenes publicas de los negocios (portada y foto de perfil). Sin sesion: una etiqueta <img> no envia el token.
+Route::get('/media/{path}', MediaController::class)->where('path', BusinessMedia::PATH_PATTERN);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('auth')->group(function (): void {
@@ -34,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
         Route::put('/profile', [ProfileController::class, 'update']);
         Route::get('/directory/businesses', [DirectoryController::class, 'businesses']);
+        Route::get('/directory/businesses/{business}', [DirectoryController::class, 'business']);
     });
 
     Route::get('/business-clients', [BusinessClientController::class, 'index'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
@@ -57,6 +64,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [BusinessController::class, 'store'])->middleware('role:ADMINISTRADOR_GENERAL');
         Route::put('/{business}', [BusinessController::class, 'update']);
         Route::patch('/{business}/status', [BusinessController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_GENERAL');
+
+        // Perfil publico: el negocio edita el suyo y el administrador general el de cualquiera.
+        Route::post('/{business}/cover', [BusinessProfileController::class, 'updateCover']);
+        Route::delete('/{business}/cover', [BusinessProfileController::class, 'deleteCover']);
+        Route::post('/{business}/logo', [BusinessProfileController::class, 'updateLogo']);
+        Route::delete('/{business}/logo', [BusinessProfileController::class, 'deleteLogo']);
+        Route::put('/{business}/links', [BusinessProfileController::class, 'updateLinks']);
     });
 
     Route::prefix('points')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
