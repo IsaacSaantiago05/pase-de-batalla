@@ -55,6 +55,15 @@ export function BusinessesPage() {
           })}
         </div>
         {businesses.length === 0 && !error && <EmptyState icon="business" title="Aún no hay negocios participantes" />}
+
+        {/* Invitacion para los dueños de negocios: abre la pantalla con los contactos de WhatsApp. */}
+        <Link
+          className="mt-6 flex items-center justify-center gap-2 py-2 text-center font-display text-sm font-bold tracking-wide text-yellow-400 underline decoration-yellow-400/50 underline-offset-4 transition-colors hover:text-yellow-300"
+          to="/join"
+        >
+          <Icon color="currentColor" name="business" />
+          ¿Te interesa unirte a Pase de Batalla?
+        </Link>
       </div>
     </Page>
   )

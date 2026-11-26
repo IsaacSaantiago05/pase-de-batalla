@@ -16,6 +16,8 @@ const RewardsPage = lazy(() => import('./pages/RewardsPages').then((module) => (
 const RedemptionsPage = lazy(() => import('./pages/RewardsPages').then((module) => ({ default: module.RedemptionsPage })))
 const BusinessesPage = lazy(() => import('./pages/BusinessesPage').then((module) => ({ default: module.BusinessesPage })))
 const BusinessProfilePage = lazy(() => import('./pages/BusinessProfilePage').then((module) => ({ default: module.BusinessProfilePage })))
+const JoinPage = lazy(() => import('./pages/JoinPage').then((module) => ({ default: module.JoinPage })))
+const AboutPage = lazy(() => import('./pages/AboutPage').then((module) => ({ default: module.AboutPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
 const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })))
 const RewardDetailPage = lazy(() => import('./pages/RewardDetailPage').then((module) => ({ default: module.RewardDetailPage })))
@@ -36,7 +38,9 @@ const PROTECTED = [
   { path: '/history', element: <HistoryPage /> },
   { path: '/businesses', element: <BusinessesPage /> },
   { path: '/businesses/:id', element: <BusinessProfilePage /> },
+  { path: '/join', element: <JoinPage /> },
   { path: '/profile', element: <ProfilePage /> },
+  { path: '/about', element: <AboutPage /> },
 ]
 
 function App() {
