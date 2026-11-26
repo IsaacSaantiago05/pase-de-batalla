@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Business\UpdateBusinessLinksRequest;
-use App\Http\Requests\Business\UploadBusinessImageRequest;
+use App\Http\Requests\UploadImageRequest;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
 use App\Support\ApiResponse;
-use App\Support\BusinessMedia;
+use App\Support\MediaStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,7 +19,7 @@ class BusinessProfileController extends Controller
 {
     use ApiResponse;
 
-    public function updateCover(UploadBusinessImageRequest $request, Business $business): JsonResponse
+    public function updateCover(UploadImageRequest $request, Business $business): JsonResponse
     {
         return $this->replaceImage($request, $business, 'portada', 'Foto de portada actualizada correctamente.');
     }
@@ -29,7 +29,7 @@ class BusinessProfileController extends Controller
         return $this->removeImage($request, $business, 'portada', 'Foto de portada eliminada correctamente.');
     }
 
-    public function updateLogo(UploadBusinessImageRequest $request, Business $business): JsonResponse
+    public function updateLogo(UploadImageRequest $request, Business $business): JsonResponse
     {
         return $this->replaceImage($request, $business, 'logo', 'Foto de perfil actualizada correctamente.');
     }
@@ -56,17 +56,17 @@ class BusinessProfileController extends Controller
         return $this->success('Enlaces actualizados correctamente.', new BusinessResource($business->fresh()));
     }
 
-    private function replaceImage(UploadBusinessImageRequest $request, Business $business, string $column, string $message): JsonResponse
+    private function replaceImage(UploadImageRequest $request, Business $business, string $column, string $message): JsonResponse
     {
         if ($denied = $this->denyIfForeign($request, $business)) {
             return $denied;
         }
 
         $previous = $business->{$column};
-        $business->update([$column => BusinessMedia::store($request->file('imagen'))]);
+        $business->update([$column => MediaStorage::store($request->file('imagen'), MediaStorage::BUSINESSES)]);
 
         // La imagen anterior ya no se usa: se borra para no acumular archivos.
-        BusinessMedia::delete($previous);
+        MediaStorage::delete($previous);
 
         return $this->success($message, new BusinessResource($business->fresh()));
     }
@@ -79,7 +79,7 @@ class BusinessProfileController extends Controller
 
         $previous = $business->{$column};
         $business->update([$column => null]);
-        BusinessMedia::delete($previous);
+        MediaStorage::delete($previous);
 
         return $this->success($message, new BusinessResource($business->fresh()));
     }

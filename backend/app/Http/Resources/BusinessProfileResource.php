@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Support\BusinessMedia;
+use App\Support\MediaStorage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,8 +19,8 @@ class BusinessProfileResource extends JsonResource
             'descripcion' => $this->descripcion,
             'direccion' => $this->direccion,
             'telefono' => $this->telefono,
-            'logo_url' => BusinessMedia::url($this->logo),
-            'portada_url' => BusinessMedia::url($this->portada),
+            'logo_url' => MediaStorage::url($this->logo),
+            'portada_url' => MediaStorage::url($this->portada),
             'enlaces' => $this->enlaces ?? [],
             // Solo cuando la consulta lo conto (withCount / loadCount con ese alias).
             'productos_activos' => $this->whenHas('productos_activos'),

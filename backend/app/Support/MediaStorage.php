@@ -7,24 +7,27 @@ use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
- * Imagenes del perfil de un negocio (portada y foto de perfil).
+ * Imagenes que suben los negocios (portada y foto de perfil) y los usuarios (foto de perfil).
  * Se guardan en el disco publico y se sirven por GET /api/media/..., asi no hace falta `storage:link`.
  */
-class BusinessMedia
+class MediaStorage
 {
     public const DISK = 'public';
 
-    public const DIRECTORY = 'negocios';
+    // Carpetas permitidas, una por tipo de dueño.
+    public const BUSINESSES = 'negocios';
 
-    // Unico formato de ruta que se guarda, se sirve y se borra: negocios/<nombre aleatorio>.<extension>.
-    public const PATH_PATTERN = 'negocios/[A-Za-z0-9]+\.(?:jpg|jpeg|png|webp)';
+    public const USERS = 'usuarios';
+
+    // Unico formato de ruta que se guarda, se sirve y se borra: <carpeta>/<nombre aleatorio>.<extension>.
+    public const PATH_PATTERN = '(?:negocios|usuarios)/[A-Za-z0-9]+\.(?:jpg|jpeg|png|webp)';
 
     public const MAX_KILOBYTES = 2048;
 
-    public static function store(UploadedFile $file): string
+    public static function store(UploadedFile $file, string $directory): string
     {
         // El nombre lo genera Laravel al azar; el que trae el archivo nunca se usa.
-        $path = $file->store(self::DIRECTORY, self::DISK);
+        $path = $file->store($directory, self::DISK);
 
         if ($path === false || ! self::isStoredPath($path)) {
             throw new RuntimeException('No fue posible guardar la imagen.');

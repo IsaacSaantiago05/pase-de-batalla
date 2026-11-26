@@ -1,11 +1,14 @@
 <?php
 
-namespace App\Http\Requests\Business;
+namespace App\Http\Requests;
 
-use App\Support\BusinessMedia;
+use App\Support\MediaStorage;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UploadBusinessImageRequest extends FormRequest
+/**
+ * Subida de una imagen en el campo `imagen`: fotos de los negocios y foto de perfil de los usuarios.
+ */
+class UploadImageRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -20,7 +23,7 @@ class UploadBusinessImageRequest extends FormRequest
                 'required',
                 'file',
                 'mimes:jpg,jpeg,png,webp',
-                'max:'.BusinessMedia::MAX_KILOBYTES,
+                'max:'.MediaStorage::MAX_KILOBYTES,
                 'dimensions:max_width=4096,max_height=4096',
             ],
         ];

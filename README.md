@@ -104,7 +104,7 @@ Perfil publico del negocio (el ADMINISTRADOR_NEGOCIO edita solo el suyo; el ADMI
 - POST /api/businesses/{business}/logo: foto de perfil, mismo formato que la portada.
 - DELETE /api/businesses/{business}/logo
 - PUT /api/businesses/{business}/links: reemplaza la lista de enlaces. Recibe `enlaces`, un arreglo de hasta 8 elementos `{ nombre, url }`; solo se aceptan direcciones http o https. Una lista vacia los borra.
-- GET /api/media/negocios/{archivo}: entrega la imagen. Es publica (sin token) para poder usarse en etiquetas `<img>`.
+- GET /api/media/{carpeta}/{archivo}: entrega la imagen (`negocios` para las de los negocios, `usuarios` para las fotos de perfil). Es publica (sin token) para poder usarse en etiquetas `<img>`; el nombre de cada archivo es aleatorio.
 
 Las respuestas de negocios traen `logo_url`, `portada_url` y `enlaces`. Las imagenes se guardan en `storage/app/public/negocios` y se sirven por la ruta de arriba, asi que no hace falta ejecutar `php artisan storage:link`. El limite de 2 MB coincide con el `upload_max_filesize` que trae PHP por defecto; el panel reduce las fotos antes de subirlas.
 
@@ -147,6 +147,10 @@ Directorio y perfil (cualquier usuario autenticado):
 - GET /api/directory/businesses (negocios activos con datos publicos, `logo_url`, `portada_url`, `enlaces` y `productos_activos`)
 - GET /api/directory/businesses/{business} (perfil publico de un negocio activo: portada, foto de perfil, contacto y enlaces)
 - PUT /api/profile (nombre, correo; para cambiar `password` se exige `password_actual` y se cierran las demas sesiones)
+- POST /api/profile/photo: sube o cambia la foto de perfil propia. Se envia como `multipart/form-data` en el campo `imagen` (JPG, PNG o WebP, maximo 2 MB).
+- DELETE /api/profile/photo: quita la foto de perfil propia.
+
+`foto_url` solo aparece en el perfil de su dueño (GET /api/auth/me y las respuestas de /api/profile); los listados de usuarios que ven los administradores no la incluyen. Las fotos se guardan en `storage/app/public/usuarios`.
 
 Clientes del negocio:
 

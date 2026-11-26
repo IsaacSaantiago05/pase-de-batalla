@@ -7,7 +7,7 @@ import { Button, ChipButton, EmptyState, FieldLabel, Icon, InputField, LoadingSt
 import { AdminPage } from '../components/AdminLayout'
 import { apiDelete, apiGet, apiPut, apiUpload, listData } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
-import { AVATAR_PRESET, COVER_PRESET, IMAGE_ACCEPT, prepareImage } from '../lib/image'
+import { AVATAR_PRESET, COVER_PRESET, IMAGE_ACCEPT, prepareImage } from '@shared/image'
 
 // Las dos fotos del perfil: a donde se suben y como se preparan antes de enviarlas.
 const IMAGES = {
@@ -51,15 +51,34 @@ function isWebUrl(value: string) {
   }
 }
 
-// Boton sobre la foto de portada: fondo oscuro para leerse encima de cualquier imagen.
+// Fondo oscuro para lo que va encima de la foto de portada: se lee sobre cualquier imagen.
+const OVERLAY_STYLE = { background: 'rgba(8,12,24,0.78)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(6px)' }
+
+// Boton de texto sobre la foto de portada.
 function OverlayButton({ className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-display text-xs font-bold tracking-wide text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
-      style={{ background: 'rgba(8,12,24,0.78)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(6px)' }}
+      style={OVERLAY_STYLE}
       type="button"
       {...props}
     />
+  )
+}
+
+// Boton redondo de camara: el unico control para agregar o cambiar una foto (no hay boton de texto aparte).
+function CameraButton({ label, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+  return (
+    <button
+      aria-label={label}
+      className="flex h-9 w-9 items-center justify-center rounded-full text-lg transition-all active:scale-90 disabled:cursor-not-allowed disabled:opacity-60"
+      style={{ background: '#f59e0b', border: '3px solid #080c18', color: '#0d0a00' }}
+      title={label}
+      type="button"
+      {...props}
+    >
+      <Icon color="currentColor" name="camera" />
+    </button>
   )
 }
 
@@ -315,29 +334,31 @@ export function MyBusinessPage() {
             <BusinessCover
               accent={businessAccent(business.id)}
               avatarAction={
-                <button
-                  aria-label={business.logo_url ? 'Cambiar foto de perfil' : 'Agregar foto de perfil'}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-lg transition-all active:scale-90 disabled:cursor-not-allowed disabled:opacity-60"
+                <CameraButton
                   disabled={busy}
+                  label={business.logo_url ? 'Cambiar foto de perfil' : 'Agregar foto de perfil'}
                   onClick={() => logoInput.current?.click()}
-                  style={{ background: '#f59e0b', border: '3px solid #080c18', color: '#0d0a00' }}
-                  type="button"
-                >
-                  <Icon color="currentColor" name="camera" />
-                </button>
+                />
               }
               coverActions={
-                <>
-                  <OverlayButton disabled={busy} onClick={() => coverInput.current?.click()}>
-                    <Icon color="currentColor" name="camera" />
-                    {busyImage === 'cover' ? 'Subiendo...' : business.portada_url ? 'Cambiar foto de portada' : 'Agregar foto de portada'}
-                  </OverlayButton>
-                  {business.portada_url && (
-                    <OverlayButton disabled={busy} onClick={() => void removeImage('cover')}>
-                      Quitar
-                    </OverlayButton>
-                  )}
-                </>
+                busyImage === 'cover' ? (
+                  <span className="rounded-xl px-3 py-1.5 font-display text-xs font-bold tracking-wide text-white" role="status" style={OVERLAY_STYLE}>
+                    Guardando portada...
+                  </span>
+                ) : (
+                  <>
+                    {business.portada_url && (
+                      <OverlayButton disabled={busy} onClick={() => void removeImage('cover')}>
+                        Quitar portada
+                      </OverlayButton>
+                    )}
+                    <CameraButton
+                      disabled={busy}
+                      label={business.portada_url ? 'Cambiar foto de portada' : 'Agregar foto de portada'}
+                      onClick={() => coverInput.current?.click()}
+                    />
+                  </>
+                )
               }
               descripcion={business.descripcion}
               logoUrl={business.logo_url}
@@ -345,16 +366,20 @@ export function MyBusinessPage() {
               portadaUrl={business.portada_url}
             />
 
-            <div className="mt-4 flex flex-wrap gap-2 px-5">
-              <ChipButton disabled={busy} onClick={() => logoInput.current?.click()} tone="gold">
-                {busyImage === 'logo' ? 'Subiendo...' : business.logo_url ? 'Cambiar foto de perfil' : 'Agregar foto de perfil'}
-              </ChipButton>
-              {business.logo_url && (
-                <ChipButton disabled={busy} onClick={() => void removeImage('logo')} tone="red">
-                  Quitar foto de perfil
-                </ChipButton>
-              )}
-            </div>
+            {/* Las fotos se agregan o cambian con su boton de camara; aqui solo va quitar la de perfil y el aviso mientras se guarda. */}
+            {(business.logo_url || busyImage === 'logo') && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 px-5">
+                {busyImage === 'logo' ? (
+                  <p className="text-xs font-semibold text-white/50" role="status">
+                    Guardando foto de perfil...
+                  </p>
+                ) : (
+                  <ChipButton disabled={busy} onClick={() => void removeImage('logo')} tone="red">
+                    Quitar foto de perfil
+                  </ChipButton>
+                )}
+              </div>
+            )}
 
             {(business.direccion || business.telefono) && (
               <div className="mt-4 px-5">
@@ -369,7 +394,8 @@ export function MyBusinessPage() {
             )}
 
             <p className="mt-4 px-5 text-xs text-white/40">
-              Fotos JPG, PNG o WebP. La portada se muestra a lo ancho y la foto de perfil se recorta en círculo; se ajustan solas antes de subirse.
+              Cada foto se agrega o cambia con su botón de cámara. Acepta JPG, PNG o WebP; la portada se muestra a lo ancho y la foto de perfil se recorta en
+              círculo, y se ajustan solas antes de subirse.
             </p>
 
             <input accept={IMAGE_ACCEPT} className="hidden" onChange={(e) => void onPickImage('cover', e)} ref={coverInput} type="file" />
