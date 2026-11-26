@@ -49,8 +49,8 @@ class AdministratorManagementTest extends TestCase
         $response = $this->postJson('/api/admin/administrators', [
             'nombre' => 'Admin Sweet',
             'correo' => 'admin.sweet@example.com',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'rol' => 'ADMINISTRADOR_NEGOCIO',
             'negocio_id' => $business->id,
         ]);
@@ -78,8 +78,8 @@ class AdministratorManagementTest extends TestCase
         $response = $this->postJson('/api/admin/administrators', [
             'nombre' => 'Admin Sin Negocio',
             'correo' => 'admin.nonbiz@example.com',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'rol' => 'ADMINISTRADOR_NEGOCIO',
         ]);
 
@@ -161,14 +161,14 @@ class AdministratorManagementTest extends TestCase
         Sanctum::actingAs($general);
 
         $this->putJson('/api/admin/administrators/'.$businessAdmin->id, [
-            'password' => 'ClaveNueva456',
-            'password_confirmation' => 'ClaveNueva456',
+            'password' => 'ClaveNueva456!',
+            'password_confirmation' => 'ClaveNueva456!',
         ])
             ->assertOk()
             ->assertJsonPath('data.correo', 'negocio.reset@example.com')
             ->assertJsonPath('data.negocio_id', $business->id);
 
-        $this->assertTrue(Hash::check('ClaveNueva456', $businessAdmin->fresh()->password));
+        $this->assertTrue(Hash::check('ClaveNueva456!', $businessAdmin->fresh()->password));
         $this->assertDatabaseMissing('personal_access_tokens', ['tokenable_id' => $businessAdmin->id]);
 
         // La contrasena anterior deja de servir.
@@ -186,7 +186,31 @@ class AdministratorManagementTest extends TestCase
         $this->putJson('/api/admin/administrators/'.$businessAdmin->id, ['password' => 'corta', 'password_confirmation' => 'corta'])
             ->assertStatus(422)
             ->assertJsonPath('errors.password.0', 'La contraseña debe tener al menos 8 caracteres.');
-        $this->putJson('/api/admin/administrators/'.$businessAdmin->id, ['password' => 'ClaveNueva456', 'password_confirmation' => 'Distinta789'])
+
+        // Misma regla que el resto del proyecto: mayuscula y minuscula, numero y simbolo, con mensajes en español.
+        $url = '/api/admin/administrators/'.$businessAdmin->id;
+        $this->putJson($url, ['password' => 'clavenueva456!', 'password_confirmation' => 'clavenueva456!'])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.password.0', 'La contraseña debe tener al menos una letra mayúscula y una minúscula.');
+        $this->putJson($url, ['password' => 'ClaveNueva!!', 'password_confirmation' => 'ClaveNueva!!'])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.password.0', 'La contraseña debe tener al menos un número.');
+        $this->putJson($url, ['password' => 'ClaveNueva456', 'password_confirmation' => 'ClaveNueva456'])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.password.0', 'La contraseña debe tener al menos un símbolo (por ejemplo ! @ # $).');
+
+        // Al crear un administrador aplica igual.
+        $this->postJson('/api/admin/administrators', [
+            'nombre' => 'Admin Debil',
+            'correo' => 'debil@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'rol' => 'ADMINISTRADOR_NEGOCIO',
+            'negocio_id' => $business->id,
+        ])->assertStatus(422)->assertJsonValidationErrors(['password']);
+        $this->assertDatabaseMissing('usuarios', ['correo' => 'debil@example.com']);
+
+        $this->putJson('/api/admin/administrators/'.$businessAdmin->id, ['password' => 'ClaveNueva456!', 'password_confirmation' => 'Distinta789!'])
             ->assertStatus(422)
             ->assertJsonPath('errors.password.0', 'La confirmación de la contraseña no coincide.');
 
@@ -210,19 +234,19 @@ class AdministratorManagementTest extends TestCase
 
         // Su propia contrasena va por el perfil, que exige la actual.
         $this->putJson('/api/admin/administrators/'.$general->id, [
-            'password' => 'ClaveNueva456',
-            'password_confirmation' => 'ClaveNueva456',
+            'password' => 'ClaveNueva456!',
+            'password_confirmation' => 'ClaveNueva456!',
         ])->assertStatus(422)->assertJsonPath('success', false);
 
         $this->assertTrue(Hash::check('Password123', $general->fresh()->password));
 
         $this->putJson('/api/profile', [
-            'password' => 'ClaveNueva456',
-            'password_confirmation' => 'ClaveNueva456',
+            'password' => 'ClaveNueva456!',
+            'password_confirmation' => 'ClaveNueva456!',
             'password_actual' => 'Password123',
         ])->assertOk();
 
-        $this->assertTrue(Hash::check('ClaveNueva456', $general->fresh()->password));
+        $this->assertTrue(Hash::check('ClaveNueva456!', $general->fresh()->password));
     }
 
     private function makeAdmin(Role $role, string $email, ?int $businessId = null): User

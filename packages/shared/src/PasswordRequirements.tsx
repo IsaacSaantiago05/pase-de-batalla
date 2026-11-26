@@ -1,5 +1,5 @@
-import { Icon } from '@shared/ui'
-import { PASSWORD_REQUIREMENTS } from '../lib/password'
+import { Icon } from './icons'
+import { PASSWORD_REQUIREMENTS } from './password'
 
 // Lista de requisitos bajo el campo de contraseña nueva: cada uno se pone verde con palomita al cumplirse.
 export function PasswordRequirements({ value }: { value: string }) {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\User;
 
+use App\Support\PasswordPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -27,7 +28,9 @@ class UpdateProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'password_actual.required_with' => 'Escribe tu contraseña actual.',
             'password_actual.current_password' => 'La contraseña actual no es correcta.',
+            ...PasswordPolicy::messages(),
         ];
     }
 }

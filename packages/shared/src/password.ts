@@ -1,5 +1,6 @@
 // Requisitos de la contraseña nueva. Son los mismos que exige el backend
 // (Password::min(8)->mixedCase()->numbers()->symbols() en AppServiceProvider).
+// Los usan la app de usuario y el panel, para mostrar la misma lista en todas las pantallas.
 export const PASSWORD_REQUIREMENTS = [
   { label: 'Mínimo 8 caracteres', test: (value: string) => value.length >= 8 },
   { label: 'Una letra mayúscula', test: (value: string) => /\p{Lu}/u.test(value) },

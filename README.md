@@ -113,8 +113,10 @@ Administradores (solo ADMINISTRADOR_GENERAL):
 - GET /api/admin/administrators
 - POST /api/admin/administrators
 - GET /api/admin/administrators/{administrator}
-- PUT /api/admin/administrators/{administrator}. Si se envia `password` (con `password_confirmation`, minimo 8 caracteres) se restablece la contrasena de esa cuenta y se cierran sus sesiones abiertas. La propia no se puede cambiar por aqui: va por PUT /api/profile, que exige `password_actual`.
+- PUT /api/admin/administrators/{administrator}. Si se envia `password` (con `password_confirmation`; debe cumplir la regla de contrasenas del proyecto) se restablece la contrasena de esa cuenta y se cierran sus sesiones abiertas. La propia no se puede cambiar por aqui: va por PUT /api/profile, que exige `password_actual`.
 - PATCH /api/admin/administrators/{administrator}/status
+
+Regla de contrasenas (registro, nueva contrasena, perfil, alta y restablecimiento de administradores): minimo 8 caracteres, una mayuscula, una minuscula, un numero y un simbolo. Esta definida una sola vez en `AppServiceProvider` (`Password::defaults()`), sus mensajes en español en `App\Support\PasswordPolicy`, y la app y el panel muestran la misma lista con `packages/shared/src/password.ts`.
 
 Puntos:
 
@@ -128,7 +130,7 @@ Productos (catalogo por negocio, con puntos fijos; la plataforma no maneja preci
 
 - GET /api/products (cliente: solo activos; admin de negocio: los suyos; admin general: todos, filtro `negocio_id`). Acepta `activos=1` (solo activos) y `per_page` (1 a 100). Cada producto incluye `negocio_nombre`.
 - POST /api/products (solo ADMINISTRADOR_NEGOCIO, se crea en su negocio)
-- PUT /api/products/{product} (solo ADMINISTRADOR_GENERAL: corrige nombre, descripcion, puntos o estado)
+- PUT /api/products/{product} (ADMINISTRADOR_NEGOCIO sobre sus propios productos, o ADMINISTRADOR_GENERAL: edita nombre, descripcion, puntos o estado). Las ventas y los QR ya generados conservan el nombre y los puntos con los que se emitieron.
 - PATCH /api/products/{product}/status (ADMINISTRADOR_NEGOCIO sobre sus propios productos, o ADMINISTRADOR_GENERAL)
 
 El administrador de negocio crea sus productos y los activa o desactiva, pero no puede cambiarles el nombre ni los puntos: esas correcciones las hace el administrador general.

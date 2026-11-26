@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ApiError } from '@shared/api'
+import { PasswordRequirements } from '@shared/PasswordRequirements'
+import { PASSWORD_REQUIREMENTS_ERROR, meetsAllRequirements } from '@shared/password'
 import { Button, Icon, InputField, Notice, SectionTitle } from '@shared/ui'
 import { AdminPage } from '../components/AdminLayout'
 import { apiGet, apiPut } from '../lib/api'
@@ -16,8 +18,6 @@ type FieldErrors = {
   nueva?: string
   confirmacion?: string
 }
-
-const MIN_PASSWORD_LENGTH = 8
 
 const ROLE_LABEL: Record<string, string> = {
   ADMINISTRADOR_GENERAL: 'Administrador general',
@@ -45,7 +45,8 @@ export function AccountPage() {
     const errors: FieldErrors = {}
 
     if (actual === '') errors.actual = 'Escribe tu contraseña actual.'
-    if (nueva.length < MIN_PASSWORD_LENGTH) errors.nueva = `La contraseña nueva debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+    // Los mismos requisitos que valida la API; la lista bajo el campo los va marcando.
+    if (!meetsAllRequirements(nueva)) errors.nueva = PASSWORD_REQUIREMENTS_ERROR
     else if (nueva === actual) errors.nueva = 'La contraseña nueva debe ser distinta de la actual.'
     if (confirmacion !== nueva) errors.confirmacion = 'La confirmación no coincide con la contraseña nueva.'
 
@@ -124,8 +125,9 @@ export function AccountPage() {
             value={confirmacion}
           />
         </div>
+        <PasswordRequirements value={nueva} />
         <p className="text-xs text-white/40">
-          Mínimo {MIN_PASSWORD_LENGTH} caracteres. Si recibiste una contraseña temporal, cámbiala aquí por una que solo tú conozcas.
+          Si recibiste una contraseña temporal, cámbiala aquí por una que solo tú conozcas.
         </p>
         <Button className="w-full tracking-widest" disabled={saving} type="submit">
           {saving ? 'GUARDANDO...' : 'CAMBIAR CONTRASEÑA'}

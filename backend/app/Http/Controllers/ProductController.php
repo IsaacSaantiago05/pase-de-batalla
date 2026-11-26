@@ -65,10 +65,16 @@ class ProductController extends Controller
     }
 
     /**
-     * Corregir el nombre o los puntos es exclusivo del administrador general; la ruta ya restringe el rol.
+     * Editar nombre, descripcion, puntos o estado: el administrador general, o el de negocio sobre sus propios productos.
+     * Las ventas y los QR ya generados guardan su propia copia del nombre y los puntos, asi que no cambian.
      */
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
+        $actor = $request->user();
+        if ($actor->hasRole('ADMINISTRADOR_NEGOCIO') && $actor->negocio_id !== $product->negocio_id) {
+            return $this->error('No puedes modificar productos de otro negocio.', null, 403);
+        }
+
         $product->update($request->validated());
 
         return $this->success('Producto actualizado correctamente.', new ProductResource($product->fresh()));

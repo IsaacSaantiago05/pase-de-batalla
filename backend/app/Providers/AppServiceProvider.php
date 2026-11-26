@@ -25,7 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Reglas de contrasena de jugadores (registro, nueva contrasena y perfil); la app muestra la misma lista.
+        // Regla de contrasenas de todo el proyecto: registro, nueva contrasena, perfil y cuentas de administradores.
+        // La app y el panel muestran la misma lista; los mensajes en español estan en App\Support\PasswordPolicy.
         Password::defaults(fn () => Password::min(8)->mixedCase()->numbers()->symbols());
 
         RateLimiter::for('auth-login', function (Request $request): Limit {

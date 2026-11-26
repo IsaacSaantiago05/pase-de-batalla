@@ -61,13 +61,24 @@ class AuthTest extends TestCase
         // Varios intentos seguidos: se quita el limite de 3 registros por minuto solo en esta prueba.
         $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
 
-        foreach (['corta1!', 'sinmayuscula1!', 'SINMINUSCULA1!', 'SinNumero!', 'SinSimbolo123'] as $password) {
-            $this->postJson('/api/auth/register', [
+        // Cada requisito que falta se explica en español.
+        $cases = [
+            'corta1!' => 'La contraseña debe tener al menos 8 caracteres.',
+            'sinmayuscula1!' => 'La contraseña debe tener al menos una letra mayúscula y una minúscula.',
+            'SINMINUSCULA1!' => 'La contraseña debe tener al menos una letra mayúscula y una minúscula.',
+            'SinNumero!' => 'La contraseña debe tener al menos un número.',
+            'SinSimbolo123' => 'La contraseña debe tener al menos un símbolo (por ejemplo ! @ # $).',
+        ];
+
+        foreach ($cases as $password => $message) {
+            $errors = $this->postJson('/api/auth/register', [
                 'nombre' => 'Debil',
                 'correo' => 'debil@example.com',
                 'password' => $password,
                 'password_confirmation' => $password,
-            ])->assertStatus(422)->assertJsonValidationErrors(['password']);
+            ])->assertStatus(422)->assertJsonValidationErrors(['password'])->json('errors.password');
+
+            $this->assertContains($message, $errors, "Contraseña probada: $password");
         }
 
         $this->assertDatabaseMissing('usuarios', ['correo' => 'debil@example.com']);

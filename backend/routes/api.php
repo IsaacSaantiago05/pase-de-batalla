@@ -117,7 +117,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('products')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
         Route::get('/', [ProductController::class, 'index']);
         Route::post('/', [ProductController::class, 'store'])->middleware('role:ADMINISTRADOR_NEGOCIO');
-        Route::put('/{product}', [ProductController::class, 'update'])->middleware('role:ADMINISTRADOR_GENERAL');
+        Route::put('/{product}', [ProductController::class, 'update'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::patch('/{product}/status', [ProductController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
     });
 

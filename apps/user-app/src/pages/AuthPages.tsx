@@ -4,10 +4,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BackButton, Button, GLOW_SCREEN_BACKGROUND, GlowButton, Icon, InputField, Notice } from '@shared/ui'
 import type { IconName } from '@shared/ui'
 import { useGoBack } from '../components/AppLayout'
-import { PasswordRequirements } from '../components/PasswordRequirements'
+import { PasswordRequirements } from '@shared/PasswordRequirements'
 import { ApiError, apiPost } from '../lib/api'
 import { setSession } from '../lib/auth'
-import { PASSWORD_REQUIREMENTS_ERROR, meetsAllRequirements } from '../lib/password'
+import { PASSWORD_REQUIREMENTS_ERROR, meetsAllRequirements } from '@shared/password'
 
 type AuthResponse = {
   user: { rol: string }

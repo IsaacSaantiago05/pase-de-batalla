@@ -81,16 +81,27 @@ class ProductFlowTest extends TestCase
             ->assertJsonValidationErrors(['puntos']);
     }
 
-    public function test_business_admin_changes_status_of_own_products_but_cannot_edit_them(): void
+    public function test_business_admin_edits_and_changes_status_of_own_products_only(): void
     {
         $own = $this->makeProduct($this->businessA);
         $foreign = $this->makeProduct($this->businessB, 'Ajeno');
         Sanctum::actingAs($this->makeUser($this->adminNegocioRole, 'a@example.com', $this->businessA->id));
 
-        // Nombre y puntos solo los corrige el administrador general.
-        $this->putJson("/api/products/{$own->id}", ['nombre' => 'Cambiado', 'puntos' => 999])->assertStatus(403);
+        // Edita el nombre, los puntos y la descripcion de sus propios productos.
+        $this->putJson("/api/products/{$own->id}", ['nombre' => 'Cafe grande', 'puntos' => 25, 'descripcion' => 'Vaso de 16 oz'])
+            ->assertOk()
+            ->assertJsonPath('data.nombre', 'Cafe grande')
+            ->assertJsonPath('data.puntos', 25)
+            ->assertJsonPath('data.descripcion', 'Vaso de 16 oz')
+            ->assertJsonPath('data.negocio_id', $this->businessA->id);
 
-        // El estado de sus propios productos si lo puede cambiar.
+        // Solo cambia lo que se envia.
+        $this->putJson("/api/products/{$own->id}", ['puntos' => 30])
+            ->assertOk()
+            ->assertJsonPath('data.nombre', 'Cafe grande')
+            ->assertJsonPath('data.puntos', 30);
+
+        // El estado tambien, por cualquiera de las dos rutas.
         $this->patchJson("/api/products/{$own->id}/status", ['estado' => false])
             ->assertOk()
             ->assertJsonPath('data.estado', false);
@@ -98,14 +109,46 @@ class ProductFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.estado', true);
 
+        // No puede mover el producto a otro negocio: ese campo no se acepta.
+        $this->putJson("/api/products/{$own->id}", ['negocio_id' => $this->businessB->id])->assertOk();
+        $this->assertSame($this->businessA->id, $own->fresh()->negocio_id);
+
         // Los de otro negocio, nada.
-        $this->putJson("/api/products/{$foreign->id}", ['nombre' => 'Hack'])->assertStatus(403);
+        $this->putJson("/api/products/{$foreign->id}", ['nombre' => 'Hack', 'puntos' => 999])->assertStatus(403);
         $this->patchJson("/api/products/{$foreign->id}/status", ['estado' => false])->assertStatus(403);
 
-        $this->assertSame('Cafe', $own->fresh()->nombre);
-        $this->assertSame(10, $own->fresh()->puntos);
         $this->assertSame('Ajeno', $foreign->fresh()->nombre);
+        $this->assertSame(10, $foreign->fresh()->puntos);
         $this->assertTrue($foreign->fresh()->estado);
+    }
+
+    public function test_business_admin_product_edit_is_validated_and_keeps_past_sales(): void
+    {
+        $product = $this->makeProduct($this->businessA);
+        Sanctum::actingAs($this->makeUser($this->adminNegocioRole, 'a@example.com', $this->businessA->id));
+
+        $this->putJson("/api/products/{$product->id}", ['nombre' => ''])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.nombre.0', 'El nombre del producto es obligatorio.');
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 0])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.puntos.0', 'El producto debe otorgar al menos 1 punto.');
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 100001])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.puntos.0', 'El producto no puede otorgar más de 100,000 puntos.');
+        $this->assertSame(10, $product->fresh()->puntos);
+
+        // Un QR generado antes de editar conserva el nombre y los puntos con los que se vendio.
+        $sale = $this->postJson('/api/sales', ['items' => [['producto_id' => $product->id, 'cantidad' => 1]]])->assertCreated()->json('data');
+        $this->putJson("/api/products/{$product->id}", ['nombre' => 'Cafe nuevo', 'puntos' => 80])->assertOk();
+
+        $this->assertDatabaseHas('venta_items', ['venta_id' => $sale['id'], 'nombre' => 'Cafe', 'puntos_unitarios' => 10]);
+        $this->assertDatabaseHas('codigos_qr', ['negocio_id' => $this->businessA->id, 'puntos' => 10]);
+        $this->assertDatabaseMissing('codigos_qr', ['puntos' => 80]);
+
+        // El siguiente QR ya sale con los puntos nuevos.
+        $this->postJson('/api/sales', ['items' => [['producto_id' => $product->id, 'cantidad' => 1]]])->assertCreated();
+        $this->assertDatabaseHas('codigos_qr', ['negocio_id' => $this->businessA->id, 'puntos' => 80]);
     }
 
     public function test_deactivating_a_product_starts_the_deletion_countdown_and_reactivating_cancels_it(): void

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { ApiError } from '@shared/api'
+import { ChipButton, Icon, InputField, StatusChip, formatPoints } from '@shared/ui'
 import { apiGet, apiPatch, apiPost, apiPut } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
 
@@ -20,7 +22,10 @@ type ProductListPayload = Product[] | { data: Product[] }
 
 type Draft = { id: number; nombre: string; puntos: string }
 
-const smallButton = 'rounded-md border border-white/10 px-3 py-1 text-xs font-medium text-white/70 hover:bg-white/5 disabled:opacity-40'
+// Errores de la edicion: se muestran dentro de la tarjeta que se esta editando, no arriba de la pantalla.
+type DraftErrors = { nombre?: string; puntos?: string; general?: string }
+
+const MAX_POINTS = 100000
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -30,16 +35,18 @@ function deletionNotice(date: string) {
   return days <= 1 ? 'Se elimina en menos de 1 día' : `Se elimina en ${days} días`
 }
 
-// El negocio crea sus productos y los activa o desactiva; nombre y puntos solo los corrige el administrador general.
+// El negocio crea, edita y activa o desactiva sus productos; el administrador general puede editar los de cualquier negocio.
 export function ProductsAdminPage() {
   const role = getAdminSession()?.role
   const canCreate = role === 'ADMINISTRADOR_NEGOCIO'
-  const canEdit = role === 'ADMINISTRADOR_GENERAL'
+  // El administrador general ve los productos de todos los negocios, con el nombre del negocio en cada uno.
+  const isGeneral = role === 'ADMINISTRADOR_GENERAL'
   const [rows, setRows] = useState<Product[]>([])
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [puntos, setPuntos] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [draftErrors, setDraftErrors] = useState<DraftErrors>({})
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -79,30 +86,39 @@ export function ProductsAdminPage() {
     }
   }
 
+  function startEditing(row: Product) {
+    setMessage('')
+    setError('')
+    setDraftErrors({})
+    setDraft({ id: row.id, nombre: row.nombre, puntos: String(row.puntos) })
+  }
+
   async function saveDraft() {
     if (!draft) return
     setMessage('')
     setError('')
 
-    const points = Number(draft.puntos)
-    if (draft.nombre.trim() === '') {
-      setError('El nombre del producto es obligatorio.')
-      return
+    const errors: DraftErrors = {}
+    const pointsText = draft.puntos.trim()
+    if (draft.nombre.trim() === '') errors.nombre = 'El nombre del producto es obligatorio.'
+    if (!/^\d+$/.test(pointsText) || Number(pointsText) < 1 || Number(pointsText) > MAX_POINTS) {
+      errors.puntos = `Escribe un número entero entre 1 y ${MAX_POINTS.toLocaleString('es-MX')}.`
     }
-    if (!Number.isInteger(points) || points < 1) {
-      setError('Los puntos deben ser un número entero mayor a 0.')
-      return
-    }
+    setDraftErrors(errors)
+    if (Object.keys(errors).length > 0) return
 
     setSaving(true)
 
     try {
-      await apiPut(`/products/${draft.id}`, { nombre: draft.nombre.trim(), puntos: points })
+      await apiPut(`/products/${draft.id}`, { nombre: draft.nombre.trim(), puntos: Number(pointsText) })
       setMessage('Producto actualizado correctamente.')
       setDraft(null)
       await loadProducts()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible actualizar el producto')
+      const fields = err instanceof ApiError ? err.fields : {}
+
+      if (fields.nombre || fields.puntos) setDraftErrors({ nombre: fields.nombre, puntos: fields.puntos })
+      else setDraftErrors({ general: err instanceof Error ? err.message : 'No fue posible actualizar el producto' })
     } finally {
       setSaving(false)
     }
@@ -149,7 +165,7 @@ export function ProductsAdminPage() {
               onChange={(e) => setDescripcion(e.target.value)}
             />
             <p className="mt-3 text-xs text-white/40">
-              Cada producto activo aparece como botón en Códigos QR. Un producto inactivo se elimina solo a los 7 días. Si hay un error en el nombre o los puntos, pide la corrección al administrador general.
+              Cada producto activo aparece como botón en Códigos QR. Con "Editar" puedes cambiar su nombre y sus puntos; los QR que ya generaste conservan los puntos que tenían. Un producto inactivo se elimina solo a los 7 días.
             </p>
           </>
         ) : (
@@ -161,92 +177,83 @@ export function ProductsAdminPage() {
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       </div>
 
-      <div className="pb-card rounded-2xl p-6">
-        <h2 className="mb-3 text-xl font-semibold font-display tracking-wider text-white">Listado</h2>
-        <div className="overflow-x-auto">
-          <table className="pb-table">
-            <thead>
-              <tr>
-                {canEdit && <th className="p-2">Negocio</th>}
-                <th className="p-2">Nombre</th>
-                <th className="p-2">Puntos</th>
-                <th className="p-2">Estado</th>
-                <th className="p-2">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const editing = draft?.id === row.id
+      <div>
+        <h2 className="mb-3 text-xl font-semibold font-display tracking-wider text-white">Listado ({rows.length})</h2>
 
-                return (
-                  <tr key={row.id}>
-                    {canEdit && <td className="p-2">{row.negocio_nombre ?? `#${row.negocio_id}`}</td>}
-                    <td className="p-2">
-                      {editing ? (
-                        <input
-                          aria-label="Nombre del producto"
-                          className="pb-input min-w-40"
-                          maxLength={150}
-                          onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
-                          value={draft.nombre}
-                        />
-                      ) : (
-                        row.nombre
+        {/* Tarjetas en lugar de tabla: en un telefono los botones quedan debajo de cada producto, siempre a la vista. */}
+        <div className="grid gap-3 md:grid-cols-2">
+          {rows.map((row) => {
+            const editing = draft?.id === row.id
+
+            return (
+              <div className="pb-card min-w-0 rounded-2xl p-4" key={row.id} style={{ opacity: row.estado || editing ? 1 : 0.7 }}>
+                {editing ? (
+                  <div className="flex flex-col gap-3">
+                    <InputField
+                      error={draftErrors.nombre}
+                      id={`product-name-${row.id}`}
+                      label="Nombre"
+                      maxLength={150}
+                      onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
+                      value={draft.nombre}
+                    />
+                    <InputField
+                      error={draftErrors.puntos}
+                      id={`product-points-${row.id}`}
+                      inputMode="numeric"
+                      label="Puntos que otorga"
+                      onChange={(e) => setDraft({ ...draft, puntos: e.target.value })}
+                      value={draft.puntos}
+                    />
+                    {draftErrors.general && (
+                      <p className="text-xs font-semibold text-red-400" role="alert">
+                        {draftErrors.general}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <ChipButton disabled={saving} onClick={() => void saveDraft()} tone="green">
+                        {saving ? 'Guardando...' : 'Guardar'}
+                      </ChipButton>
+                      <ChipButton disabled={saving} onClick={() => setDraft(null)}>
+                        Cancelar
+                      </ChipButton>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 break-words font-display text-base font-bold text-white">{row.nombre}</p>
+                      <StatusChip status={row.estado ? 'ACTIVO' : 'INACTIVO'} />
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/40">
+                      <span className="font-mono-game text-yellow-400">
+                        <Icon className="mr-1" name="pointsSolid" />
+                        {formatPoints(row.puntos)} pts
+                      </span>
+                      {isGeneral && (
+                        <>
+                          <span>·</span>
+                          <span>{row.negocio_nombre ?? `Negocio #${row.negocio_id}`}</span>
+                        </>
                       )}
-                    </td>
-                    <td className="p-2">
-                      {editing ? (
-                        <input
-                          aria-label="Puntos que otorga"
-                          className="pb-input w-24"
-                          inputMode="numeric"
-                          onChange={(e) => setDraft({ ...draft, puntos: e.target.value })}
-                          value={draft.puntos}
-                        />
-                      ) : (
-                        row.puntos
-                      )}
-                    </td>
-                    <td className="p-2">
-                      {row.estado ? 'ACTIVO' : 'INACTIVO'}
-                      {!row.estado && row.se_elimina_en && <span className="block text-xs text-amber-400">{deletionNotice(row.se_elimina_en)}</span>}
-                    </td>
-                    <td className="p-2">
-                      <div className="flex flex-wrap gap-2">
-                        {editing ? (
-                          <>
-                            <button className={`${smallButton} border-emerald-500/40 text-emerald-400`} disabled={saving} onClick={() => void saveDraft()} type="button">
-                              {saving ? 'Guardando...' : 'Guardar'}
-                            </button>
-                            <button className={smallButton} disabled={saving} onClick={() => setDraft(null)} type="button">
-                              Cancelar
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            {canEdit && (
-                              <button className={smallButton} onClick={() => setDraft({ id: row.id, nombre: row.nombre, puntos: String(row.puntos) })} type="button">
-                                Editar
-                              </button>
-                            )}
-                            <button className={smallButton} onClick={() => void toggleStatus(row)} type="button">
-                              {row.estado ? 'Desactivar' : 'Activar'}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-              {rows.length === 0 && (
-                <tr>
-                  <td className="p-2 text-white/40" colSpan={canEdit ? 5 : 4}>Sin productos todavia.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    </div>
+                    {!row.estado && row.se_elimina_en && <p className="mt-1 text-xs text-amber-400">{deletionNotice(row.se_elimina_en)}</p>}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <ChipButton onClick={() => startEditing(row)} tone="gold">
+                        Editar
+                      </ChipButton>
+                      <ChipButton onClick={() => void toggleStatus(row)} tone={row.estado ? 'red' : 'green'}>
+                        {row.estado ? 'Desactivar' : 'Activar'}
+                      </ChipButton>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })}
         </div>
+
+        {rows.length === 0 && <p className="pb-card rounded-2xl p-4 text-sm text-white/40">Sin productos todavía.</p>}
       </div>
     </div>
   )
