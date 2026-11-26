@@ -63,7 +63,7 @@ export function SplashPage() {
         <GlowButton className="w-full tracking-widest" onClick={() => navigate('/register')}>
           COMENZAR
         </GlowButton>
-        <button className="text-sm font-semibold text-white/60 transition-colors hover:text-white/80" onClick={() => navigate('/login')} type="button">
+        <button className="inline-flex min-h-11 items-center px-4 text-sm font-semibold text-white/60 transition-colors hover:text-white/80" onClick={() => navigate('/login')} type="button">
           Ya tengo una cuenta
         </button>
       </div>
