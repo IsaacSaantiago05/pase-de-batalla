@@ -92,23 +92,23 @@ class ClientAndManagementTest extends TestCase
         $client = $this->makeUser($this->clienteRole, 'c@example.com');
         Sanctum::actingAs($client);
 
-        $this->putJson('/api/profile', ['password' => 'NuevaClave123', 'password_confirmation' => 'NuevaClave123'])
+        $this->putJson('/api/profile', ['password' => 'NuevaClave123!', 'password_confirmation' => 'NuevaClave123!'])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['password_actual']);
 
         $this->putJson('/api/profile', [
-            'password' => 'NuevaClave123',
-            'password_confirmation' => 'NuevaClave123',
+            'password' => 'NuevaClave123!',
+            'password_confirmation' => 'NuevaClave123!',
             'password_actual' => 'incorrecta',
         ])->assertStatus(422);
 
         $this->putJson('/api/profile', [
-            'password' => 'NuevaClave123',
-            'password_confirmation' => 'NuevaClave123',
+            'password' => 'NuevaClave123!',
+            'password_confirmation' => 'NuevaClave123!',
             'password_actual' => 'Password123',
         ])->assertOk();
 
-        $this->assertTrue(Hash::check('NuevaClave123', $client->fresh()->password));
+        $this->assertTrue(Hash::check('NuevaClave123!', $client->fresh()->password));
     }
 
     public function test_profile_cannot_change_role_or_level(): void

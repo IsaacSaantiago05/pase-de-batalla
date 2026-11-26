@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { ApiError } from '@shared/api'
+import { PasswordRequirements } from '@shared/PasswordRequirements'
+import { PASSWORD_REQUIREMENTS_ERROR, meetsAllRequirements } from '@shared/password'
 import { Button, ChipButton, EmptyState, FieldLabel, Icon, InputField, Notice, SectionTitle, StatusChip } from '@shared/ui'
 import { AdminPage } from '../components/AdminLayout'
 import { apiGet, apiPost, apiPut, listData } from '../lib/api'
@@ -28,8 +31,6 @@ type BusinessList = {
 }
 
 const purpleBackground = 'linear-gradient(180deg, #0d0018 0%, #080c18 100%)'
-
-const MIN_PASSWORD_LENGTH = 8
 
 export function AdministratorsPage() {
   const [items, setItems] = useState<AdminItem[]>([])
@@ -73,6 +74,11 @@ export function AdministratorsPage() {
     setError('')
     setMessage('')
 
+    if (!meetsAllRequirements(password)) {
+      setError(`La contraseña del administrador nuevo no cumple los requisitos. ${PASSWORD_REQUIREMENTS_ERROR}`)
+      return
+    }
+
     try {
       await apiPost('/admin/administrators', {
         nombre,
@@ -89,7 +95,9 @@ export function AdministratorsPage() {
       setMessage('Administrador creado correctamente.')
       await loadData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible crear administrador')
+      // La API explica en español que campo fallo (correo repetido, contraseña debil...).
+      const fields = err instanceof ApiError ? Object.values(err.fields) : []
+      setError(fields[0] ?? (err instanceof Error ? err.message : 'No fue posible crear administrador'))
     }
   }
 
@@ -97,8 +105,8 @@ export function AdministratorsPage() {
     if (!reset) return
     setResetError('')
 
-    if (reset.password.length < MIN_PASSWORD_LENGTH) {
-      setResetError(`La contraseña nueva debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`)
+    if (!meetsAllRequirements(reset.password)) {
+      setResetError(PASSWORD_REQUIREMENTS_ERROR)
       return
     }
 
@@ -109,7 +117,8 @@ export function AdministratorsPage() {
       setReset(null)
       setResetDoneId(item.id)
     } catch (err) {
-      setResetError(err instanceof Error ? err.message : 'No fue posible restablecer la contraseña')
+      if (err instanceof ApiError && err.fields.password) setResetError(err.fields.password)
+      else setResetError(err instanceof Error ? err.message : 'No fue posible restablecer la contraseña')
     } finally {
       setSavingReset(false)
     }
@@ -137,6 +146,8 @@ export function AdministratorsPage() {
             </select>
           </div>
         </div>
+        {/* Requisitos de la contraseña temporal que se le entrega al negocio. */}
+        {password !== '' && <PasswordRequirements value={password} />}
         <Button className="w-full tracking-widest" type="submit" variant="purple">
           CREAR ADMINISTRADOR
         </Button>
@@ -184,6 +195,7 @@ export function AdministratorsPage() {
                   type="password"
                   value={reset.password}
                 />
+                <PasswordRequirements value={reset.password} />
                 <div className="flex flex-wrap gap-2">
                   <ChipButton disabled={savingReset} onClick={() => void resetPassword(item)} tone="green">
                     {savingReset ? 'Guardando...' : 'Guardar contraseña'}

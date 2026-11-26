@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\PasswordPolicy;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
 class UpdateAdministratorRequest extends FormRequest
 {
@@ -18,7 +20,8 @@ class UpdateAdministratorRequest extends FormRequest
         return [
             'nombre' => ['sometimes', 'string', 'max:150'],
             'correo' => ['sometimes', 'email', 'max:150', 'unique:usuarios,correo,'.$userId],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            // Al restablecerla aplica la misma regla que las demas contrasenas del proyecto.
+            'password' => ['nullable', 'string', Password::defaults(), 'confirmed'],
             'negocio_id' => ['nullable', 'exists:negocios,id'],
             'estado' => ['sometimes', 'boolean'],
         ];
@@ -29,8 +32,7 @@ class UpdateAdministratorRequest extends FormRequest
         return [
             'correo.email' => 'El correo no es válido.',
             'correo.unique' => 'Ya existe una cuenta con ese correo.',
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
-            'password.confirmed' => 'La confirmación de la contraseña no coincide.',
+            ...PasswordPolicy::messages(),
         ];
     }
 }

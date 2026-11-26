@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Regla de contrasenas de todo el proyecto: registro, nueva contrasena, perfil y cuentas de administradores.
+        // La app y el panel muestran la misma lista; los mensajes en español estan en App\Support\PasswordPolicy.
+        Password::defaults(fn () => Password::min(8)->mixedCase()->numbers()->symbols());
+
         RateLimiter::for('auth-login', function (Request $request): Limit {
             $correo = strtolower((string) $request->input('correo'));
 

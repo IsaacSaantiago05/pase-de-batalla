@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, ChevronRight, Icon, InputField, Notice, ScreenHeader, formatDate, formatPoints } from '@shared/ui'
+import { ChevronRight, GlowButton, Icon, InputField, Notice, ScreenHeader, formatDate, formatPoints } from '@shared/ui'
 import type { IconName } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
+import { PasswordRequirements } from '@shared/PasswordRequirements'
 import { apiGet, apiPut, listData } from '../lib/api'
 import { clearSession } from '../lib/auth'
+import { PASSWORD_REQUIREMENTS_ERROR, meetsAllRequirements } from '@shared/password'
 import { levelInfo } from '../lib/progress'
 import type { BattlePassProgress } from '../lib/progress'
 import { ProfilePhoto } from '../components/ProfilePhoto'
@@ -33,6 +35,7 @@ export function ProfilePage() {
   const [passwordActual, setPasswordActual] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -68,6 +71,12 @@ export function ProfilePage() {
     event.preventDefault()
     setMessage('')
     setError('')
+
+    if (!meetsAllRequirements(password)) {
+      setPasswordError(PASSWORD_REQUIREMENTS_ERROR)
+      document.getElementById('profile-password')?.focus()
+      return
+    }
 
     try {
       await apiPut<Profile>('/profile', {
@@ -181,16 +190,30 @@ export function ProfilePage() {
                   <form className="pb-card mt-2 flex flex-col gap-4 rounded-2xl p-4" onSubmit={saveData}>
                     <InputField label="Nombre" onChange={(e) => setNombre(e.target.value)} value={nombre} />
                     <InputField label="Correo" onChange={(e) => setCorreo(e.target.value)} type="email" value={correo} />
-                    <Button className="w-full tracking-widest" size="sm" type="submit" variant="green">
+                    <GlowButton className="w-full tracking-widest" small tone="green" type="submit">
                       GUARDAR DATOS
-                    </Button>
+                    </GlowButton>
                   </form>
                 )}
 
                 {item.open && panel === 'password' && (
-                  <form className="pb-card mt-2 flex flex-col gap-4 rounded-2xl p-4" onSubmit={savePassword}>
+                  <form className="pb-card mt-2 flex flex-col gap-4 rounded-2xl p-4" noValidate onSubmit={savePassword}>
                     <InputField autoComplete="current-password" label="Contraseña actual" onChange={(e) => setPasswordActual(e.target.value)} type="password" value={passwordActual} />
-                    <InputField autoComplete="new-password" label="Nueva contraseña" onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" type="password" value={password} />
+                    <InputField
+                      autoComplete="new-password"
+                      error={passwordError}
+                      hint={<PasswordRequirements value={password} />}
+                      id="profile-password"
+                      label="Nueva contraseña"
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        if (meetsAllRequirements(e.target.value)) setPasswordError('')
+                      }}
+                      placeholder="Crea una contraseña segura"
+                      type="password"
+                      valid={meetsAllRequirements(password)}
+                      value={password}
+                    />
                     <InputField
                       autoComplete="new-password"
                       label="Confirmar contraseña"
@@ -199,9 +222,9 @@ export function ProfilePage() {
                       type="password"
                       value={passwordConfirmation}
                     />
-                    <Button className="w-full tracking-widest" size="sm" type="submit" variant="green">
+                    <GlowButton className="w-full tracking-widest" small tone="green" type="submit">
                       CAMBIAR CONTRASEÑA
-                    </Button>
+                    </GlowButton>
                   </form>
                 )}
               </div>

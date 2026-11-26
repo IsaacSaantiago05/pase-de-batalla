@@ -256,6 +256,11 @@ select optgroup {
   border-color: rgba(248, 113, 113, 0.7);
 }
 
+.pb-input-valid,
+.pb-input-valid:focus {
+  border-color: rgba(16, 185, 129, 0.55);
+}
+
 /* Tablas del panel de administracion con el mismo estilo de las tarjetas. */
 .pb-table {
   width: 100%;

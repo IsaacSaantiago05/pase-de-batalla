@@ -4,8 +4,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BackButton, Button, GLOW_SCREEN_BACKGROUND, GlowButton, Icon, InputField, Notice } from '@shared/ui'
 import type { IconName } from '@shared/ui'
 import { useGoBack } from '../components/AppLayout'
+import { PasswordRequirements } from '@shared/PasswordRequirements'
 import { ApiError, apiPost } from '../lib/api'
 import { setSession } from '../lib/auth'
+import { PASSWORD_REQUIREMENTS_ERROR, meetsAllRequirements } from '@shared/password'
 
 type AuthResponse = {
   user: { rol: string }
@@ -23,7 +25,63 @@ function toSpanish(message: string): string {
   if (/valid email/i.test(message)) return 'Escribe un correo válido.'
   if (/at least 8/i.test(message)) return 'Debe tener mínimo 8 caracteres.'
   if (/confirmation does not match/i.test(message)) return 'Las contraseñas no coinciden.'
+  if (/uppercase and one lowercase|at least one (symbol|number)/i.test(message)) return PASSWORD_REQUIREMENTS_ERROR
   return message
+}
+
+type Rules = Record<string, (value: string) => string | undefined>
+
+function checkEmail(value: string) {
+  if (!value.trim()) return 'Escribe tu correo.'
+  if (!EMAIL_PATTERN.test(value.trim())) return 'Escribe un correo válido.'
+  return undefined
+}
+
+// Mismas reglas del backend (LoginRequest / RegisterRequest).
+const loginRules: Rules = {
+  correo: checkEmail,
+  password: (value) => (value ? undefined : 'Escribe tu contraseña.'),
+}
+
+const registerRules: Rules = {
+  nombre: (value) => (value.trim() ? undefined : 'Escribe tu nombre de jugador.'),
+  correo: checkEmail,
+  password: (value) => (meetsAllRequirements(value) ? undefined : PASSWORD_REQUIREMENTS_ERROR),
+}
+
+function validateAll(rules: Rules, values: Record<string, string>): FieldErrors {
+  const errors: FieldErrors = {}
+  for (const [field, check] of Object.entries(rules)) {
+    const message = check(values[field] ?? '')
+    if (message) errors[field] = message
+  }
+  return errors
+}
+
+function withField(errors: FieldErrors, field: string, message: string | undefined): FieldErrors {
+  if ((errors[field] ?? undefined) === message) return errors
+  const next = { ...errors }
+  if (message) next[field] = message
+  else delete next[field]
+  return next
+}
+
+// Validacion en vivo: al salir de un campo con texto se revisa, y si ya tiene error
+// se vuelve a revisar con cada tecla para que el mensaje desaparezca en cuanto se corrige.
+// No marca campos vacios solo por pasar por ellos; eso se avisa al enviar.
+function useLiveValidation(rules: Rules) {
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  function onFieldChange(field: string, value: string) {
+    setFieldErrors((prev) => (prev[field] ? withField(prev, field, rules[field](value)) : prev))
+  }
+
+  function onFieldBlur(field: string, value: string) {
+    if (!value) return
+    setFieldErrors((prev) => withField(prev, field, rules[field](value)))
+  }
+
+  return { fieldErrors, setFieldErrors, onFieldChange, onFieldBlur }
 }
 
 // Lleva el foco al primer campo con error para que se vea y se pueda corregir de inmediato.
@@ -59,17 +117,14 @@ export function LoginPage() {
   const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const { fieldErrors, setFieldErrors, onFieldChange, onFieldBlur } = useLiveValidation(loginRules)
   const [sending, setSending] = useState(false)
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setError('')
 
-    const errors: FieldErrors = {}
-    if (!correo.trim()) errors.correo = 'Escribe tu correo.'
-    else if (!EMAIL_PATTERN.test(correo.trim())) errors.correo = 'Escribe un correo válido.'
-    if (!password) errors.password = 'Escribe tu contraseña.'
+    const errors = validateAll(loginRules, { correo, password })
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
       focusFirstError(errors, ['correo', 'password'])
@@ -99,9 +154,14 @@ export function LoginPage() {
             error={fieldErrors.correo}
             id="auth-correo"
             label="Correo electrónico"
-            onChange={(e) => setCorreo(e.target.value)}
+            onBlur={(e) => onFieldBlur('correo', e.target.value)}
+            onChange={(e) => {
+              setCorreo(e.target.value)
+              onFieldChange('correo', e.target.value)
+            }}
             placeholder="tu@correo.com"
             type="email"
+            valid={!checkEmail(correo)}
             value={correo}
           />
           <InputField
@@ -109,12 +169,16 @@ export function LoginPage() {
             error={fieldErrors.password}
             id="auth-password"
             label="Contraseña"
-            onChange={(e) => setPassword(e.target.value)}
+            onBlur={(e) => onFieldBlur('password', e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              onFieldChange('password', e.target.value)
+            }}
             placeholder="••••••••"
             type="password"
             value={password}
           />
-          <Link className="text-right text-sm font-semibold" style={{ color: '#f59e0b' }} to="/forgot-password">
+          <Link className="inline-flex min-h-11 items-center self-end text-sm font-semibold" style={{ color: '#f59e0b' }} to="/forgot-password">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
@@ -139,24 +203,16 @@ export function RegisterPage() {
   const [nombre, setNombre] = useState('')
   const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
-  const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const { fieldErrors, setFieldErrors, onFieldChange, onFieldBlur } = useLiveValidation(registerRules)
   const [sending, setSending] = useState(false)
-  const fieldOrder = ['nombre', 'correo', 'password', 'passwordConfirmation']
+  const fieldOrder = ['nombre', 'correo', 'password']
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setError('')
 
-    // Validacion en el navegador con las mismas reglas del backend (RegisterRequest).
-    const errors: FieldErrors = {}
-    if (!nombre.trim()) errors.nombre = 'Escribe tu nombre de jugador.'
-    if (!correo.trim()) errors.correo = 'Escribe tu correo.'
-    else if (!EMAIL_PATTERN.test(correo.trim())) errors.correo = 'Escribe un correo válido.'
-    if (password.length < 8) errors.password = 'Debe tener mínimo 8 caracteres.'
-    if (!passwordConfirmation) errors.passwordConfirmation = 'Repite tu contraseña.'
-    else if (passwordConfirmation !== password) errors.passwordConfirmation = 'Las contraseñas no coinciden.'
+    const errors = validateAll(registerRules, { nombre, correo, password })
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
       focusFirstError(errors, fieldOrder)
@@ -170,7 +226,8 @@ export function RegisterPage() {
         nombre: nombre.trim(),
         correo: correo.trim(),
         password,
-        password_confirmation: passwordConfirmation,
+        // Ya no se pide repetirla (el ojo permite revisarla); el backend la sigue exigiendo.
+        password_confirmation: password,
       })
       setSession({ token: response.data.token, role: response.data.user.rol })
       navigate('/home')
@@ -179,8 +236,7 @@ export function RegisterPage() {
       if (err instanceof ApiError && Object.keys(err.fields).length > 0) {
         const serverErrors: FieldErrors = {}
         for (const [field, message] of Object.entries(err.fields)) {
-          const isMismatch = field === 'password' && /confirmation/i.test(message)
-          serverErrors[isMismatch ? 'passwordConfirmation' : field] = toSpanish(message)
+          serverErrors[field] = toSpanish(message)
         }
         setFieldErrors(serverErrors)
         focusFirstError(serverErrors, fieldOrder)
@@ -197,11 +253,17 @@ export function RegisterPage() {
       <form className="flex flex-col gap-6" noValidate onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
           <InputField
-            autoComplete="name"
+            autoCapitalize="none"
+            autoComplete="nickname"
             error={fieldErrors.nombre}
             id="auth-nombre"
             label="Nombre de jugador"
-            onChange={(e) => setNombre(e.target.value)}
+            onBlur={(e) => onFieldBlur('nombre', e.target.value)}
+            onChange={(e) => {
+              setNombre(e.target.value)
+              onFieldChange('nombre', e.target.value)
+            }}
+            spellCheck={false}
             placeholder="ej. JUGADOR01"
             value={nombre}
           />
@@ -210,30 +272,31 @@ export function RegisterPage() {
             error={fieldErrors.correo}
             id="auth-correo"
             label="Correo electrónico"
-            onChange={(e) => setCorreo(e.target.value)}
+            onBlur={(e) => onFieldBlur('correo', e.target.value)}
+            onChange={(e) => {
+              setCorreo(e.target.value)
+              onFieldChange('correo', e.target.value)
+            }}
             placeholder="tu@correo.com"
             type="email"
+            valid={!checkEmail(correo)}
             value={correo}
           />
           <InputField
             autoComplete="new-password"
             error={fieldErrors.password}
+            hint={<PasswordRequirements value={password} />}
             id="auth-password"
             label="Contraseña"
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mínimo 8 caracteres"
+            onBlur={(e) => onFieldBlur('password', e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              onFieldChange('password', e.target.value)
+            }}
+            placeholder="Crea una contraseña segura"
             type="password"
+            valid={meetsAllRequirements(password)}
             value={password}
-          />
-          <InputField
-            autoComplete="new-password"
-            error={fieldErrors.passwordConfirmation}
-            id="auth-passwordConfirmation"
-            label="Confirmar contraseña"
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            placeholder="Repite tu contraseña"
-            type="password"
-            value={passwordConfirmation}
           />
         </div>
 
@@ -248,7 +311,7 @@ export function RegisterPage() {
           {sending ? 'CREANDO...' : 'CREAR CUENTA'}
         </GlowButton>
 
-        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+        <Link className="inline-flex min-h-11 items-center justify-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
           Ya tengo una cuenta
         </Link>
       </form>
@@ -280,10 +343,10 @@ export function ForgotPasswordPage() {
         <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
         {error && <Notice tone="error">{error}</Notice>}
         {message && <Notice tone="success">{message}</Notice>}
-        <Button className="w-full tracking-widest" type="submit">
+        <GlowButton className="w-full tracking-widest" type="submit">
           ENVIAR
-        </Button>
-        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+        </GlowButton>
+        <Link className="inline-flex min-h-11 items-center justify-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
           Volver a iniciar sesión
         </Link>
       </form>
@@ -297,52 +360,64 @@ export function ResetPasswordPage() {
   const [token, setToken] = useState(searchParams.get('token') ?? '')
   const [correo, setCorreo] = useState(searchParams.get('correo') ?? '')
   const [password, setPassword] = useState('')
-  const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setError('')
     setMessage('')
 
+    if (!meetsAllRequirements(password)) {
+      setPasswordError(PASSWORD_REQUIREMENTS_ERROR)
+      document.getElementById('auth-password')?.focus()
+      return
+    }
+
     try {
       const response = await apiPost<null>('/auth/reset-password', {
         token,
         correo,
         password,
-        password_confirmation: passwordConfirmation,
+        password_confirmation: password,
       })
 
       setMessage(response.message)
       setTimeout(() => navigate('/login'), 1200)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible restablecer la contraseña')
+      setError(err instanceof Error ? toSpanish(err.message) : 'No fue posible restablecer la contraseña')
     }
   }
 
   return (
     <AuthShell icon="shield" subtitle="Elige una contraseña nueva" title="Nueva Contraseña">
-      <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <form className="flex flex-col gap-6" noValidate onSubmit={onSubmit}>
         <div className="flex flex-col gap-4">
           <InputField label="Token" onChange={(e) => setToken(e.target.value)} value={token} />
           <InputField autoComplete="email" label="Correo electrónico" onChange={(e) => setCorreo(e.target.value)} placeholder="tu@correo.com" type="email" value={correo} />
-          <InputField autoComplete="new-password" label="Nueva contraseña" onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" type="password" value={password} />
           <InputField
             autoComplete="new-password"
-            label="Confirmar contraseña"
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            placeholder="Repite tu contraseña"
+            error={passwordError}
+            hint={<PasswordRequirements value={password} />}
+            id="auth-password"
+            label="Nueva contraseña"
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (meetsAllRequirements(e.target.value)) setPasswordError('')
+            }}
+            placeholder="Crea una contraseña segura"
             type="password"
-            value={passwordConfirmation}
+            valid={meetsAllRequirements(password)}
+            value={password}
           />
         </div>
         {error && <Notice tone="error">{error}</Notice>}
         {message && <Notice tone="success">{message}</Notice>}
-        <Button className="w-full tracking-widest" type="submit">
+        <GlowButton className="w-full tracking-widest" type="submit">
           GUARDAR CONTRASEÑA
-        </Button>
-        <Link className="text-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
+        </GlowButton>
+        <Link className="inline-flex min-h-11 items-center justify-center text-sm font-semibold" style={{ color: '#f59e0b' }} to="/login">
           Volver a iniciar sesión
         </Link>
       </form>

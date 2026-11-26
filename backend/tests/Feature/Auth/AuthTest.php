@@ -24,8 +24,8 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/auth/register', [
             'nombre' => 'Ana Cliente',
             'correo' => 'ana@example.com',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
         ]);
 
         $response
@@ -41,19 +41,47 @@ class AuthTest extends TestCase
         $this->postJson('/api/auth/register', [
             'nombre' => 'Luis Cliente',
             'correo' => 'luis@example.com',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
         ]);
 
         $response = $this->postJson('/api/auth/login', [
             'correo' => 'luis@example.com',
-            'password' => 'Password123',
+            'password' => 'Password123!',
         ]);
 
         $response
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonStructure(['data' => ['token']]);
+    }
+
+    public function test_register_rejects_weak_password(): void
+    {
+        // Varios intentos seguidos: se quita el limite de 3 registros por minuto solo en esta prueba.
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+
+        // Cada requisito que falta se explica en español.
+        $cases = [
+            'corta1!' => 'La contraseña debe tener al menos 8 caracteres.',
+            'sinmayuscula1!' => 'La contraseña debe tener al menos una letra mayúscula y una minúscula.',
+            'SINMINUSCULA1!' => 'La contraseña debe tener al menos una letra mayúscula y una minúscula.',
+            'SinNumero!' => 'La contraseña debe tener al menos un número.',
+            'SinSimbolo123' => 'La contraseña debe tener al menos un símbolo (por ejemplo ! @ # $).',
+        ];
+
+        foreach ($cases as $password => $message) {
+            $errors = $this->postJson('/api/auth/register', [
+                'nombre' => 'Debil',
+                'correo' => 'debil@example.com',
+                'password' => $password,
+                'password_confirmation' => $password,
+            ])->assertStatus(422)->assertJsonValidationErrors(['password'])->json('errors.password');
+
+            $this->assertContains($message, $errors, "Contraseña probada: $password");
+        }
+
+        $this->assertDatabaseMissing('usuarios', ['correo' => 'debil@example.com']);
     }
 
     public function test_login_invalid_credentials(): void
@@ -78,8 +106,8 @@ class AuthTest extends TestCase
         $this->postJson('/api/auth/register', [
             'nombre' => 'Reset User',
             'correo' => 'reset.user@example.com',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
         ]);
 
         $user = User::query()->where('correo', 'reset.user@example.com')->firstOrFail();
@@ -88,8 +116,8 @@ class AuthTest extends TestCase
         $resetResponse = $this->postJson('/api/auth/reset-password', [
             'token' => $token,
             'correo' => 'reset.user@example.com',
-            'password' => 'Password456',
-            'password_confirmation' => 'Password456',
+            'password' => 'Password456!',
+            'password_confirmation' => 'Password456!',
         ]);
 
         $resetResponse
@@ -98,7 +126,7 @@ class AuthTest extends TestCase
 
         $loginResponse = $this->postJson('/api/auth/login', [
             'correo' => 'reset.user@example.com',
-            'password' => 'Password456',
+            'password' => 'Password456!',
         ]);
 
         $loginResponse->assertOk();
