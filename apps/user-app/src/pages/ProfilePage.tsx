@@ -99,6 +99,7 @@ export function ProfilePage() {
     { icon: 'ticket' as IconName, label: 'Mis canjes', action: () => navigate('/redemptions') },
     { icon: 'business' as IconName, label: 'Negocios participantes', action: () => navigate('/businesses') },
     { icon: 'island' as IconName, label: 'Personalizar mi isla', action: () => navigate('/island') },
+    { icon: 'clipboard' as IconName, label: 'Más información', action: () => navigate('/about') },
   ]
 
   return (
