@@ -196,6 +196,15 @@ Canjes:
 - GET /api/redemptions/business (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - PATCH /api/redemptions/{redemption}/status (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 
+Notificaciones (cada usuario solo ve las suyas):
+
+- GET /api/notifications: las mas recientes primero, con `titulo`, `mensaje`, `leida` y `fecha`.
+- GET /api/notifications/summary: `no_leidas` y `ultima` (la mas reciente sin leer). Es la consulta que hace la campana del panel cada 20 segundos.
+- PATCH /api/notifications/{id}/read: marca una como leida.
+- POST /api/notifications/read-all: marca todas como leidas.
+
+Hoy solo existe un aviso: cuando un cliente canjea una recompensa, se notifica a los ADMINISTRADOR_NEGOCIO activos del negocio dueño de esa recompensa (a nadie mas), con el nombre del cliente y de la recompensa. Se guardan en la tabla `notifications` (notificaciones de Laravel, canal `database`) y las de mas de 60 dias se borran con la tarea programada diaria. No son notificaciones push: el aviso aparece mientras el panel esta abierto.
+
 Battle Pass:
 
 - GET /api/battle-pass/progress (solo CLIENTE)
@@ -256,6 +265,7 @@ Rutas funcionales iniciales:
 - /levels
 - /island-elements
 - /statistics
+- /notifications (avisos del negocio: recompensas canjeadas; la campana esta en el encabezado del dashboard)
 
 Incluye proteccion de rutas por sesion y rol administrativo, mas consulta del historial de puntos del negocio.
 
