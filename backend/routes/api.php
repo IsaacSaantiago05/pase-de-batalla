@@ -9,6 +9,7 @@ use App\Http\Controllers\BusinessProfileController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\IslandController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PointsController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -131,6 +132,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/', [RedemptionController::class, 'store'])->middleware(['role:CLIENTE', 'throttle:redemption-create']);
         Route::get('/business', [RedemptionController::class, 'businessHistory'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
         Route::patch('/{redemption}/status', [RedemptionController::class, 'updateStatus'])->middleware('role:ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL');
+    });
+
+    // Notificaciones de quien inicio sesion (hoy: el aviso al negocio cuando canjean una de sus recompensas).
+    Route::prefix('notifications')->middleware('role:CLIENTE,ADMINISTRADOR_NEGOCIO,ADMINISTRADOR_GENERAL')->group(function (): void {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/summary', [NotificationController::class, 'summary']);
+        Route::post('/read-all', [NotificationController::class, 'markAllRead']);
+        Route::patch('/{notification}/read', [NotificationController::class, 'markRead']);
     });
 
     Route::prefix('admin')->middleware('role:ADMINISTRADOR_GENERAL')->group(function (): void {

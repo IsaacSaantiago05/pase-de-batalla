@@ -6,9 +6,11 @@ use App\Models\PointMovement;
 use App\Models\Redemption;
 use App\Models\Reward;
 use App\Models\User;
+use App\Notifications\RewardRedeemed;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 
 class RedemptionService
@@ -18,6 +20,36 @@ class RedemptionService
     }
 
     public function create(User $client, int $rewardId): Redemption
+    {
+        $redemption = $this->register($client, $rewardId);
+
+        // El canje ya quedo guardado: si el aviso falla, se registra el error pero el canje sigue siendo valido.
+        rescue(fn () => $this->notifyBusinessAdministrators($redemption));
+
+        return $redemption;
+    }
+
+    /**
+     * Avisa solo a los administradores activos del negocio dueño de la recompensa canjeada.
+     */
+    private function notifyBusinessAdministrators(Redemption $redemption): void
+    {
+        $businessId = $redemption->reward?->negocio_id;
+
+        if ($businessId === null) {
+            return;
+        }
+
+        $administrators = User::query()
+            ->where('negocio_id', $businessId)
+            ->where('estado', true)
+            ->whereHas('role', fn ($role) => $role->where('nombre', 'ADMINISTRADOR_NEGOCIO'))
+            ->get();
+
+        Notification::send($administrators, new RewardRedeemed($redemption));
+    }
+
+    private function register(User $client, int $rewardId): Redemption
     {
         return DB::transaction(function () use ($client, $rewardId) {
             $lockedClient = User::query()->lockForUpdate()->findOrFail($client->id);

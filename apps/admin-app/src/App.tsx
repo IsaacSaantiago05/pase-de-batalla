@@ -16,6 +16,7 @@ import { RewardsAdminPage } from './pages/RewardsAdminPage'
 import { SalesAdminPage } from './pages/SalesAdminPage'
 import { StatisticsPage } from './pages/StatisticsPage'
 import { MyBusinessPage } from './pages/MyBusinessPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { ShellPage } from './pages/ShellPage'
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
           <Route path="/businesses" element={<BusinessesPage />} />
           <Route path="/administrators" element={<AdministratorsPage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/levels" element={<ShellPage title="Niveles" />} />
           <Route path="/island-elements" element={<ShellPage title="Elementos de Isla" />} />
           <Route path="/statistics" element={<StatisticsPage />} />

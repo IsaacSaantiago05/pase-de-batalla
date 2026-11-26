@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ScreenHeader } from '@shared/ui'
+import { NotificationsProvider } from '../lib/notifications'
 
 // Columna del panel: ancho de celular en movil y mas amplia en escritorio para las tablas.
 export function AdminLayout() {
@@ -8,9 +9,12 @@ export function AdminLayout() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col md:max-w-3xl lg:max-w-5xl" style={{ background: '#080c18', boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.8)' }}>
-      <div className="flex flex-1 flex-col anim-fade-up" key={pathname}>
-        <Outlet />
-      </div>
+      {/* Vigila las notificaciones del negocio y muestra el aviso emergente en cualquier pantalla. */}
+      <NotificationsProvider>
+        <div className="flex flex-1 flex-col anim-fade-up" key={pathname}>
+          <Outlet />
+        </div>
+      </NotificationsProvider>
     </div>
   )
 }

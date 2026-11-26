@@ -4,6 +4,7 @@ import { Button, ChevronRight, Icon, SectionTitle } from '@shared/ui'
 import type { IconName } from '@shared/ui'
 import { apiGet, listData } from '../lib/api'
 import { clearAdminSession, getAdminSession } from '../lib/auth'
+import { BellIcon, useNotifications } from '../lib/notifications'
 
 type Me = { nombre: string }
 type Business = { id: number; nombre: string; logo_url: string | null }
@@ -55,6 +56,8 @@ export function DashboardPage() {
   const [me, setMe] = useState<Me | null>(null)
   const [business, setBusiness] = useState<Business | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
+  // Notificaciones sin leer del negocio (canjes de sus recompensas).
+  const { unread } = useNotifications()
 
   useEffect(() => {
     apiGet<Me>('/auth/me').then((response) => setMe(response.data)).catch(() => setMe(null))
@@ -120,7 +123,21 @@ export function DashboardPage() {
                 <p className="font-display text-xs uppercase tracking-widest text-white/40">Negocio</p>
                 <p className="truncate font-display text-lg font-bold tracking-wide text-white">{business?.nombre ?? me?.nombre ?? '-'}</p>
               </div>
-              <button className="ml-auto font-display text-xs font-semibold tracking-wide text-white/40 hover:text-white/70" onClick={logout} type="button">
+              <Link
+                aria-label={unread > 0 ? `Notificaciones: ${unread} sin leer` : 'Notificaciones'}
+                className="relative ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all active:scale-90"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: unread > 0 ? '#fcd34d' : 'rgba(255,255,255,0.6)' }}
+                title="Notificaciones"
+                to="/notifications"
+              >
+                <BellIcon />
+                {unread > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 font-mono-game text-xs font-bold text-white">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
+              </Link>
+              <button className="font-display text-xs font-semibold tracking-wide text-white/40 hover:text-white/70" onClick={logout} type="button">
                 Salir
               </button>
             </div>
