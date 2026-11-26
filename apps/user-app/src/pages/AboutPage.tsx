@@ -17,7 +17,7 @@ const TEAM: Person[] = [
   { nombre: 'Erick Iván Ponce Hernández', rol: 'Desarrollo', iniciales: 'EP', color: '#a855f7' },
 ]
 
-const IDEA_AUTHOR: Person = { nombre: 'Ing. César Armando Mota', rol: 'Autor de la idea', iniciales: 'CM', color: '#60a5fa' }
+const IDEA_AUTHOR: Person = { nombre: 'Ing. César Armando Mota', rol: 'Autor de la idea · Dueño y fundador de Sweet Art', iniciales: 'CM', color: '#60a5fa' }
 
 const ACADEMIC_ADVISOR: Person = { nombre: 'Ing. Leymi Olivares Barreiro', rol: 'Asesora académica', iniciales: 'LO', color: '#10b981' }
 
@@ -106,8 +106,8 @@ export function AboutPage() {
           <SectionTitle className="text-white/40">El origen</SectionTitle>
           <div className="pb-card flex flex-col gap-4 rounded-2xl p-5 text-sm leading-relaxed text-white/70">
             <p>
-              La idea de Pase de Batalla surgió del <span className="font-semibold text-white">{IDEA_AUTHOR.nombre}</span> y se convirtió en un proyecto de
-              estadía de la <span className="font-semibold text-white">Universidad Politécnica de la Región Ribereña (UPRR)</span>, en Ciudad Miguel Alemán,
+              La idea de Pase de Batalla surgió del <span className="font-semibold text-white">{IDEA_AUTHOR.nombre}</span>, dueño y fundador de{' '}
+              <span className="font-semibold text-white">Sweet Art</span>, y se convirtió en un proyecto de estadía de la <span className="font-semibold text-white">Universidad Politécnica de la Región Ribereña (UPRR)</span>, en Ciudad Miguel Alemán,
               Tamaulipas.
             </p>
             <p>
