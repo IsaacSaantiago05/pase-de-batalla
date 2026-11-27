@@ -5,6 +5,7 @@ import { ApiError } from '@shared/api'
 import { ChipButton, Icon, InputField, StatusChip, formatPoints } from '@shared/ui'
 import { apiGet, apiPatch, apiPost, apiPut } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
+import { BUSINESS_PRODUCT_MAX, POINTS_RULE, PRODUCT_MAX } from '../lib/limits'
 
 type Product = {
   id: number
@@ -20,12 +21,11 @@ type Product = {
 
 type ProductListPayload = Product[] | { data: Product[] }
 
-type Draft = { id: number; nombre: string; puntos: string }
+// `original` son los puntos que tenia el producto al abrir la edicion.
+type Draft = { id: number; nombre: string; puntos: string; original: number }
 
 // Errores de la edicion: se muestran dentro de la tarjeta que se esta editando, no arriba de la pantalla.
 type DraftErrors = { nombre?: string; puntos?: string; general?: string }
-
-const MAX_POINTS = 100000
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -41,6 +41,8 @@ export function ProductsAdminPage() {
   const canCreate = role === 'ADMINISTRADOR_NEGOCIO'
   // El administrador general ve los productos de todos los negocios, con el nombre del negocio en cada uno.
   const isGeneral = role === 'ADMINISTRADOR_GENERAL'
+  // El negocio tiene un tope de puntos por producto; el administrador general puede pasarlo.
+  const maxPoints = isGeneral ? PRODUCT_MAX : BUSINESS_PRODUCT_MAX
   const [rows, setRows] = useState<Product[]>([])
   const [nombre, setNombre] = useState('')
   const [descripcion, setDescripcion] = useState('')
@@ -70,11 +72,25 @@ export function ProductsAdminPage() {
     setMessage('')
     setError('')
 
+    const pointsText = puntos.trim()
+    if (nombre.trim() === '') {
+      setError('Escribe el nombre del producto.')
+      return
+    }
+    if (!/^\d+$/.test(pointsText) || Number(pointsText) < 1) {
+      setError('Escribe cuántos puntos otorga el producto (número entero mayor a 0).')
+      return
+    }
+    if (Number(pointsText) > maxPoints) {
+      setError(`Un producto no puede otorgar más de ${maxPoints} puntos (${POINTS_RULE}).`)
+      return
+    }
+
     try {
       await apiPost('/products', {
         nombre: nombre.trim(),
         descripcion: descripcion.trim() || null,
-        puntos: Number(puntos),
+        puntos: Number(pointsText),
       })
       setMessage('Producto creado correctamente. Ya aparece como botón en Códigos QR.')
       setNombre('')
@@ -90,7 +106,7 @@ export function ProductsAdminPage() {
     setMessage('')
     setError('')
     setDraftErrors({})
-    setDraft({ id: row.id, nombre: row.nombre, puntos: String(row.puntos) })
+    setDraft({ id: row.id, nombre: row.nombre, puntos: String(row.puntos), original: row.puntos })
   }
 
   async function saveDraft() {
@@ -101,8 +117,11 @@ export function ProductsAdminPage() {
     const errors: DraftErrors = {}
     const pointsText = draft.puntos.trim()
     if (draft.nombre.trim() === '') errors.nombre = 'El nombre del producto es obligatorio.'
-    if (!/^\d+$/.test(pointsText) || Number(pointsText) < 1 || Number(pointsText) > MAX_POINTS) {
-      errors.puntos = `Escribe un número entero entre 1 y ${MAX_POINTS.toLocaleString('es-MX')}.`
+    if (!/^\d+$/.test(pointsText) || Number(pointsText) < 1) {
+      errors.puntos = 'Escribe un número entero mayor a 0.'
+    } else if (Number(pointsText) > maxPoints && Number(pointsText) !== draft.original) {
+      // Si el administrador general ya le habia puesto mas puntos, se pueden dejar como estan.
+      errors.puntos = `El máximo es ${maxPoints.toLocaleString('es-MX')} puntos por producto.`
     }
     setDraftErrors(errors)
     if (Object.keys(errors).length > 0) return
@@ -164,7 +183,10 @@ export function ProductsAdminPage() {
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
             />
-            <p className="mt-3 text-xs text-white/40">
+            <p className="mt-3 text-sm text-amber-300/90">
+              Sugerencia: {POINTS_RULE}. Máximo {BUSINESS_PRODUCT_MAX} puntos por producto.
+            </p>
+            <p className="mt-2 text-xs text-white/40">
               Cada producto activo aparece como botón en Códigos QR. Con "Editar" puedes cambiar su nombre y sus puntos; los QR que ya generaste conservan los puntos que tenían. Un producto inactivo se elimina solo a los 7 días.
             </p>
           </>
@@ -199,6 +221,13 @@ export function ProductsAdminPage() {
                     />
                     <InputField
                       error={draftErrors.puntos}
+                      hint={
+                        <p className="text-xs text-white/40">
+                          {isGeneral
+                            ? `Los negocios tienen un máximo de ${BUSINESS_PRODUCT_MAX} puntos por producto (${POINTS_RULE}); aquí puedes poner más.`
+                            : `Sugerencia: ${POINTS_RULE}. Máximo ${BUSINESS_PRODUCT_MAX} puntos.`}
+                        </p>
+                      }
                       id={`product-points-${row.id}`}
                       inputMode="numeric"
                       label="Puntos que otorga"

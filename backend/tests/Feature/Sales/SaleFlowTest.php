@@ -218,4 +218,45 @@ class SaleFlowTest extends TestCase
         $this->postJson('/api/sales', $payload)->assertStatus(403);
         $this->getJson('/api/sales')->assertOk();
     }
+
+    public function test_sale_cannot_give_more_points_than_the_cap(): void
+    {
+        $cake = $this->makeProduct($this->businessA, 'Pastel', 150);
+        $cupcake = $this->makeProduct($this->businessA, 'Cupcake', 50);
+        Sanctum::actingAs($this->adminA);
+
+        // 3 x 150 + 1 x 50 = 500: justo en el tope.
+        $this->postJson('/api/sales', ['items' => [
+            ['producto_id' => $cake->id, 'cantidad' => 3],
+            ['producto_id' => $cupcake->id, 'cantidad' => 1],
+        ]])->assertCreated()->assertJsonPath('data.puntos_total', 500);
+
+        // 4 x 150 = 600: se rechaza y no queda venta ni QR.
+        $this->postJson('/api/sales', ['items' => [['producto_id' => $cake->id, 'cantidad' => 4]]])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Una venta no puede dar más de 500 puntos (esta suma 600). Divide la compra en varias ventas.');
+
+        // Tampoco repitiendo el mismo producto en varios renglones.
+        $this->postJson('/api/sales', ['items' => [
+            ['producto_id' => $cake->id, 'cantidad' => 2],
+            ['producto_id' => $cake->id, 'cantidad' => 2],
+        ]])->assertStatus(422);
+
+        $this->assertDatabaseCount('ventas', 1);
+        $this->assertDatabaseCount('codigos_qr', 1);
+    }
+
+    public function test_one_unit_of_a_product_above_the_sale_cap_can_still_be_sold(): void
+    {
+        // Producto especial al que el administrador general le puso mas puntos que el tope de una venta.
+        $special = $this->makeProduct($this->businessA, 'Mesa de postres', 800);
+        Sanctum::actingAs($this->adminA);
+
+        $this->postJson('/api/sales', ['items' => [['producto_id' => $special->id, 'cantidad' => 1]]])
+            ->assertCreated()
+            ->assertJsonPath('data.qr.puntos', 800);
+
+        $this->postJson('/api/sales', ['items' => [['producto_id' => $special->id, 'cantidad' => 2]]])->assertStatus(422);
+        $this->assertDatabaseCount('ventas', 1);
+    }
 }
