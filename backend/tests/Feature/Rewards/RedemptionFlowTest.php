@@ -3,12 +3,13 @@
 namespace Tests\Feature\Rewards;
 
 use App\Models\Business;
-use App\Models\Level;
 use App\Models\PointMovement;
 use App\Models\Redemption;
 use App\Models\Reward;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\BattlePassService;
+use Database\Seeders\BattlePassTierSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -31,20 +32,6 @@ class RedemptionFlowTest extends TestCase
         $this->clienteRole = Role::query()->create(['nombre' => 'CLIENTE', 'estado' => true]);
         $this->adminNegocioRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_NEGOCIO', 'estado' => true]);
         $this->adminGeneralRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_GENERAL', 'estado' => true]);
-
-        Level::query()->create([
-            'nombre' => 'Nivel 1',
-            'puntos_minimos' => 0,
-            'puntos_maximos' => 199,
-            'estado' => true,
-        ]);
-
-        Level::query()->create([
-            'nombre' => 'Nivel 2',
-            'puntos_minimos' => 200,
-            'puntos_maximos' => 1000,
-            'estado' => true,
-        ]);
 
         $this->businessA = Business::query()->create([
             'nombre' => 'Negocio A',
@@ -246,11 +233,11 @@ class RedemptionFlowTest extends TestCase
 
     public function test_redemption_does_not_lower_client_level(): void
     {
+        $this->seed(BattlePassTierSeeder::class);
         $client = $this->createClient('cliente.level.keep@example.com');
+        // 250 puntos ganados = nivel 10 del pase (pide 237).
         $this->grantPoints($client, 250, $this->businessA->id);
-        app(\App\Services\PointsService::class)->syncUserLevel($client);
-        $levelTwo = Level::query()->where('nombre', 'Nivel 2')->firstOrFail();
-        $this->assertEquals($levelTwo->id, $client->fresh()->nivel_id);
+        $this->assertSame(10, app(BattlePassService::class)->currentLevel($client));
 
         $reward = $this->createReward($this->businessA->id, 200, 5);
 
@@ -258,9 +245,10 @@ class RedemptionFlowTest extends TestCase
 
         $this->postJson('/api/redemptions', ['recompensa_id' => $reward->id])
             ->assertCreated()
-            ->assertJsonPath('data.saldo_global', 50);
+            ->assertJsonPath('data.saldo_global', 50)
+            ->assertJsonPath('data.nivel', 10);
 
-        $this->assertEquals($levelTwo->id, $client->fresh()->nivel_id);
+        $this->assertSame(10, app(BattlePassService::class)->currentLevel($client));
     }
 
     public function test_rewards_and_points_history_include_the_business_name(): void

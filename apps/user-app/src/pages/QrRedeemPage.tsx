@@ -15,7 +15,9 @@ type RedeemResult = {
     fecha: string
   }
   saldo_global: number
-  nivel_id: number | null
+  // Nivel del pase antes y despues de sumar estos puntos.
+  nivel_anterior: number
+  nivel: number
 }
 
 // Esquinas del visor, metidas un poco hacia dentro para que sigan la curva del marco.
@@ -163,11 +165,29 @@ export function QrRedeemPage() {
               <span className="font-mono-game font-bold text-yellow-400">{formatPoints(result.saldo_global)} PTS</span>
             </div>
           </div>
+
+          {/* Al subir de nivel hay un bono esperando en el pase: se reclama a mano. */}
+          {result.nivel > result.nivel_anterior && (
+            <div className="flex w-full items-center gap-3 rounded-2xl p-4" role="status" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.16), #1a2235)', border: '1px solid rgba(245,158,11,0.35)' }}>
+              <Icon className="text-3xl" name="trophy" />
+              <div className="min-w-0">
+                <p className="font-display text-base font-bold tracking-wide text-yellow-400">Subiste al nivel {result.nivel}</p>
+                <p className="text-xs text-white/60">Reclama tu bono en el Pase de Batalla.</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        <Button className="w-full max-w-sm tracking-widest" onClick={() => navigate('/home')} size="lg">
-          CONTINUAR
-        </Button>
+        <div className="flex w-full max-w-sm flex-col gap-3">
+          {result.nivel > result.nivel_anterior && (
+            <GlowButton className="w-full tracking-widest" onClick={() => navigate('/battle-pass')}>
+              IR AL PASE
+            </GlowButton>
+          )}
+          <Button className="w-full tracking-widest" onClick={() => navigate('/home')} size="lg" variant={result.nivel > result.nivel_anterior ? 'ghost' : 'gold'}>
+            CONTINUAR
+          </Button>
+        </div>
       </Page>
     )
   }

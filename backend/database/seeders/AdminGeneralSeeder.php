@@ -22,7 +22,6 @@ class AdminGeneralSeeder extends Seeder
                 'nombre' => 'Admin General Dev',
                 'password' => 'AdminDev1234',
                 'rol_id' => $role->id,
-                'nivel_id' => null,
                 'negocio_id' => null,
                 'estado' => true,
                 'fecha_registro' => now(),

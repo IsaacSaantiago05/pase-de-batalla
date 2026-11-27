@@ -21,10 +21,6 @@ class QrService
 {
     private const QR_LIFETIME_SECONDS = 30;
 
-    public function __construct(private readonly PointsService $pointsService)
-    {
-    }
-
     /**
      * @param  array<int, string>  $statuses  Estados reales a incluir; vacio = todos.
      */
@@ -161,8 +157,6 @@ class QrService
                 'tipo' => 'GANANCIA',
                 'fecha' => now(),
             ]);
-
-            $this->pointsService->syncUserLevel($actor);
 
             return $movement;
         });

@@ -28,7 +28,6 @@ class AdministratorService
                 'password' => $payload['password'],
                 'rol_id' => $role->id,
                 'negocio_id' => $payload['negocio_id'] ?? null,
-                'nivel_id' => null,
                 'estado' => $payload['estado'] ?? true,
                 'fecha_registro' => now(),
             ]);

@@ -23,11 +23,11 @@ pase-de-batalla/
 - Registro, login, logout, perfil autenticado y recuperacion de password.
 - Roles: CLIENTE, ADMINISTRADOR_NEGOCIO, ADMINISTRADOR_GENERAL.
 - Gestion inicial de usuarios y negocios con aislamiento por negocio.
-- Motor de puntos globales con historial y recálculo de nivel. La plataforma solo maneja puntos, no dinero.
+- Motor de puntos globales con historial. El nivel del cliente se calcula con sus puntos ganados (no se guarda). La plataforma solo maneja puntos, no dinero.
 - Modulo QR transaccional con token unico, expiracion, uso unico y bloqueo de doble uso.
 - Modulo de recompensas y canjes con descuento inmediato de stock/puntos y reposicion por cancelacion.
-- Modulo de battle pass con tiers, progreso por puntos globales y reclamo por tier.
-- Modulo de isla con catalogo por nivel, desbloqueo de elementos y guardado de posiciones.
+- Modulo de battle pass con 150 niveles, insignias (Bronce, Plata, Oro, Diamante) y bonos de puntos que el cliente reclama.
+- Modulo de isla con catalogo por nivel del pase, desbloqueo de elementos y guardado de posiciones.
 - Validaciones con Form Requests.
 - Respuestas API consistentes con formato success/message/data.
 
@@ -38,24 +38,28 @@ pase-de-batalla/
 - negocios
 - movimientos_puntos
 - codigos_qr
-- niveles
 - recompensas
 - canjes
 - elementos_isla
 - usuario_elementos
 - configuracion_isla
-- pase_batalla_tiers
-- usuario_pase_batalla
+- pase_batalla_tiers (los niveles 2 a 150 del pase)
+- usuario_pase_batalla (niveles que cada cliente ya reclamo)
 - personal_access_tokens (Sanctum)
 
 ### Seeders incluidos
 
 - RoleSeeder
-- LevelSeeder
 - BusinessSeeder
-- BattlePassTierSeeder
+- BattlePassTierSeeder (carga los 149 niveles del pase; sin el todos los clientes quedan en nivel 1)
 - IslandElementSeeder
 - AdminGeneralSeeder
+
+En una base que ya existe, despues de migrar hay que cargar los niveles:
+
+```bash
+php artisan db:seed --class=BattlePassTierSeeder
+```
 
 Usuario admin de desarrollo:
 
@@ -120,7 +124,7 @@ Regla de contrasenas (registro, nueva contrasena, perfil, alta y restablecimient
 
 Puntos:
 
-- GET /api/points/balance
+- GET /api/points/balance (`saldo_global`, `puntos_acumulados` y `nivel`)
 - GET /api/points/history (cada movimiento incluye `negocio_nombre`)
 - GET /api/points/business-history
 
@@ -174,7 +178,7 @@ QR:
 - GET /api/qr/{qrCode}/image (solo ADMINISTRADOR_NEGOCIO y ADMINISTRADOR_GENERAL)
 - POST /api/qr/generate (solo ADMINISTRADOR_GENERAL). Cuerpo: `{"negocio_id": 1, "puntos": 40}`; ambos obligatorios, puntos de 1 a 100000. El administrador de negocio genera sus QR desde sus productos con POST /api/sales.
 - PATCH /api/qr/{qrCode}/cancel (ADMINISTRADOR_NEGOCIO de su negocio o ADMINISTRADOR_GENERAL; solo QR en estado ACTIVO)
-- POST /api/qr/redeem (solo CLIENTE)
+- POST /api/qr/redeem (solo CLIENTE). La respuesta trae `nivel_anterior` y `nivel` para avisar al cliente cuando sube de nivel.
 
 Los QR que nadie canjeo (expirados o cancelados) se eliminan solos a los 30 dias de generados, junto con la venta que los origino; los canjeados se conservan como historial. Lo hace `php artisan model:prune`, programado a diario (requiere `php artisan schedule:work` o cron). Son 30 dias para que las estadisticas del mes sigan contando todos los QR generados.
 
@@ -205,10 +209,15 @@ Notificaciones (cada usuario solo ve las suyas):
 
 Hoy solo existe un aviso: cuando un cliente canjea una recompensa, se notifica a los ADMINISTRADOR_NEGOCIO activos del negocio dueño de esa recompensa (a nadie mas), con el nombre del cliente y de la recompensa. Se guardan en la tabla `notifications` (notificaciones de Laravel, canal `database`) y las de mas de 60 dias se borran con la tarea programada diaria. No son notificaciones push: el aviso aparece mientras el panel esta abierto.
 
-Battle Pass:
+Battle Pass (solo CLIENTE):
 
-- GET /api/battle-pass/progress (solo CLIENTE)
-- POST /api/battle-pass/tiers/{tier}/claim (solo CLIENTE)
+- GET /api/battle-pass/progress: `nivel_actual`, `nivel_maximo`, `puntos_acumulados`, `puntos_nivel_actual`, `puntos_siguiente_nivel`, `faltante`, `insignia_actual`, `siguiente_insignia` (nivel, insignia, puntos que faltan y bono), `niveles_por_reclamar`, `puntos_por_reclamar` y `tiers` (los 149 niveles con `nivel`, `puntos_requeridos`, `puntos_bono`, `insignia` y `estado_usuario`: BLOQUEADO, DESBLOQUEADO o RECLAMADO).
+- POST /api/battle-pass/tiers/{tier}/claim: reclama el bono de un nivel ya alcanzado. No hace falta reclamar en orden; un nivel solo se puede reclamar una vez.
+- POST /api/battle-pass/claim-all: reclama de una vez todos los niveles alcanzados que sigan pendientes. Devuelve `niveles_reclamados`, `puntos_reclamados` y `saldo_global`; si no hay nada pendiente responde con ceros.
+
+Niveles: son 150. Todos los clientes empiezan en el nivel 1 y suben con sus puntos ganados en total (canjear recompensas no hace retroceder). El nivel no se guarda en el usuario: es 1 + los niveles del pase que ya alcanzo. La curva vive en `App\Support\LevelCurve`: subir al nivel `n` cuesta `round(20 * (1 + n/150)^1.6 + 5)` puntos (25 al inicio, 66 al final), asi que el nivel 10 pide 237 puntos ganados, el 50 pide 1,514, el 100 pide 3,687 y el 150 pide 6,586.
+
+Bonos: cada nivel entrega 2 puntos y los niveles con insignia suman un bono (nivel 10 Bronce +15, nivel 50 Plata +40, nivel 100 Oro +75, nivel 150 Diamante +150; 578 puntos en total). Nada se acredita solo: el cliente los reclama. Se guardan como movimientos `BONO_NIVEL`, sin negocio: suman al saldo para canjear, pero no cuentan como puntos ganados (no hacen subir de nivel) ni aparecen en el historial o las estadisticas de ningun negocio.
 
 Isla:
 
@@ -216,6 +225,8 @@ Isla:
 - GET /api/island/layout (solo CLIENTE)
 - POST /api/island/unlock (solo CLIENTE)
 - POST /api/island/layout (solo CLIENTE)
+
+El `nivel_requerido` de cada pieza es un nivel del pase de batalla: la Casa y el Arbol estan disponibles desde el nivel 1 y el Perro desde el nivel 5.
 
 ## Frontend usuario
 
@@ -243,7 +254,9 @@ El flujo de QR para cliente ya permite escaneo por camara (ademas de ingreso man
 
 El flujo de recompensas permite canjear con descuento inmediato de puntos y stock.
 
-La ruta /battle-pass ya muestra progreso real, siguiente hito y permite reclamar tiers desbloqueados.
+La ruta /battle-pass muestra el nivel actual y su insignia, lo que hay por reclamar (con boton por nivel y «Reclamar todo»), la proxima insignia, las 4 insignias, los proximos 10 niveles y, plegados, los niveles ya reclamados. Nunca lista los 150 niveles a la vez.
+
+Al canjear un QR, si el cliente sube de nivel se le avisa y se le lleva al pase. El inicio avisa cuando hay bonos sin reclamar, el perfil muestra la insignia junto al nivel y el historial distingue los «Bonos de nivel».
 
 La ruta /island ya permite ver catalogo por nivel, desbloquear elementos y guardar posicion.
 
@@ -373,7 +386,7 @@ Cobertura actual minima:
 - Admin negocio sin acceso a endpoints de administradores
 - Puntos agregados correctamente
 - Puntos globales acumulados correctamente
-- Nivel actualizado al cruzar umbral de puntos
+- Nivel calculado al cruzar los puntos que pide cada nivel (y nivel maximo al pasarse del ultimo)
 - Generacion de QR por admin de negocio en su propio negocio
 - Bloqueo de generacion QR para negocio ajeno
 - Canje QR valido con impacto en saldo global
@@ -388,11 +401,14 @@ Cobertura actual minima:
 - Competencia por ultimo stock (solo un canje exitoso)
 - Aislamiento por negocio en gestion de canjes
 
-- Progreso de battle pass con tiers desbloqueados/bloqueados
-- Reclamo de tier desbloqueado y bloqueo de doble reclamo
-- Bloqueo de reclamo de tier sin puntos suficientes
+- Curva de los 150 niveles (valores de control, costo creciente y bonos) y carga de los 149 niveles
+- Progreso del pase: nivel, insignia actual, proxima insignia y niveles por reclamar
+- Reclamo de un nivel y bloqueo de doble reclamo; reclamo en cualquier orden
+- Reclamar todo en un solo movimiento, sin efecto al repetirlo
+- El bono sube el saldo pero no el nivel; canjear no baja el nivel
+- Bloqueo de reclamo de un nivel sin puntos suficientes
 - Bloqueo de endpoints battle pass para roles no cliente
-- Catalogo de isla con elementos disponibles y bloqueados por nivel
+- Catalogo de isla con elementos disponibles y bloqueados por nivel del pase
 - Desbloqueo de elemento de isla por cliente
 - Bloqueo de desbloqueo/posicionado sin requisitos
 - Bloqueo de endpoints de isla para roles no cliente

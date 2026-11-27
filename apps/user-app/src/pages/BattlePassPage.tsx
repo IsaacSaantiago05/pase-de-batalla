@@ -1,15 +1,58 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChipButton, EmptyState, Icon, LoadingState, Notice, ProgressBar, ScreenHeader, SectionTitle, formatPoints } from '@shared/ui'
+import type { ReactNode } from 'react'
+import { ChevronRight, ChipButton, EmptyState, GlowButton, Icon, LoadingState, Notice, ProgressBar, ScreenHeader, SectionTitle, formatPoints } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
+import { BADGES, BadgeIcon, badgeName } from '../components/Badge'
 import { apiGet, apiPost } from '../lib/api'
 import { levelInfo } from '../lib/progress'
-import type { BattlePassProgress, TierStatus } from '../lib/progress'
+import type { BattlePassProgress, BattlePassTier, TierStatus } from '../lib/progress'
 
-// Color de cada estado del rango en la ruta de progresion.
+type ClaimResult = {
+  niveles_reclamados: number
+  puntos_reclamados: number
+  saldo_global: number
+}
+
+// Con 150 niveles no se listan todos: solo los que estan listos, los que vienen y, si se piden, los reclamados.
+const PENDING_SHOWN = 6
+const UPCOMING_SHOWN = 10
+const CLAIMED_STEP = 20
+
+// Color de cada estado del nivel en la ruta de progresion.
 const tierColor: Record<TierStatus, string> = {
   RECLAMADO: '#10b981',
   DESBLOQUEADO: '#f59e0b',
   BLOQUEADO: '#a855f7',
+}
+
+const points = (value: number) => `${formatPoints(value)} ${value === 1 ? 'punto' : 'puntos'}`
+
+function LevelRow({ tier, action }: { tier: BattlePassTier; action: ReactNode }) {
+  const reached = tier.estado_usuario !== 'BLOQUEADO'
+  const color = tier.insignia && reached ? BADGES[tier.insignia].color : tierColor[tier.estado_usuario]
+
+  return (
+    <li
+      className="flex items-center gap-3 rounded-2xl p-3"
+      style={{
+        background: reached ? `linear-gradient(135deg, ${color}14, #1a2235)` : 'linear-gradient(135deg, #1a2235, #111827)',
+        border: `1px solid ${reached ? `${color}35` : 'rgba(255,255,255,0.06)'}`,
+      }}
+    >
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: reached ? `${color}20` : 'rgba(255,255,255,0.04)' }}>
+        {tier.insignia ? <BadgeIcon badge={tier.insignia} locked={!reached} size={34} /> : <Icon color={reached ? color : 'rgba(255,255,255,0.3)'} name="pointsSolid" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-display text-xs font-bold tracking-wider" style={{ color: reached ? color : 'rgba(255,255,255,0.4)' }}>
+          NIVEL {tier.nivel} · {formatPoints(tier.puntos_requeridos)} PTS
+        </p>
+        <p className="text-sm font-semibold" style={{ color: reached ? '#fff' : 'rgba(255,255,255,0.55)' }}>
+          {tier.insignia ? `${badgeName(tier.insignia)} · +${points(tier.puntos_bono)}` : `+${points(tier.puntos_bono)}`}
+        </p>
+      </div>
+      {action}
+    </li>
+  )
 }
 
 export function BattlePassPage() {
@@ -18,12 +61,12 @@ export function BattlePassPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
-  const [claimingTierId, setClaimingTierId] = useState<number | null>(null)
+  // Id del nivel que se esta reclamando, o 'all' para "Reclamar todo".
+  const [claiming, setClaiming] = useState<number | 'all' | null>(null)
+  const [showClaimed, setShowClaimed] = useState(false)
+  const [claimedShown, setClaimedShown] = useState(CLAIMED_STEP)
 
   const fetchProgress = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
     try {
       const response = await apiGet<BattlePassProgress>('/battle-pass/progress')
       setProgress(response.data)
@@ -38,23 +81,45 @@ export function BattlePassPage() {
     void fetchProgress()
   }, [fetchProgress])
 
-  const handleClaim = async (tierId: number) => {
-    setClaimingTierId(tierId)
+  async function claim(target: BattlePassTier | 'all') {
+    setClaiming(target === 'all' ? 'all' : target.id)
     setFeedback(null)
     setError(null)
 
     try {
-      await apiPost(`/battle-pass/tiers/${tierId}/claim`, {})
-      setFeedback('Recompensa reclamada correctamente.')
-      await fetchProgress()
+      const response = await apiPost<ClaimResult>(target === 'all' ? '/battle-pass/claim-all' : `/battle-pass/tiers/${target.id}/claim`, {})
+      const { niveles_reclamados: levels, puntos_reclamados: bonus } = response.data
+
+      if (levels === 0) {
+        setFeedback('No tienes niveles por reclamar.')
+      } else if (target === 'all') {
+        setFeedback(`Reclamaste ${levels} ${levels === 1 ? 'nivel' : 'niveles'}: +${points(bonus)}.`)
+      } else {
+        setFeedback(`Reclamaste +${points(bonus)} del nivel ${target.nivel}.`)
+      }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo reclamar el rango.')
+      setError(requestError instanceof Error ? requestError.message : 'No se pudo reclamar el nivel.')
     } finally {
-      setClaimingTierId(null)
+      // Se vuelve a pedir el progreso tambien si fallo: el nivel pudo reclamarse desde otro dispositivo.
+      await fetchProgress()
+      setClaiming(null)
     }
   }
 
   const info = levelInfo(progress)
+  const tiers = progress?.tiers ?? []
+  const pending = tiers.filter((tier) => tier.estado_usuario === 'DESBLOQUEADO')
+  const upcoming = tiers.filter((tier) => tier.estado_usuario === 'BLOQUEADO').slice(0, UPCOMING_SHOWN)
+  // Los reclamados se muestran del mas reciente al mas antiguo.
+  const claimed = tiers.filter((tier) => tier.estado_usuario === 'RECLAMADO').reverse()
+  const badges = tiers.filter((tier) => tier.insignia !== null)
+  const busy = claiming !== null
+
+  const claimButton = (tier: BattlePassTier) => (
+    <ChipButton aria-label={`Reclamar nivel ${tier.nivel}`} disabled={busy} onClick={() => void claim(tier)} tone="gold">
+      {claiming === tier.id ? '...' : 'RECLAMAR'}
+    </ChipButton>
+  )
 
   return (
     <Page background="linear-gradient(180deg, #080412 0%, #080c18 100%)">
@@ -67,24 +132,32 @@ export function BattlePassPage() {
         >
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full opacity-30" style={{ background: 'radial-gradient(circle, #7c3aed, transparent)' }} />
 
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="mb-1 font-display text-xs font-bold uppercase tracking-widest text-purple-400">Puntos ganados</p>
+          <div className="relative mb-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="mb-1 font-display text-xs font-bold uppercase tracking-widest text-purple-400">
+                {info.badge ? badgeName(info.badge) : 'Tu progreso'}
+              </p>
               <p className="pb-text-gold font-display text-3xl font-bold">NIVEL {info.level}</p>
+              {!info.noTiers && <p className="font-display text-xs font-semibold tracking-wider text-white/40">de {info.maxLevel}</p>}
             </div>
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-2xl text-4xl"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-4xl"
               style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05))', border: '1px solid rgba(245,158,11,0.3)' }}
             >
-              <Icon name="pointsSolid" />
+              {info.badge ? <BadgeIcon badge={info.badge} size={48} /> : <Icon name="pointsSolid" />}
             </div>
           </div>
 
-          <ProgressBar color="#7c3aed" current={info.earned} height={12} max={info.goal} />
-          <div className="mt-2 flex items-center justify-between">
-            <span className="font-mono-game text-xs text-purple-300">{formatPoints(info.earned)} PTS</span>
-            <span className="font-mono-game text-xs text-white/40">{formatPoints(info.goal)} PTS</span>
+          <ProgressBar color="#7c3aed" current={info.barCurrent} height={12} max={info.barMax} />
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="font-mono-game text-xs text-purple-300">{formatPoints(info.earned)} PTS ganados</span>
+            <span className="font-mono-game text-xs text-white/40">{info.maxed ? 'NIVEL MÁXIMO' : `${formatPoints(info.goal)} PTS`}</span>
           </div>
+          {!info.maxed && !info.noTiers && progress && (
+            <p className="mt-2 text-xs text-white/50">
+              Te faltan {points(info.remaining)} para el nivel {info.nextLevel}.
+            </p>
+          )}
         </div>
       </div>
 
@@ -94,88 +167,148 @@ export function BattlePassPage() {
         {feedback && <Notice tone="success">{feedback}</Notice>}
       </div>
 
-      {!loading && progress && info.nextTier && (
-        <div className="mb-4 mt-1 px-5">
-          <SectionTitle className="mb-2">Próxima Recompensa</SectionTitle>
-          <div className="flex items-center gap-4 rounded-2xl p-4" style={{ background: 'linear-gradient(135deg, #a855f715, #1a2235)', border: '1px solid #a855f735' }}>
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl" style={{ background: '#a855f720', border: '1px solid #a855f730' }}>
-              <Icon color="#a855f7" name="reward" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="font-display text-xs font-bold tracking-widest" style={{ color: '#a855f7' }}>
-                NIVEL {info.nextLevel}
-              </span>
-              <p className="font-display text-base font-bold text-white">{info.nextTier.recompensa_nombre}</p>
-              <p className="mt-0.5 text-xs text-white/40">{formatPoints(info.remaining)} pts para desbloquear</p>
-            </div>
-            <Icon className="text-2xl" color="rgba(255,255,255,0.4)" name="lock" />
-          </div>
-        </div>
-      )}
-
       {!loading && info.noTiers && <EmptyState icon="points" text="La administración aún no configura los niveles del pase." title="Sin niveles todavía" />}
 
-      {!loading && progress && !info.noTiers && (
-        <div className="px-5 pb-6">
-          <SectionTitle className="mb-3">Ruta de Progresión</SectionTitle>
-          <div className="flex flex-col gap-3">
-            {progress.tiers.map((tier, i) => {
-              const reached = tier.estado_usuario !== 'BLOQUEADO'
-              const color = tierColor[tier.estado_usuario]
+      {progress && !info.noTiers && (
+        <div className="flex flex-col gap-5 px-5 pb-6 pt-4">
+          {info.pendingLevels > 0 && (
+            <section
+              aria-label="Por reclamar"
+              className="flex flex-col gap-3 rounded-2xl p-4"
+              style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.14), #1a2235)', border: '1px solid rgba(245,158,11,0.35)' }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ background: 'rgba(245,158,11,0.18)' }}>
+                  <Icon name="reward" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-xs font-bold uppercase tracking-widest text-yellow-400">Por reclamar</p>
+                  <p className="font-display text-lg font-bold text-white">+{points(info.pendingPoints)}</p>
+                  <p className="text-xs text-white/50">
+                    {info.pendingLevels} {info.pendingLevels === 1 ? 'nivel listo' : 'niveles listos'}
+                  </p>
+                </div>
+              </div>
+              <GlowButton className="w-full tracking-widest" disabled={busy} onClick={() => void claim('all')} small>
+                {claiming === 'all' ? 'RECLAMANDO...' : 'RECLAMAR TODO'}
+              </GlowButton>
+            </section>
+          )}
 
-              return (
-                <div className="flex items-center gap-3" key={tier.id}>
-                  <div className="flex flex-col items-center" style={{ width: 32, minWidth: 32 }}>
-                    <div
-                      className="flex h-8 w-8 items-center justify-center rounded-full font-mono-game text-xs font-bold"
-                      style={{
-                        background: reached ? `linear-gradient(135deg, ${color}, ${color}80)` : 'rgba(255,255,255,0.05)',
-                        border: reached ? `1px solid ${color}60` : '1px solid rgba(255,255,255,0.08)',
-                        color: reached ? '#000' : 'rgba(255,255,255,0.3)',
-                      }}
-                    >
-                      {reached ? <Icon color="currentColor" name="check" /> : i + 1}
-                    </div>
-                    {i < progress.tiers.length - 1 && <div className="mt-1 h-4 w-0.5" style={{ background: reached ? `${color}40` : 'rgba(255,255,255,0.06)' }} />}
-                  </div>
+          {info.nextBadge && (
+            <section aria-label="Próxima insignia">
+              <SectionTitle className="mb-2">Próxima insignia</SectionTitle>
+              <div className="flex items-center gap-4 rounded-2xl p-4" style={{ background: 'linear-gradient(135deg, #a855f715, #1a2235)', border: '1px solid #a855f735' }}>
+                <BadgeIcon badge={info.nextBadge.insignia} locked size={52} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-xs font-bold tracking-widest" style={{ color: BADGES[info.nextBadge.insignia].color }}>
+                    NIVEL {info.nextBadge.nivel}
+                  </p>
+                  <p className="font-display text-base font-bold text-white">{badgeName(info.nextBadge.insignia)}</p>
+                  <p className="mb-2 mt-0.5 text-xs text-white/50">
+                    Faltan {points(info.nextBadge.faltante)} · Bono +{formatPoints(info.nextBadge.puntos_bono)} pts
+                  </p>
+                  <ProgressBar color={BADGES[info.nextBadge.insignia].color} current={info.earned} height={6} max={info.nextBadge.puntos_requeridos} />
+                </div>
+              </div>
+            </section>
+          )}
 
-                  <div
-                    className="flex flex-1 items-center gap-3 rounded-2xl p-3"
+          <section aria-label="Insignias">
+            <SectionTitle className="mb-2">Insignias</SectionTitle>
+            <ul className="grid grid-cols-2 gap-3">
+              {badges.map((tier) => {
+                const badge = tier.insignia!
+                const reached = tier.estado_usuario !== 'BLOQUEADO'
+
+                return (
+                  <li
+                    className="flex flex-col items-center gap-1.5 rounded-2xl p-3 text-center"
+                    key={tier.id}
                     style={{
-                      background: reached ? `linear-gradient(135deg, ${color}12, #1a2235)` : 'linear-gradient(135deg, #1a2235, #111827)',
-                      border: `1px solid ${reached ? `${color}30` : 'rgba(255,255,255,0.06)'}`,
-                      opacity: !reached && i > info.nextLevel + 4 ? 0.6 : 1,
+                      background: reached ? `linear-gradient(160deg, ${BADGES[badge].color}18, #111827)` : 'linear-gradient(160deg, #1a2235, #111827)',
+                      border: `1px solid ${reached ? `${BADGES[badge].color}45` : 'rgba(255,255,255,0.06)'}`,
                     }}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ background: reached ? `${color}20` : 'rgba(255,255,255,0.04)' }}>
-                      <Icon color={reached ? color : 'rgba(255,255,255,0.3)'} name="reward" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="font-display text-xs font-bold tracking-wider" style={{ color: reached ? color : 'rgba(255,255,255,0.4)' }}>
-                        NIVEL {i + 1} · {formatPoints(tier.puntos_requeridos)} PTS
-                      </span>
-                      <p className="text-sm font-semibold" style={{ color: reached ? '#fff' : 'rgba(255,255,255,0.5)' }}>
-                        {tier.recompensa_nombre}
-                      </p>
-                      {tier.recompensa_descripcion && <p className="text-xs text-white/40">{tier.recompensa_descripcion}</p>}
-                    </div>
-
+                    <BadgeIcon badge={badge} locked={!reached} size={46} />
+                    <p className="font-display text-sm font-bold" style={{ color: reached ? BADGES[badge].color : 'rgba(255,255,255,0.5)' }}>
+                      {BADGES[badge].nombre}
+                    </p>
+                    <p className="text-xs text-white/40">
+                      Nivel {tier.nivel} · +{formatPoints(tier.puntos_bono)} pts
+                    </p>
                     {tier.estado_usuario === 'DESBLOQUEADO' ? (
-                      <ChipButton disabled={claimingTierId !== null} onClick={() => void handleClaim(tier.id)} tone="gold">
-                        {claimingTierId === tier.id ? '...' : 'RECLAMAR'}
-                      </ChipButton>
-                    ) : tier.estado_usuario === 'RECLAMADO' ? (
-                      <span className="rounded-full px-2 py-0.5 font-display text-xs font-bold" style={{ background: `${color}20`, color }}>
-                        <Icon color="currentColor" name="check" />
-                      </span>
+                      claimButton(tier)
                     ) : (
-                      <Icon className="text-base" color="rgba(255,255,255,0.2)" name="lockSolid" />
+                      <span className="flex items-center gap-1 py-1.5 font-display text-xs font-bold tracking-wide" style={{ color: reached ? '#10b981' : 'rgba(255,255,255,0.3)' }}>
+                        <Icon color="currentColor" name={reached ? 'check' : 'lockSolid'} />
+                        {reached ? 'Reclamada' : 'Bloqueada'}
+                      </span>
                     )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+
+          {pending.length > 0 && (
+            <section aria-label="Listos para reclamar">
+              <SectionTitle className="mb-2">Listos para reclamar</SectionTitle>
+              <ul className="flex flex-col gap-2">
+                {pending.slice(0, PENDING_SHOWN).map((tier) => (
+                  <LevelRow action={claimButton(tier)} key={tier.id} tier={tier} />
+                ))}
+              </ul>
+              {pending.length > PENDING_SHOWN && (
+                <p className="mt-2 text-center text-xs text-white/40">
+                  y {pending.length - PENDING_SHOWN} {pending.length - PENDING_SHOWN === 1 ? 'nivel más' : 'niveles más'}. Usa «Reclamar todo» para recibirlos de una vez.
+                </p>
+              )}
+            </section>
+          )}
+
+          {upcoming.length > 0 && (
+            <section aria-label="Próximos niveles">
+              <SectionTitle className="mb-2">Próximos niveles</SectionTitle>
+              <ul className="flex flex-col gap-2">
+                {upcoming.map((tier) => (
+                  <LevelRow action={<Icon className="text-base" color="rgba(255,255,255,0.2)" label="Bloqueado" name="lockSolid" />} key={tier.id} tier={tier} />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {claimed.length > 0 && (
+            <section aria-label="Niveles reclamados">
+              <button
+                aria-expanded={showClaimed}
+                className="pb-soft flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left"
+                onClick={() => setShowClaimed((open) => !open)}
+                type="button"
+              >
+                <Icon className="text-lg" color="#10b981" name="check" />
+                <span className="flex-1 font-display text-xs font-bold uppercase tracking-widest text-white/60">Niveles reclamados ({claimed.length})</span>
+                <span className={`transition-transform ${showClaimed ? 'rotate-90' : ''}`}>
+                  <ChevronRight size={14} />
+                </span>
+              </button>
+
+              {showClaimed && (
+                <>
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {claimed.slice(0, claimedShown).map((tier) => (
+                      <LevelRow action={<Icon className="text-base" color="#10b981" label="Reclamado" name="check" />} key={tier.id} tier={tier} />
+                    ))}
+                  </ul>
+                  {claimed.length > claimedShown && (
+                    <ChipButton className="mx-auto mt-3 block" onClick={() => setClaimedShown((shown) => shown + CLAIMED_STEP)}>
+                      VER MÁS
+                    </ChipButton>
+                  )}
+                </>
+              )}
+            </section>
+          )}
         </div>
       )}
     </Page>

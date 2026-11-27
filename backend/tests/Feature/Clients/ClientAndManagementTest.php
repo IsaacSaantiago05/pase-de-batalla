@@ -3,11 +3,12 @@
 namespace Tests\Feature\Clients;
 
 use App\Models\Business;
-use App\Models\Level;
 use App\Models\PointMovement;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\BattlePassService;
+use Database\Seeders\BattlePassTierSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
@@ -30,8 +31,6 @@ class ClientAndManagementTest extends TestCase
         $this->clienteRole = Role::query()->create(['nombre' => 'CLIENTE', 'estado' => true]);
         $this->adminNegocioRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_NEGOCIO', 'estado' => true]);
         $this->adminGeneralRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_GENERAL', 'estado' => true]);
-        Level::query()->create(['nombre' => 'Nivel 1', 'puntos_minimos' => 0, 'puntos_maximos' => 99, 'estado' => true]);
-        Level::query()->create(['nombre' => 'Nivel 2', 'puntos_minimos' => 100, 'puntos_maximos' => 999, 'estado' => true]);
         $this->businessA = Business::query()->create(['nombre' => 'Negocio A', 'correo' => 'privado@a.com', 'estado' => true, 'fecha_registro' => now()]);
         $this->businessB = Business::query()->create(['nombre' => 'Negocio B', 'estado' => true, 'fecha_registro' => now()]);
     }
@@ -116,11 +115,16 @@ class ClientAndManagementTest extends TestCase
         $client = $this->makeUser($this->clienteRole, 'c@example.com');
         Sanctum::actingAs($client);
 
-        $this->putJson('/api/profile', ['rol_id' => $this->adminGeneralRole->id, 'nivel_id' => 2, 'negocio_id' => $this->businessA->id])->assertOk();
+        $this->seed(BattlePassTierSeeder::class);
+
+        // El nivel no es un dato editable: se calcula con los puntos ganados.
+        $this->putJson('/api/profile', ['rol_id' => $this->adminGeneralRole->id, 'nivel' => 50, 'nivel_id' => 2, 'negocio_id' => $this->businessA->id])
+            ->assertOk()
+            ->assertJsonMissingPath('data.nivel_id');
 
         $fresh = $client->fresh();
         $this->assertSame($this->clienteRole->id, $fresh->rol_id);
-        $this->assertNull($fresh->nivel_id);
+        $this->assertSame(1, app(BattlePassService::class)->currentLevel($fresh));
         $this->assertNull($fresh->negocio_id);
     }
 
@@ -163,7 +167,9 @@ class ClientAndManagementTest extends TestCase
             ->assertJsonPath('data.movimiento.motivo', 'Compensacion por falla')
             ->assertJsonPath('data.movimiento.otorgado_por', $admin->id);
 
-        $this->assertNotNull($client->fresh()->nivel_id);
+        // El ajuste manual cuenta como puntos ganados: con 120 el cliente llega al nivel 5 (pide 103).
+        $this->seed(BattlePassTierSeeder::class);
+        $this->assertSame(5, app(BattlePassService::class)->currentLevel($client));
         $this->assertCount(1, $this->getJson('/api/points/adjustments')->assertOk()->json('data'));
     }
 

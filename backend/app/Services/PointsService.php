@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Level;
 use App\Models\PointMovement;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -26,6 +25,7 @@ class PointsService
     {
         // Cuentan las ganancias y los ajustes manuales (con otorgado_por). Las devoluciones por
         // cancelación de canje también son AJUSTE, pero sin otorgado_por, y solo reponen el saldo.
+        // Los bonos del pase (BONO_NIVEL) tampoco cuentan: si contaran, subir de nivel haría subir de nivel.
         $earned = (int) PointMovement::query()
             ->where('usuario_id', $user->id)
             ->where(function ($query): void {
@@ -82,26 +82,7 @@ class PointsService
                 'fecha' => now(),
             ]);
 
-            $this->syncUserLevel($targetUser);
-
             return $movement;
         });
-    }
-
-    public function syncUserLevel(User $user): void
-    {
-        $earnedPoints = $this->getUserEarnedPoints($user);
-
-        // Se toma el nivel más alto alcanzado; el último nivel queda abierto aunque se supere su máximo.
-        $level = Level::query()
-            ->where('estado', true)
-            ->where('puntos_minimos', '<=', $earnedPoints)
-            ->orderByDesc('puntos_minimos')
-            ->first();
-
-
-        $user->update([
-            'nivel_id' => $level?->id,
-        ]);
     }
 }

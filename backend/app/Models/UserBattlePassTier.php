@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Nivel del pase que un cliente ya reclamó, con los puntos de bono que recibió.
+ */
 class UserBattlePassTier extends Model
 {
     use HasFactory;
@@ -15,13 +18,12 @@ class UserBattlePassTier extends Model
     protected $fillable = [
         'usuario_id',
         'tier_id',
-        'estado',
-        'fecha_desbloqueo',
+        'puntos_bono',
         'fecha_reclamo',
     ];
 
     protected $casts = [
-        'fecha_desbloqueo' => 'datetime',
+        'puntos_bono' => 'integer',
         'fecha_reclamo' => 'datetime',
     ];
 

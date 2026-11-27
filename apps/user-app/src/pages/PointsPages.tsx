@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { EmptyState, FilterTabs, Icon, LevelBadge, Notice, ProgressBar, ScreenHeader, SectionTitle, formatDate, formatPoints } from '@shared/ui'
 import { Page, useGoBack } from '../components/AppLayout'
+import { BadgeChip } from '../components/Badge'
 import { apiGet, listData } from '../lib/api'
-import { levelInfo, movementLabel } from '../lib/progress'
+import { levelInfo, movementDetail, movementLabel } from '../lib/progress'
 import type { BattlePassProgress, Movement } from '../lib/progress'
 
 type BalancePayload = {
   usuario_id: number
   saldo_global: number
-  nivel_id: number | null
+  nivel: number
 }
 
 type HistoryPayload = {
@@ -31,6 +32,7 @@ function useMovements() {
 function MovementRow({ item }: { item: Movement }) {
   const positive = item.cantidad >= 0
   const color = positive ? '#10b981' : '#ef4444'
+  const detail = movementDetail(item)
 
   return (
     <div className="pb-card flex items-center gap-3 rounded-2xl px-4 py-3.5">
@@ -39,6 +41,7 @@ function MovementRow({ item }: { item: Movement }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-white">{movementLabel(item)}</p>
+        {detail && <p className="truncate text-xs text-white/60">{detail}</p>}
         <p className="text-xs text-white/40">{formatDate(item.fecha, true)}</p>
       </div>
       <span className="shrink-0 font-mono-game text-sm font-bold" style={{ color }}>
@@ -80,11 +83,14 @@ export function PointsPage() {
           <p className="font-display text-sm font-bold uppercase tracking-widest text-white/60">Puntos para canjear</p>
 
           <div className="mt-1 w-full">
-            <div className="mb-2 flex justify-between">
-              <LevelBadge level={info.level} size="sm" />
-              <span className="font-mono-game text-xs text-white/40">{info.maxed ? 'NIVEL MÁXIMO' : info.noTiers ? '' : <><Icon className="mr-1" name="arrowRight" />NV. {info.level + 1}</>}</span>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <LevelBadge level={info.level} size="sm" />
+                {info.badge && <BadgeChip badge={info.badge} />}
+              </span>
+              <span className="font-mono-game text-xs text-white/40">{info.maxed ? 'NIVEL MÁXIMO' : info.noTiers ? '' : <><Icon className="mr-1" name="arrowRight" />NV. {info.nextLevel}</>}</span>
             </div>
-            <ProgressBar current={info.earned} height={10} max={info.goal} />
+            <ProgressBar current={info.barCurrent} height={10} max={info.barMax} />
             <p className="mt-1.5 text-center text-xs text-white/40">
               {info.maxed || info.noTiers
                 ? `${formatPoints(info.earned)} puntos ganados en total`
@@ -103,7 +109,8 @@ export function PointsPage() {
         <SectionTitle className="mb-3 text-white/40">Historial de Puntos</SectionTitle>
       </div>
       <div className="px-5 pb-6">
-        <div className="grid gap-2 md:grid-cols-2">
+        {/* grid-cols-1: sin el, un texto largo ensancha la columna y la fila se sale de la pantalla. */}
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {history.rows.map((item) => (
             <MovementRow item={item} key={item.id} />
           ))}
@@ -114,7 +121,7 @@ export function PointsPage() {
   )
 }
 
-type HistoryFilter = 'all' | 'earned' | 'redeemed'
+type HistoryFilter = 'all' | 'earned' | 'bonus' | 'redeemed'
 
 export function HistoryPage() {
   const goBack = useGoBack()
@@ -123,6 +130,7 @@ export function HistoryPage() {
 
   const filtered = rows.filter((row) => {
     if (filter === 'earned') return row.tipo === 'GANANCIA'
+    if (filter === 'bonus') return row.tipo === 'BONO_NIVEL'
     if (filter === 'redeemed') return row.tipo === 'CANJE'
     return true
   })
@@ -137,6 +145,7 @@ export function HistoryPage() {
           options={[
             { key: 'all', label: 'Todos' },
             { key: 'earned', label: 'Puntos ganados' },
+            { key: 'bonus', label: 'Bonos de nivel' },
             { key: 'redeemed', label: 'Canjes' },
           ]}
           value={filter}
@@ -145,7 +154,7 @@ export function HistoryPage() {
 
       <div className="px-5 pb-6">
         {error && <Notice tone="error">{error}</Notice>}
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {filtered.map((item) => (
             <MovementRow item={item} key={item.id} />
           ))}

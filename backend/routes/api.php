@@ -86,6 +86,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('battle-pass')->middleware('role:CLIENTE')->group(function (): void {
         Route::get('/progress', [BattlePassController::class, 'progress']);
         Route::post('/tiers/{tier}/claim', [BattlePassController::class, 'claim']);
+        Route::post('/claim-all', [BattlePassController::class, 'claimAll']);
     });
 
     Route::prefix('island')->middleware('role:CLIENTE')->group(function (): void {
