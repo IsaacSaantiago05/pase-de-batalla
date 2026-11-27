@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom'
 import { Card, Icon, IslandView, LevelBadge, ProgressBar, SectionTitle, formatDate, formatPoints } from '@shared/ui'
 import type { IconName } from '@shared/ui'
 import { Page } from '../components/AppLayout'
+import { BadgeIcon, badgeName } from '../components/Badge'
 import { apiGet, listData } from '../lib/api'
-import { levelInfo, movementLabel } from '../lib/progress'
+import { levelInfo, movementDetail, movementLabel } from '../lib/progress'
 import type { BattlePassProgress, Movement } from '../lib/progress'
 
 type Me = { nombre: string; foto_url: string | null }
@@ -57,7 +58,10 @@ export function HomePage() {
           </div>
           <div className="min-w-0">
             <p className="truncate font-display text-base font-bold uppercase tracking-widest text-white">{me?.nombre ?? 'Jugador'}</p>
-            <LevelBadge level={info.level} size="sm" />
+            <div className="flex items-center gap-1.5">
+              <LevelBadge level={info.level} size="sm" />
+              {info.badge && <BadgeIcon badge={info.badge} size={20} />}
+            </div>
           </div>
         </div>
 
@@ -74,13 +78,13 @@ export function HomePage() {
             {formatPoints(info.earned)} / {formatPoints(info.goal)} PTS
           </span>
         </div>
-        <ProgressBar current={info.earned} height={10} max={info.goal} />
+        <ProgressBar current={info.barCurrent} height={10} max={info.barMax} />
         <p className="mt-1.5 text-right text-xs text-white/40">
           {info.noTiers
             ? 'Aún no hay niveles configurados'
             : info.maxed
               ? 'Alcanzaste el nivel máximo'
-              : `${formatPoints(info.remaining)} puntos para nivel ${info.level + 1}`}
+              : `${formatPoints(info.remaining)} puntos para nivel ${info.nextLevel}`}
         </p>
       </div>
 
@@ -95,14 +99,26 @@ export function HomePage() {
             <Icon className="mr-1" color="currentColor" name="island" />
             MI ISLA
           </Link>
-          {info.nextTier && (
-            <div
-              className="absolute bottom-3 right-3 max-w-[70%] truncate rounded-xl px-3 py-1.5 text-xs font-semibold"
-              style={{ background: 'rgba(124,58,237,0.8)', color: '#fff', backdropFilter: 'blur(8px)' }}
+          {/* Si hay bonos del pase sin reclamar se avisa aqui; si no, se muestra la siguiente insignia. */}
+          {info.pendingLevels > 0 ? (
+            <Link
+              className="absolute bottom-3 right-3 max-w-[70%] truncate rounded-xl px-3 py-1.5 text-xs font-bold"
+              style={{ background: 'rgba(245,158,11,0.92)', color: '#1c1300', backdropFilter: 'blur(8px)' }}
+              to="/battle-pass"
             >
-              <Icon className="mr-1" color="currentColor" name="lockSolid" />
-              NV.{info.nextLevel}: {info.nextTier.recompensa_nombre}
-            </div>
+              <Icon className="mr-1" color="currentColor" name="reward" />
+              Reclama +{formatPoints(info.pendingPoints)} pts
+            </Link>
+          ) : (
+            info.nextBadge && (
+              <div
+                className="absolute bottom-3 right-3 max-w-[70%] truncate rounded-xl px-3 py-1.5 text-xs font-semibold"
+                style={{ background: 'rgba(124,58,237,0.8)', color: '#fff', backdropFilter: 'blur(8px)' }}
+              >
+                <Icon className="mr-1" color="currentColor" name="lockSolid" />
+                NV.{info.nextBadge.nivel}: {badgeName(info.nextBadge.insignia)}
+              </div>
+            )
           )}
         </div>
       </div>
@@ -124,17 +140,21 @@ export function HomePage() {
           </div>
           <div className="font-mono-game text-2xl font-bold text-yellow-400">{formatPoints(info.remaining)}</div>
           <div className="text-xs text-white/40">puntos restantes</div>
-          <ProgressBar current={info.earned} height={5} max={info.goal} />
+          <ProgressBar current={info.barCurrent} height={5} max={info.barMax} />
         </Card>
 
         <Card className="flex flex-col gap-2" glow="#7c3aed">
           <div className="flex items-center gap-2">
             <Icon className="text-lg" name="reward" />
-            <span className="font-display text-xs font-bold uppercase tracking-wider text-purple-400">Próximo Unlock</span>
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-purple-400">Próxima Insignia</span>
           </div>
-          <Icon className="text-xl" color={info.maxed ? undefined : 'rgba(255,255,255,0.5)'} name={info.maxed ? 'trophy' : 'lock'} />
-          <div className="text-xs font-semibold text-white">{info.nextTier?.recompensa_nombre ?? (info.maxed ? 'Todo desbloqueado' : 'Próximamente')}</div>
-          {info.nextTier && <div className="text-xs text-white/40">Nivel {info.nextLevel}</div>}
+          {info.nextBadge ? (
+            <BadgeIcon badge={info.nextBadge.insignia} locked size={28} />
+          ) : (
+            <Icon className="text-xl" color={info.maxed ? undefined : 'rgba(255,255,255,0.5)'} name={info.maxed ? 'trophy' : 'lock'} />
+          )}
+          <div className="text-xs font-semibold text-white">{info.nextBadge ? badgeName(info.nextBadge.insignia) : info.maxed ? 'Todo desbloqueado' : 'Próximamente'}</div>
+          {info.nextBadge && <div className="text-xs text-white/40">Nivel {info.nextBadge.nivel}</div>}
         </Card>
       </div>
 
@@ -172,7 +192,7 @@ export function HomePage() {
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-white">{movementLabel(item)}</p>
-                    <p className="text-xs text-white/40">{formatDate(item.fecha)}</p>
+                    <p className="truncate text-xs text-white/40">{[movementDetail(item), formatDate(item.fecha)].filter(Boolean).join(' · ')}</p>
                   </div>
                 </div>
                 <span className="shrink-0 font-mono-game text-sm font-bold" style={{ color }}>

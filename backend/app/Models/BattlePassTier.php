@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Un nivel del pase de batalla (del 2 al 150). Los valores salen de App\Support\LevelCurve.
+ */
 class BattlePassTier extends Model
 {
     use HasFactory;
@@ -13,16 +16,16 @@ class BattlePassTier extends Model
     protected $table = 'pase_batalla_tiers';
 
     protected $fillable = [
-        'nombre',
-        'descripcion',
+        'nivel',
         'puntos_requeridos',
-        'recompensa_nombre',
-        'recompensa_descripcion',
-        'estado',
+        'puntos_bono',
+        'insignia',
     ];
 
     protected $casts = [
-        'estado' => 'boolean',
+        'nivel' => 'integer',
+        'puntos_requeridos' => 'integer',
+        'puntos_bono' => 'integer',
     ];
 
     public function userTiers(): HasMany

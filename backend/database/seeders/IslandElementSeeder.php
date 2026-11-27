@@ -9,10 +9,11 @@ class IslandElementSeeder extends Seeder
 {
     public function run(): void
     {
+        // nivel_requerido es el nivel del pase de batalla que pide cada pieza.
         $elements = [
             ['nombre' => 'Casa', 'categoria' => 'ESTRUCTURA', 'nivel_requerido' => 1],
             ['nombre' => 'Arbol', 'categoria' => 'DECORACION', 'nivel_requerido' => 1],
-            ['nombre' => 'Perro', 'categoria' => 'MASCOTA', 'nivel_requerido' => 2],
+            ['nombre' => 'Perro', 'categoria' => 'MASCOTA', 'nivel_requerido' => 5],
         ];
 
         foreach ($elements as $element) {

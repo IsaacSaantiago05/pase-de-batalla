@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['nombre', 'correo', 'password', 'rol_id', 'nivel_id', 'negocio_id', 'fecha_registro', 'estado'])]
+#[Fillable(['nombre', 'correo', 'password', 'rol_id', 'negocio_id', 'fecha_registro', 'estado'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -39,11 +39,6 @@ class User extends Authenticatable
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'rol_id');
-    }
-
-    public function level(): BelongsTo
-    {
-        return $this->belongsTo(Level::class, 'nivel_id');
     }
 
     public function business(): BelongsTo

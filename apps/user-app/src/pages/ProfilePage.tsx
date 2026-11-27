@@ -10,6 +10,7 @@ import { clearSession } from '../lib/auth'
 import { PASSWORD_REQUIREMENTS_ERROR, meetsAllRequirements } from '@shared/password'
 import { levelInfo } from '../lib/progress'
 import type { BattlePassProgress } from '../lib/progress'
+import { BadgeChip } from '../components/Badge'
 import { ProfilePhoto } from '../components/ProfilePhoto'
 
 type Profile = {
@@ -124,12 +125,16 @@ export function ProfilePage() {
             />
             <div className="text-center">
               <p className="font-display text-2xl font-bold uppercase tracking-widest text-white">{profile?.nombre ?? '-'}</p>
-              <span
-                className="mt-1 inline-block rounded-full px-3 py-1 font-display text-xs font-bold"
-                style={{ background: 'rgba(245,158,11,0.18)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}
-              >
-                NV. {info.level}
-              </span>
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                <span
+                  className="inline-block rounded-full px-3 py-1 font-display text-xs font-bold"
+                  style={{ background: 'rgba(245,158,11,0.18)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}
+                >
+                  NV. {info.level}
+                </span>
+                {/* Insignia mas alta que ha alcanzado en el pase de batalla. */}
+                {info.badge && <BadgeChip badge={info.badge} />}
+              </div>
             </div>
 
             <div className="mt-1 flex gap-6">

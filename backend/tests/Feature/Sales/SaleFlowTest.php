@@ -3,7 +3,6 @@
 namespace Tests\Feature\Sales;
 
 use App\Models\Business;
-use App\Models\Level;
 use App\Models\PointMovement;
 use App\Models\Product;
 use App\Models\Role;
@@ -30,7 +29,6 @@ class SaleFlowTest extends TestCase
         $this->clienteRole = Role::query()->create(['nombre' => 'CLIENTE', 'estado' => true]);
         $this->adminNegocioRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_NEGOCIO', 'estado' => true]);
         $this->adminGeneralRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_GENERAL', 'estado' => true]);
-        Level::query()->create(['nombre' => 'Nivel 1', 'puntos_minimos' => 0, 'puntos_maximos' => 999, 'estado' => true]);
         $this->businessA = Business::query()->create(['nombre' => 'Negocio A', 'estado' => true, 'fecha_registro' => now()]);
         $this->businessB = Business::query()->create(['nombre' => 'Negocio B', 'estado' => true, 'fecha_registro' => now()]);
         $this->adminA = $this->makeUser($this->adminNegocioRole, 'a@example.com', $this->businessA->id);

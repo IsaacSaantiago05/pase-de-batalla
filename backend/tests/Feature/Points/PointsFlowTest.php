@@ -3,10 +3,11 @@
 namespace Tests\Feature\Points;
 
 use App\Models\Business;
-use App\Models\Level;
+use App\Models\PointMovement;
 use App\Models\QrCode;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\BattlePassTierSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -28,20 +29,6 @@ class PointsFlowTest extends TestCase
         $this->clienteRole = Role::query()->create(['nombre' => 'CLIENTE', 'estado' => true]);
         $this->adminNegocioRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_NEGOCIO', 'estado' => true]);
         $this->adminGeneralRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_GENERAL', 'estado' => true]);
-
-        Level::query()->create([
-            'nombre' => 'Nivel 1',
-            'puntos_minimos' => 0,
-            'puntos_maximos' => 99,
-            'estado' => true,
-        ]);
-
-        Level::query()->create([
-            'nombre' => 'Nivel 2',
-            'puntos_minimos' => 100,
-            'puntos_maximos' => 199,
-            'estado' => true,
-        ]);
 
         $this->businessA = Business::query()->create([
             'nombre' => 'Negocio A',
@@ -68,39 +55,49 @@ class PointsFlowTest extends TestCase
             ->assertJsonPath('data.puntos_acumulados', 50);
     }
 
-    public function test_global_points_accumulate_and_level_is_updated(): void
+    public function test_global_points_accumulate_and_level_goes_up(): void
     {
+        $this->seed(BattlePassTierSeeder::class);
         $client = $this->makeUser($this->clienteRole, 'clientey@example.com');
 
         Sanctum::actingAs($client);
 
-        $this->redeemNewQr(50)->assertCreated();
-        $this->redeemNewQr(50)->assertCreated();
+        // Recien registrado esta en el nivel 1; el nivel 2 pide 25 puntos y el 4 pide 77.
+        $this->getJson('/api/points/balance')->assertOk()->assertJsonPath('data.nivel', 1);
 
-        $client->refresh();
+        $this->redeemNewQr(50)->assertCreated()->assertJsonPath('data.nivel_anterior', 1)->assertJsonPath('data.nivel', 2);
+        $this->redeemNewQr(50)->assertCreated()->assertJsonPath('data.nivel_anterior', 2)->assertJsonPath('data.nivel', 4);
 
         $this->assertDatabaseCount('movimientos_puntos', 2);
         $this->assertEquals(100, (int) DB::table('movimientos_puntos')->where('usuario_id', $client->id)->sum('cantidad'));
 
-        $nivel2 = Level::query()->where('nombre', 'Nivel 2')->firstOrFail();
-        $this->assertEquals($nivel2->id, $client->nivel_id);
+        $this->getJson('/api/points/balance')
+            ->assertOk()
+            ->assertJsonPath('data.saldo_global', 100)
+            ->assertJsonPath('data.nivel', 4)
+            ->assertJsonMissingPath('data.nivel_id');
     }
 
-    public function test_level_falls_back_to_highest_active_when_balance_exceeds_ranges(): void
+    public function test_level_stays_at_the_last_one_when_points_exceed_it(): void
     {
+        $this->seed(BattlePassTierSeeder::class);
         $client = $this->makeUser($this->clienteRole, 'clientealto@example.com');
+
+        PointMovement::query()->create([
+            'usuario_id' => $client->id,
+            'negocio_id' => $this->businessA->id,
+            'qr_id' => null,
+            'cantidad' => 9000,
+            'tipo' => 'GANANCIA',
+            'fecha' => now(),
+        ]);
 
         Sanctum::actingAs($client);
 
-        for ($i = 0; $i < 5; $i++) {
-            $this->redeemNewQr(50)->assertCreated();
-        }
-
-        $client->refresh();
-
-        $nivel2 = Level::query()->where('nombre', 'Nivel 2')->firstOrFail();
-        $this->assertEquals(250, (int) DB::table('movimientos_puntos')->where('usuario_id', $client->id)->sum('cantidad'));
-        $this->assertEquals($nivel2->id, $client->nivel_id);
+        $this->getJson('/api/points/balance')
+            ->assertOk()
+            ->assertJsonPath('data.puntos_acumulados', 9000)
+            ->assertJsonPath('data.nivel', 150);
     }
 
     public function test_points_can_only_be_earned_by_clients(): void

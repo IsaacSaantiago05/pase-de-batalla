@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\IslandConfiguration;
 use App\Models\IslandElement;
-use App\Models\Level;
 use App\Models\User;
 use App\Models\UserIslandElement;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -13,30 +12,14 @@ use RuntimeException;
 
 class IslandService
 {
-    /**
-     * Posicion del nivel (1 = el mas bajo), no su id: los ids autoincrementales
-     * no son un orden de progresion confiable.
-     */
-    private function levelRank(?int $levelId): int
+    // El nivel_requerido de cada pieza es un nivel del pase de batalla (1 = recien registrado).
+    public function __construct(private readonly BattlePassService $battlePassService)
     {
-        if ($levelId === null) {
-            return 0;
-        }
-
-        $level = Level::query()->find($levelId);
-        if ($level === null || ! $level->estado) {
-            return 0;
-        }
-
-        return Level::query()
-            ->where('estado', true)
-            ->where('puntos_minimos', '<=', $level->puntos_minimos)
-            ->count();
     }
 
     public function getCatalog(User $user): array
     {
-        $userLevel = $this->levelRank($user->nivel_id);
+        $userLevel = $this->battlePassService->currentLevel($user);
 
         $elements = IslandElement::query()
             ->where('estado', true)
@@ -107,7 +90,7 @@ class IslandService
                 throw new ModelNotFoundException('El elemento de isla no existe o está inactivo.');
             }
 
-            $userLevel = $this->levelRank($lockedUser->nivel_id);
+            $userLevel = $this->battlePassService->currentLevel($lockedUser);
             if ($userLevel < (int) $element->nivel_requerido) {
                 throw new RuntimeException('Tu nivel actual no permite desbloquear este elemento.');
             }

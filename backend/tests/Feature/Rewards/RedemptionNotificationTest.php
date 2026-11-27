@@ -3,7 +3,6 @@
 namespace Tests\Feature\Rewards;
 
 use App\Models\Business;
-use App\Models\Level;
 use App\Models\PointMovement;
 use App\Models\Reward;
 use App\Models\Role;
@@ -31,8 +30,6 @@ class RedemptionNotificationTest extends TestCase
         $this->clienteRole = Role::query()->create(['nombre' => 'CLIENTE', 'estado' => true]);
         $this->adminNegocioRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_NEGOCIO', 'estado' => true]);
         $this->adminGeneralRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_GENERAL', 'estado' => true]);
-
-        Level::query()->create(['nombre' => 'Nivel 1', 'puntos_minimos' => 0, 'puntos_maximos' => 100000, 'estado' => true]);
 
         $this->business = Business::query()->create(['nombre' => 'Sweet Art', 'estado' => true, 'fecha_registro' => now()]);
         $this->otherBusiness = Business::query()->create(['nombre' => 'Cafe Aurora', 'estado' => true, 'fecha_registro' => now()]);

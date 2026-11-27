@@ -20,7 +20,6 @@ class UserResource extends JsonResource
             'fecha_registro' => $this->fecha_registro,
             'rol' => $this->role?->nombre,
             'rol_id' => $this->rol_id,
-            'nivel_id' => $this->nivel_id,
             'negocio_id' => $this->negocio_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

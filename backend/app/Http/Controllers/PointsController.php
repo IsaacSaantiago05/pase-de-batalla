@@ -6,6 +6,7 @@ use App\Http\Requests\Points\AdjustPointsRequest;
 use App\Models\PointMovement;
 use App\Http\Resources\Points\PointMovementResource;
 use App\Models\User;
+use App\Services\BattlePassService;
 use App\Services\PointsService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -16,8 +17,10 @@ class PointsController extends Controller
 {
     use ApiResponse;
 
-    public function __construct(private readonly PointsService $pointsService)
-    {
+    public function __construct(
+        private readonly PointsService $pointsService,
+        private readonly BattlePassService $battlePassService,
+    ) {
     }
 
     public function balance(Request $request): JsonResponse
@@ -29,7 +32,7 @@ class PointsController extends Controller
             'usuario_id' => $user->id,
             'saldo_global' => $balance,
             'puntos_acumulados' => $this->pointsService->getUserEarnedPoints($user),
-            'nivel_id' => $user->nivel_id,
+            'nivel' => $this->battlePassService->currentLevel($user),
         ]);
     }
 

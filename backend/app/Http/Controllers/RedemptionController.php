@@ -6,6 +6,7 @@ use App\Http\Requests\Rewards\StoreRedemptionRequest;
 use App\Http\Requests\Rewards\UpdateRedemptionStatusRequest;
 use App\Http\Resources\RedemptionResource;
 use App\Models\Redemption;
+use App\Services\BattlePassService;
 use App\Services\PointsService;
 use App\Services\RedemptionService;
 use App\Support\ApiResponse;
@@ -22,6 +23,7 @@ class RedemptionController extends Controller
     public function __construct(
         private readonly RedemptionService $redemptionService,
         private readonly PointsService $pointsService,
+        private readonly BattlePassService $battlePassService,
     ) {
     }
 
@@ -67,12 +69,10 @@ class RedemptionController extends Controller
             return $this->error($exception->getMessage(), null, 404);
         }
 
-        $currentUser = $request->user()->fresh();
-
         return $this->success('Canje creado correctamente.', [
             'canje' => new RedemptionResource($redemption),
-            'saldo_global' => $this->pointsService->getUserBalance($currentUser),
-            'nivel_id' => $currentUser->nivel_id,
+            'saldo_global' => $this->pointsService->getUserBalance($request->user()),
+            'nivel' => $this->battlePassService->currentLevel($request->user()),
         ], 201);
     }
 

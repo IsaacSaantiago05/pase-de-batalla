@@ -3,7 +3,6 @@
 namespace Tests\Feature\Points;
 
 use App\Models\Business;
-use App\Models\Level;
 use App\Models\QrCode;
 use App\Models\Role;
 use App\Models\Sale;
@@ -31,20 +30,6 @@ class QrFlowTest extends TestCase
         $this->clienteRole = Role::query()->create(['nombre' => 'CLIENTE', 'estado' => true]);
         $this->adminNegocioRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_NEGOCIO', 'estado' => true]);
         $this->adminGeneralRole = Role::query()->create(['nombre' => 'ADMINISTRADOR_GENERAL', 'estado' => true]);
-
-        Level::query()->create([
-            'nombre' => 'Nivel 1',
-            'puntos_minimos' => 0,
-            'puntos_maximos' => 99,
-            'estado' => true,
-        ]);
-
-        Level::query()->create([
-            'nombre' => 'Nivel 2',
-            'puntos_minimos' => 100,
-            'puntos_maximos' => 199,
-            'estado' => true,
-        ]);
 
         $this->businessA = Business::query()->create([
             'nombre' => 'Negocio A',

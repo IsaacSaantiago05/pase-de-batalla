@@ -7,6 +7,7 @@ use App\Http\Requests\Points\RedeemQrRequest;
 use App\Http\Resources\Points\PointMovementResource;
 use App\Http\Resources\Points\QrCodeResource;
 use App\Models\QrCode;
+use App\Services\BattlePassService;
 use App\Services\PointsService;
 use App\Services\QrService;
 use App\Support\ApiResponse;
@@ -23,6 +24,7 @@ class QrController extends Controller
     public function __construct(
         private readonly QrService $qrService,
         private readonly PointsService $pointsService,
+        private readonly BattlePassService $battlePassService,
     ) {
     }
 
@@ -116,10 +118,14 @@ class QrController extends Controller
             return $this->error($exception->getMessage(), null, 422);
         }
 
+        $earnedPoints = $this->pointsService->getUserEarnedPoints($request->user());
+
         return $this->success('Código QR canjeado correctamente.', [
             'movimiento' => new PointMovementResource($movement),
             'saldo_global' => $this->pointsService->getUserBalance($request->user()),
-            'nivel_id' => $request->user()->fresh()->nivel_id,
+            // Nivel antes y despues de sumar estos puntos, para avisar al cliente cuando sube de nivel.
+            'nivel_anterior' => $this->battlePassService->levelForPoints($earnedPoints - (int) $movement->cantidad),
+            'nivel' => $this->battlePassService->levelForPoints($earnedPoints),
         ], 201);
     }
 }
