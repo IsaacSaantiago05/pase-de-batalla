@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiGet, apiPatch, apiPost } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
+import { SALE_MAX } from '../lib/limits'
 
 type Product = {
   id: number
@@ -76,6 +77,9 @@ export function SalesAdminPage() {
 
   const lines = products.filter((product) => (cart[product.id] ?? 0) > 0)
   const points = lines.reduce((sum, product) => sum + product.puntos * cart[product.id], 0)
+  // Tope por venta (la API tambien lo aplica). Una sola unidad de un producto siempre se puede vender.
+  const singleUnit = lines.length === 1 && cart[lines[0].id] === 1
+  const overLimit = points > SALE_MAX && !singleUnit
 
   function changeQuantity(productId: number, delta: number) {
     setCart((current) => {
@@ -169,9 +173,14 @@ export function SalesAdminPage() {
                 <span>Puntos para el cliente</span>
                 <span>{points}</span>
               </p>
+              {overLimit && (
+                <p className="text-sm text-red-400" role="alert">
+                  Una venta no puede dar más de {SALE_MAX} puntos. Divide la compra en varias ventas.
+                </p>
+              )}
               <button
                 className="rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 font-display font-bold tracking-wider text-[#0d0a00] w-full p-2 disabled:opacity-50"
-                disabled={lines.length === 0 || saving}
+                disabled={lines.length === 0 || saving || overLimit}
                 onClick={() => {
                   void registerSale()
                 }}

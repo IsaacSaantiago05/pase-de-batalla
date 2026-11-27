@@ -128,7 +128,7 @@ Puntos:
 - GET /api/points/history (cada movimiento incluye `negocio_nombre`)
 - GET /api/points/business-history
 
-Los puntos se otorgan con el QR de un producto (venta), o bien con un QR por cantidad de puntos o un ajuste manual, que son exclusivos del administrador general. El administrador de negocio no puede decidir cuantos puntos da un QR.
+Los puntos se otorgan con el QR de un producto (venta), o bien con un QR por cantidad de puntos o un ajuste manual, que son exclusivos del administrador general. El administrador de negocio decide los puntos de sus productos, pero con tope (ver abajo): no puede generar un QR por la cantidad que quiera.
 
 Productos (catalogo por negocio, con puntos fijos; la plataforma no maneja precios ni dinero):
 
@@ -137,13 +137,15 @@ Productos (catalogo por negocio, con puntos fijos; la plataforma no maneja preci
 - PUT /api/products/{product} (ADMINISTRADOR_NEGOCIO sobre sus propios productos, o ADMINISTRADOR_GENERAL: edita nombre, descripcion, puntos o estado). Las ventas y los QR ya generados conservan el nombre y los puntos con los que se emitieron.
 - PATCH /api/products/{product}/status (ADMINISTRADOR_NEGOCIO sobre sus propios productos, o ADMINISTRADOR_GENERAL)
 
-El administrador de negocio crea sus productos y los activa o desactiva, pero no puede cambiarles el nombre ni los puntos: esas correcciones las hace el administrador general.
+El administrador de negocio crea, edita y activa o desactiva sus productos; el administrador general puede corregir los de cualquier negocio.
+
+Cuantos puntos dar: la regla para los negocios es **1 punto por cada $10 del precio** (una compra de $150 da 15 puntos). El administrador de negocio no puede poner mas de **150 puntos por producto**, ni al crear ni al editar; el administrador general puede llegar a 100,000. Si el administrador general ya le puso a un producto mas de 150 puntos, el negocio puede seguir editando su nombre o su estado mientras no cambie esos puntos. Los topes estan en `App\Support\PointLimits` y el panel los muestra desde `apps/admin-app/src/lib/limits.ts`.
 
 Un producto inactivo no genera QR y se elimina solo a los 7 dias de haberse desactivado (`desactivado_en`; el campo `se_elimina_en` indica la fecha). Reactivarlo cancela el plazo. Cumplido el plazo deja de listarse y responde 404; el borrado fisico lo hace `php artisan model:prune`, programado a diario (requiere `php artisan schedule:work` o cron). Las ventas conservan su copia del nombre y los puntos.
 
 Ventas (cada venta genera un QR de un solo uso con la suma de puntos de sus productos):
 
-- POST /api/sales (solo ADMINISTRADOR_NEGOCIO). Cuerpo: `{"items": [{"producto_id": 1, "cantidad": 2}]}`. Solo productos activos de su negocio; guarda una copia fija de nombre y puntos.
+- POST /api/sales (solo ADMINISTRADOR_NEGOCIO). Cuerpo: `{"items": [{"producto_id": 1, "cantidad": 2}]}`. Solo productos activos de su negocio; guarda una copia fija de nombre y puntos. Una venta no puede dar mas de **500 puntos** en total (responde 422 y hay que dividir la compra en varias ventas); la unica excepcion es vender una sola unidad de un producto que por si solo valga mas.
 - GET /api/sales (admin de negocio: las suyas; admin general: todas, filtro `negocio_id`)
 
 Al canjear el QR de una venta, el movimiento de puntos guarda `venta_id` y `otorgado_por` (quien registro la venta).
@@ -400,6 +402,8 @@ Cobertura actual minima:
 - Reposicion de stock y puntos al cancelar canje
 - Competencia por ultimo stock (solo un canje exitoso)
 - Aislamiento por negocio en gestion de canjes
+- Tope de 150 puntos por producto para el negocio (crear y editar), sin tope para el administrador general
+- Tope de 500 puntos por venta
 
 - Curva de los 150 niveles (valores de control, costo creciente y bonos) y carga de los 149 niveles
 - Progreso del pase: nivel, insignia actual, proxima insignia y niveles por reclamar

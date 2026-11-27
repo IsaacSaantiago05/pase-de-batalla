@@ -135,7 +135,7 @@ class ProductFlowTest extends TestCase
             ->assertJsonPath('errors.puntos.0', 'El producto debe otorgar al menos 1 punto.');
         $this->putJson("/api/products/{$product->id}", ['puntos' => 100001])
             ->assertStatus(422)
-            ->assertJsonPath('errors.puntos.0', 'El producto no puede otorgar más de 100,000 puntos.');
+            ->assertJsonValidationErrors(['puntos']);
         $this->assertSame(10, $product->fresh()->puntos);
 
         // Un QR generado antes de editar conserva el nombre y los puntos con los que se vendio.
@@ -290,5 +290,70 @@ class ProductFlowTest extends TestCase
     public function test_requires_authentication(): void
     {
         $this->getJson('/api/products')->assertStatus(401);
+    }
+
+    public function test_business_admin_cannot_exceed_the_points_cap_per_product(): void
+    {
+        $product = $this->makeProduct($this->businessA);
+        Sanctum::actingAs($this->makeUser($this->adminNegocioRole, 'a@example.com', $this->businessA->id));
+        $message = 'Un producto no puede otorgar más de 150 puntos (1 punto por cada $10 del precio). Si necesitas más, pídelo al administrador general.';
+
+        // Al crear: 151 se rechaza y 150 se acepta.
+        $this->postJson('/api/products', ['nombre' => 'Pastel grande', 'puntos' => 151])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.puntos.0', $message);
+        $this->assertDatabaseMissing('productos', ['nombre' => 'Pastel grande']);
+
+        $this->postJson('/api/products', ['nombre' => 'Pastel grande', 'puntos' => 150])
+            ->assertCreated()
+            ->assertJsonPath('data.puntos', 150);
+
+        // Al editar: igual.
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 151])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.puntos.0', $message);
+        $this->assertSame(10, $product->fresh()->puntos);
+
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 150])
+            ->assertOk()
+            ->assertJsonPath('data.puntos', 150);
+    }
+
+    public function test_general_admin_is_not_limited_by_the_business_cap(): void
+    {
+        $product = $this->makeProduct($this->businessA);
+        Sanctum::actingAs($this->makeUser($this->adminGeneralRole, 'g@example.com'));
+
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 151])->assertOk()->assertJsonPath('data.puntos', 151);
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 100000])->assertOk()->assertJsonPath('data.puntos', 100000);
+
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 100001])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.puntos.0', 'El producto no puede otorgar más de 100,000 puntos.');
+        $this->assertSame(100000, $product->fresh()->puntos);
+    }
+
+    public function test_business_admin_can_still_edit_a_product_already_above_the_cap(): void
+    {
+        // Un producto al que el administrador general ya le habia puesto mas puntos que el tope del negocio.
+        $product = $this->makeProduct($this->businessA, 'Pastel de boda');
+        $product->update(['puntos' => 300]);
+        Sanctum::actingAs($this->makeUser($this->adminNegocioRole, 'a@example.com', $this->businessA->id));
+
+        // El panel reenvia los mismos puntos al cambiar el nombre: eso no se rechaza.
+        $this->putJson("/api/products/{$product->id}", ['nombre' => 'Pastel de boda grande', 'puntos' => 300])
+            ->assertOk()
+            ->assertJsonPath('data.nombre', 'Pastel de boda grande')
+            ->assertJsonPath('data.puntos', 300);
+        $this->patchJson("/api/products/{$product->id}/status", ['estado' => false])->assertOk();
+        $this->patchJson("/api/products/{$product->id}/status", ['estado' => true])->assertOk();
+
+        // Lo que no puede es moverlo a otro valor por encima del tope.
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 301])->assertStatus(422);
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 200])->assertStatus(422);
+        $this->assertSame(300, $product->fresh()->puntos);
+
+        // Bajarlo hasta el tope si.
+        $this->putJson("/api/products/{$product->id}", ['puntos' => 150])->assertOk()->assertJsonPath('data.puntos', 150);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Support\PointLimits;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -72,6 +73,13 @@ class SaleService
                     'cantidad' => $quantity,
                     'puntos_subtotal' => $subtotalPoints,
                 ];
+            }
+
+            // Tope por venta: sin el, 100 unidades de un producto darian miles de puntos en un solo QR.
+            // Una sola unidad de un producto siempre se puede vender, aunque el administrador general le haya puesto mas puntos.
+            $singleUnit = count($rows) === 1 && $rows[0]['cantidad'] === 1;
+            if ($points > PointLimits::SALE_MAX && ! $singleUnit) {
+                throw new RuntimeException('Una venta no puede dar más de '.number_format(PointLimits::SALE_MAX).' puntos (esta suma '.number_format($points).'). Divide la compra en varias ventas.');
             }
 
             $sale = Sale::query()->create([

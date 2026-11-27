@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Catalog;
 
+use App\Support\PointLimits;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreProductRequest extends FormRequest
@@ -16,7 +17,8 @@ class StoreProductRequest extends FormRequest
         return [
             'nombre' => ['required', 'string', 'max:150'],
             'descripcion' => ['nullable', 'string'],
-            'puntos' => ['required', 'integer', 'min:1', 'max:100000'],
+            // Los productos los crea el administrador de negocio, con su tope de puntos.
+            'puntos' => ['required', 'integer', 'min:1', 'max:'.PointLimits::productMaxFor($this->user())],
             'estado' => ['nullable', 'boolean'],
         ];
     }
@@ -29,7 +31,7 @@ class StoreProductRequest extends FormRequest
             'puntos.required' => 'Indica cuántos puntos otorga el producto.',
             'puntos.integer' => 'Los puntos deben ser un número entero.',
             'puntos.min' => 'El producto debe otorgar al menos 1 punto.',
-            'puntos.max' => 'El producto no puede otorgar más de 100,000 puntos.',
+            'puntos.max' => PointLimits::productMaxMessage($this->user()),
         ];
     }
 }
