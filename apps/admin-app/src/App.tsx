@@ -13,7 +13,6 @@ import { ProductsAdminPage } from './pages/ProductsAdminPage'
 import { QrManagementPage } from './pages/QrManagementPage'
 import { RedemptionsAdminPage } from './pages/RedemptionsAdminPage'
 import { RewardsAdminPage } from './pages/RewardsAdminPage'
-import { SalesAdminPage } from './pages/SalesAdminPage'
 import { StatisticsPage } from './pages/StatisticsPage'
 import { MyBusinessPage } from './pages/MyBusinessPage'
 import { NotificationsPage } from './pages/NotificationsPage'
@@ -29,7 +28,6 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/business" element={<MyBusinessPage />} />
           <Route path="/products" element={<ProductsAdminPage />} />
-          <Route path="/sales" element={<SalesAdminPage />} />
           <Route path="/clients" element={<BusinessClientsPage />} />
           <Route path="/adjustments" element={<PointAdjustmentsPage />} />
           <Route path="/qr" element={<QrManagementPage />} />

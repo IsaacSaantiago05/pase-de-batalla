@@ -269,7 +269,7 @@ Rutas funcionales iniciales:
 - /login
 - /dashboard
 - /business ("Mi negocio": portada, foto de perfil, descripcion, direccion, telefono y enlaces; el administrador general elige el negocio)
-- /qr
+- /qr (generar QR de una compra y listado de codigos)
 - /points
 - /rewards
 - /redemptions
@@ -285,6 +285,8 @@ Rutas funcionales iniciales:
 Incluye proteccion de rutas por sesion y rol administrativo, mas consulta del historial de puntos del negocio.
 
 El modulo QR de admin genera y visualiza imagen QR real (SVG) para cada codigo.
+
+En /qr el administrador de negocio arma la compra del cliente: cada toque en un producto suma una unidad, el resumen permite ajustar cantidades con + y − y un solo boton genera **un QR por toda la compra** (POST /api/sales). Al generarlo la pantalla se desplaza al codigo, que se puede cancelar mientras siga vigente. Si la compra pasa del tope de 500 puntos, el panel lo avisa y no deja generar el QR. Ya no existe la pantalla /sales: todo se hace desde /qr.
 
 El modulo de recompensas/canjes permite crear recompensas y actualizar estado de canjes por negocio.
 

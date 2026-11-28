@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, FieldLabel, FilterTabs, InputField, Notice, SectionTitle, StatusChip, formatDate } from '@shared/ui'
+import { Button, ChipButton, FieldLabel, FilterTabs, GlowButton, InputField, Notice, SectionTitle, StatusChip, formatDate, formatPoints } from '@shared/ui'
 import { AdminPage, TableCard } from '../components/AdminLayout'
-import { apiGet, apiPost, listData } from '../lib/api'
+import { apiGet, apiPatch, apiPost, listData } from '../lib/api'
 import { getAdminSession } from '../lib/auth'
+import { SALE_MAX } from '../lib/limits'
 
 type QrStatus = 'ACTIVO' | 'UTILIZADO' | 'EXPIRADO' | 'CANCELADO'
 
@@ -50,6 +51,13 @@ type QrPreview = {
 
 const FREE_POINTS = 'Puntos libres'
 
+// Unidades maximas de un mismo producto en una compra (el mismo limite que aplica la API).
+const MAX_UNITS = 100
+
+// "2× Taco, Orden de Tacos": asi se nombra una compra en la vista del QR y en el listado.
+const describeItems = (items: { nombre: string; cantidad: number }[]) =>
+  items.map((item) => (item.cantidad > 1 ? `${item.cantidad}× ${item.nombre}` : item.nombre)).join(', ')
+
 type ListView = 'utiles' | 'sin_uso' | 'todos'
 
 // Vistas del listado. Por defecto no se muestran los QR que nadie canjeo, para que no lo saturen.
@@ -62,7 +70,7 @@ const LIST_VIEWS: { key: ListView; label: string; query: string; empty: string }
 function conceptOf(row: QrCode) {
   if (!row.productos || row.productos.length === 0) return FREE_POINTS
 
-  return row.productos.map((item) => (item.cantidad > 1 ? `${item.cantidad}× ${item.nombre}` : item.nombre)).join(', ')
+  return describeItems(row.productos)
 }
 
 const expirationOf = (value: string | null) => (value ? new Date(value).getTime() : null)
@@ -86,10 +94,19 @@ export function QrManagementPage() {
   const [preview, setPreview] = useState<QrPreview | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [loadingPreviewId, setLoadingPreviewId] = useState<number | null>(null)
-  // 'free' mientras se genera por puntos, o el id del producto que se esta generando.
-  const [busy, setBusy] = useState<'free' | number | null>(null)
+  // Que se esta haciendo: generar por puntos, generar la compra o cancelar el QR que se muestra.
+  const [busy, setBusy] = useState<'free' | 'cart' | 'cancel' | null>(null)
+  // Compra en curso del negocio: id de producto -> unidades. Toda la compra sale en un solo QR.
+  const [cart, setCart] = useState<Record<number, number>>({})
+  const previewRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState<ListView>('utiles')
   const currentView = LIST_VIEWS.find((option) => option.key === view) ?? LIST_VIEWS[0]
+
+  const lines = products.filter((product) => (cart[product.id] ?? 0) > 0)
+  const cartPoints = lines.reduce((sum, product) => sum + product.puntos * cart[product.id], 0)
+  const cartUnits = lines.reduce((sum, product) => sum + cart[product.id], 0)
+  // Tope por venta (la API tambien lo aplica). Una sola unidad de un producto siempre se puede vender.
+  const overLimit = cartPoints > SALE_MAX && cartUnits > 1
 
   const loadQrCodes = async (query = currentView.query) => {
     try {
@@ -130,6 +147,13 @@ export function QrManagementPage() {
     return () => window.clearInterval(timer)
   }, [preview])
 
+  // El QR dura 30 segundos: al mostrarlo se lleva a la vista para que el cliente lo escanee sin buscarlo.
+  useEffect(() => {
+    if (!preview) return
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    previewRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
+  }, [preview])
+
   async function showQr(qr: Pick<QrCode, 'id' | 'fecha_expiracion'>, concept: string) {
     setLoadingPreviewId(qr.id)
 
@@ -143,22 +167,58 @@ export function QrManagementPage() {
     }
   }
 
-  // Un producto: el QR lleva los puntos que el producto tiene asignados (los decide el servidor).
-  async function generateFromProduct(product: Product) {
+  // Suma o quita unidades de un producto en la compra; al llegar a 0 sale de la lista.
+  function changeQuantity(productId: number, delta: number) {
     setMessage('')
     setError('')
-    setBusy(product.id)
+    setCart((current) => {
+      const quantity = Math.max(0, Math.min(MAX_UNITS, (current[productId] ?? 0) + delta))
+      const next = { ...current, [productId]: quantity }
+      if (quantity === 0) delete next[productId]
+
+      return next
+    })
+  }
+
+  // Toda la compra en un solo QR: lleva la suma de los puntos que cada producto tiene asignados (los decide el servidor).
+  async function generateFromCart() {
+    if (lines.length === 0 || overLimit) return
+    setMessage('')
+    setError('')
+    setBusy('cart')
+
+    const items = lines.map((product) => ({ producto_id: product.id, nombre: product.nombre, cantidad: cart[product.id] }))
 
     try {
-      const response = await apiPost<Sale>('/sales', { items: [{ producto_id: product.id, cantidad: 1 }] })
+      const response = await apiPost<Sale>('/sales', { items: items.map(({ producto_id, cantidad }) => ({ producto_id, cantidad })) })
       const qr = response.data.qr
-      if (!qr) throw new Error('No fue posible generar el QR del producto')
+      if (!qr) throw new Error('No fue posible generar el QR de la compra')
 
-      setMessage(`QR de ${product.nombre} generado: ${qr.puntos} puntos.`)
-      await showQr(qr, product.nombre)
+      setCart({})
+      setMessage(`QR generado: ${qr.puntos} puntos por ${cartUnits} ${cartUnits === 1 ? 'producto' : 'productos'}.`)
+      await showQr(qr, describeItems(items))
       await loadQrCodes()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible generar el QR del producto')
+      setError(err instanceof Error ? err.message : 'No fue posible generar el QR de la compra')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  // Cancela el QR que se esta mostrando (por ejemplo, si se armo mal la compra) para que nadie lo canjee.
+  async function cancelQr() {
+    if (!preview) return
+    setMessage('')
+    setError('')
+    setBusy('cancel')
+
+    try {
+      await apiPatch(`/qr/${preview.image.qr_id}/cancel`, {})
+      setPreview(null)
+      setMessage('QR cancelado: ya no se puede canjear.')
+      await loadQrCodes()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No fue posible cancelar el QR')
     } finally {
       setBusy(null)
     }
@@ -207,7 +267,7 @@ export function QrManagementPage() {
           <p className="mt-1 text-xs text-white/40">
             {isGeneral
               ? 'Elige el negocio y los puntos. El QR expira automáticamente en 30 segundos.'
-              : 'Toca un producto para generar su QR con los puntos que tiene asignados. El QR expira automáticamente en 30 segundos.'}
+              : 'Toca los productos que compró el cliente (cada toque suma uno) y genera un solo QR por toda la compra. El QR expira automáticamente en 30 segundos.'}
           </p>
         </div>
 
@@ -215,19 +275,37 @@ export function QrManagementPage() {
           <div className="flex flex-col gap-3">
             <SectionTitle className="text-white/40">Productos</SectionTitle>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-              {products.map((product) => (
-                <button
-                  className="flex flex-col items-start gap-1 rounded-xl px-4 py-3 text-left transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={busy !== null}
-                  key={product.id}
-                  onClick={() => void generateFromProduct(product)}
-                  style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.14), #111827)', border: '1px solid rgba(245,158,11,0.35)' }}
-                  type="button"
-                >
-                  <span className="w-full truncate font-display text-sm font-bold text-white">{product.nombre}</span>
-                  <span className="font-mono-game text-xs font-bold text-yellow-400">{busy === product.id ? 'Generando...' : `${product.puntos} pts`}</span>
-                </button>
-              ))}
+              {products.map((product) => {
+                const quantity = cart[product.id] ?? 0
+
+                return (
+                  <button
+                    aria-label={`Agregar ${product.nombre}, ${product.puntos} puntos${quantity > 0 ? ` (llevas ${quantity})` : ''}`}
+                    className="relative flex flex-col items-start gap-1 rounded-xl px-4 py-3 text-left transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={busy !== null || quantity >= MAX_UNITS}
+                    key={product.id}
+                    onClick={() => changeQuantity(product.id, 1)}
+                    style={{
+                      background: `linear-gradient(135deg, rgba(245,158,11,${quantity > 0 ? 0.28 : 0.14}), #111827)`,
+                      border: `1px solid rgba(245,158,11,${quantity > 0 ? 0.8 : 0.35})`,
+                    }}
+                    type="button"
+                  >
+                    <span className="w-full truncate font-display text-sm font-bold text-white">{product.nombre}</span>
+                    <span className="font-mono-game text-xs font-bold text-yellow-400">{product.puntos} pts</span>
+                    {/* Unidades de este producto que ya estan en la compra. */}
+                    {quantity > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -right-1.5 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 font-mono-game text-xs font-bold"
+                        style={{ background: '#f59e0b', color: '#1c1300' }}
+                      >
+                        {quantity}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
             {products.length === 0 && (
               <p className="text-sm text-white/40">
@@ -237,6 +315,75 @@ export function QrManagementPage() {
                 </Link>{' '}
                 y aparecerán aquí como botones.
               </p>
+            )}
+
+            {lines.length > 0 && (
+              <section aria-label="Compra del cliente" className="flex flex-col gap-3 rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div className="flex items-center justify-between gap-3">
+                  <SectionTitle className="text-white/40">Compra del cliente</SectionTitle>
+                  <ChipButton disabled={busy !== null} onClick={() => setCart({})}>
+                    Vaciar
+                  </ChipButton>
+                </div>
+
+                <ul className="flex flex-col gap-3">
+                  {lines.map((product) => (
+                    <li className="flex items-center gap-3" key={product.id}>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-white">{product.nombre}</p>
+                        <p className="font-mono-game text-xs text-white/40">
+                          {cart[product.id]} × {product.puntos} = <span className="text-yellow-400">{formatPoints(product.puntos * cart[product.id])} pts</span>
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          aria-label={`Quitar un ${product.nombre}`}
+                          className="h-10 w-10 rounded-xl font-display text-lg font-bold text-white transition-all active:scale-90 disabled:opacity-40"
+                          disabled={busy !== null}
+                          onClick={() => changeQuantity(product.id, -1)}
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
+                          type="button"
+                        >
+                          −
+                        </button>
+                        <span aria-live="polite" className="w-8 text-center font-mono-game text-base font-bold text-white">
+                          {cart[product.id]}
+                        </span>
+                        <button
+                          aria-label={`Agregar un ${product.nombre}`}
+                          className="h-10 w-10 rounded-xl font-display text-lg font-bold text-white transition-all active:scale-90 disabled:opacity-40"
+                          disabled={busy !== null || cart[product.id] >= MAX_UNITS}
+                          onClick={() => changeQuantity(product.id, 1)}
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
+                          type="button"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="flex items-center justify-between gap-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span className="font-display text-sm font-bold text-white">
+                    Puntos para el cliente
+                    <span className="ml-2 font-normal text-white/40">
+                      {cartUnits} {cartUnits === 1 ? 'producto' : 'productos'}
+                    </span>
+                  </span>
+                  <span className="font-mono-game text-xl font-bold text-yellow-400">{formatPoints(cartPoints)}</span>
+                </div>
+
+                {overLimit && (
+                  <Notice tone="error">
+                    Un QR no puede dar más de {SALE_MAX} puntos. Quita productos y genera otro QR con el resto de la compra.
+                  </Notice>
+                )}
+
+                <GlowButton className="w-full tracking-widest" compact disabled={busy !== null || overLimit} onClick={() => void generateFromCart()}>
+                  {busy === 'cart' ? 'GENERANDO...' : 'GENERAR QR'}
+                </GlowButton>
+              </section>
             )}
           </div>
         )}
@@ -265,12 +412,12 @@ export function QrManagementPage() {
       </div>
 
       {preview && (
-        <div className="pb-card flex flex-col gap-4 rounded-2xl p-5 anim-scale-in">
-          <div className="flex items-center justify-between">
-            <p className="font-display text-base font-bold tracking-wide text-white">
+        <div className="pb-card flex flex-col gap-4 rounded-2xl p-5 anim-scale-in" ref={previewRef}>
+          <div className="flex items-start justify-between gap-3">
+            <p className="min-w-0 break-words font-display text-base font-bold tracking-wide text-white">
               QR #{preview.image.qr_id} · {preview.concept}
             </p>
-            <button className="font-display text-xs font-semibold tracking-wide text-white/40 hover:text-white/70" onClick={() => setPreview(null)} type="button">
+            <button className="shrink-0 font-display text-xs font-semibold tracking-wide text-white/40 hover:text-white/70" onClick={() => setPreview(null)} type="button">
               Cerrar
             </button>
           </div>
@@ -296,6 +443,12 @@ export function QrManagementPage() {
               <p>
                 Token: <span className="break-all font-mono-game text-xs text-white">{preview.image.token}</span>
               </p>
+              {/* Mientras siga vigente se puede anular, por ejemplo si la compra se armo mal. */}
+              {previewActive && !previewExpired && (
+                <ChipButton className="mt-1 self-start" disabled={busy !== null} onClick={() => void cancelQr()} tone="red">
+                  {busy === 'cancel' ? 'Cancelando...' : 'Cancelar QR'}
+                </ChipButton>
+              )}
             </div>
           </div>
         </div>
